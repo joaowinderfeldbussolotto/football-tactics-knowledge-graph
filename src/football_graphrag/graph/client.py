@@ -33,7 +33,7 @@ from graphiti_core.nodes import EpisodeType
 from football_graphrag.config import Settings
 from football_graphrag.graph.edges import EDGE_TYPE_MAP, EDGE_TYPES
 from football_graphrag.graph.entities import ENTITY_TYPES
-from football_graphrag.ingestion.pipeline import DATA_PROCESSED_DIR
+from football_graphrag.ingestion.pipeline import DATA_PROCESSED_DIR, load_match_summary
 from football_graphrag.llm.provider import build_graphiti as _build_graphiti
 
 logger = logging.getLogger(__name__)
@@ -54,12 +54,6 @@ def build_graphiti(settings: Settings) -> Graphiti:
     """Reexporta `llm.provider.build_graphiti` por conveniência (ver seção 5.1
     do plano: a escolha de provedor não deve vazar para fora de `llm/`)."""
     return _build_graphiti(settings)
-
-
-async def ensure_indices(graphiti: Graphiti) -> None:
-    """Cria índices/constraints do Neo4j se ainda não existirem. Idempotente,
-    chamar uma vez no startup da API (ver `api/main.py`)."""
-    await graphiti.build_indices_and_constraints()
 
 
 async def get_match_facts(
@@ -157,6 +151,68 @@ async def ingest_possession_phase(
     return PhaseIngestSummary(match_id=match_id, phase_id=phase_id, n_actions=len(phase_actions), result=result)
 
 
+def build_match_summary_episode_body(summary: dict) -> str:
+    """Narrativa comparativa com PPDA/field tilt/VAEP agregados por time.
+
+    Sem isso, esses números só existem em `{match_id}_summary.json`, fora do
+    grafo: nenhuma pergunta sobre pressão ou dominância territorial pode ser
+    respondida via `/report` ou `/ask`, porque o texto de nenhum episode de
+    fase de posse os menciona (eles são agregados de partida/período, não de
+    ação). Comparar os dois times no mesmo texto também dá ao LLM o contexto
+    necessário para extrair `Time -[Pressiona]-> Time` (ver `EDGE_TYPE_MAP`).
+    """
+    lines = ["Resumo tático agregado da partida (tempo integral), por time."]
+    for team_summary in summary.get("team_summaries", []):
+        team_id = team_summary.get("team_id")
+        team_name = summary.get("teams", {}).get(team_id, {}).get("name", team_id)
+        parts = [team_name]
+        if team_summary.get("ppda") is not None:
+            parts.append(
+                f"PPDA {team_summary['ppda']:.2f} "
+                "(passes permitidos por ação defensiva; quanto menor, mais intensa a pressão exercida por este time)"
+            )
+        if team_summary.get("field_tilt_pct") is not None:
+            parts.append(f"field tilt {team_summary['field_tilt_pct']:.1f}% (dominância no terço de ataque)")
+        if team_summary.get("vaep_total") is not None:
+            parts.append(f"VAEP total {team_summary['vaep_total']:.3f}")
+        lines.append(" | ".join(parts))
+    return "\n".join(lines)
+
+
+async def ingest_match_summary_facts(
+    graphiti: Graphiti,
+    match_id: str,
+    summary: dict,
+    kickoff: datetime = _DEFAULT_KICKOFF,
+) -> PhaseIngestSummary:
+    """Ingere um único episode extra com os agregados por time da partida.
+
+    `reference_time` fica depois de qualquer fase de posse real (2 tempos de
+    45min cabem em `_phase_reference_time` com `period_id<=2`), então este
+    fato aparece como algo dito "depois" da partida — condizente com só
+    fazer sentido chamar isso em modo batch, com a partida já encerrada.
+    """
+    reference_time = kickoff + timedelta(minutes=200)
+    body = build_match_summary_episode_body(summary)
+
+    result = await graphiti.add_episode(
+        name=f"{match_id}-team-summary",
+        episode_body=body,
+        source_description=f"StatsBomb match {match_id}, resumo tático agregado (tempo integral)",
+        reference_time=reference_time,
+        source=EpisodeType.text,
+        group_id=group_id_for_match(match_id),
+        entity_types=ENTITY_TYPES,
+        edge_types=EDGE_TYPES,
+        edge_type_map=EDGE_TYPE_MAP,
+    )
+    logger.info(
+        "Ingerido resumo agregado da partida %s: %d nós, %d arestas novas",
+        match_id, len(result.nodes), len(result.edges),
+    )
+    return PhaseIngestSummary(match_id=match_id, phase_id=-1, n_actions=0, result=result)
+
+
 async def ingest_match_batch(
     graphiti: Graphiti,
     match_id: str,
@@ -164,7 +220,11 @@ async def ingest_match_batch(
     kickoff: datetime = _DEFAULT_KICKOFF,
 ) -> list[PhaseIngestSummary]:
     """Modo batch (seção 6.4): itera o parquet inteiro, fase por fase, em
-    ordem cronológica."""
+    ordem cronológica, e depois injeta os agregados por time (PPDA, field
+    tilt, VAEP) como um episode final — ver `ingest_match_summary_facts`.
+    Só roda em modo batch, nunca em replay: injetar o total da partida no
+    meio de uma simulação "ao vivo" vazaria informação do futuro pro grafo
+    incremental."""
     parquet_path = processed_dir / f"{match_id}.parquet"
     if not parquet_path.exists():
         raise FileNotFoundError(
@@ -178,4 +238,13 @@ async def ingest_match_batch(
     for phase_id, phase_actions in actions.groupby("phase_id", sort=True):
         summary = await ingest_possession_phase(graphiti, match_id, int(phase_id), phase_actions, kickoff)
         summaries.append(summary)
+
+    match_summary = load_match_summary(match_id, processed_dir)
+    if match_summary is not None:
+        summaries.append(await ingest_match_summary_facts(graphiti, match_id, match_summary, kickoff))
+    else:
+        logger.warning(
+            "Sem %s_summary.json em %s; PPDA/field tilt não serão citáveis no grafo desta partida.",
+            match_id, processed_dir,
+        )
     return summaries

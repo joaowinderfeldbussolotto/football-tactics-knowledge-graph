@@ -36,6 +36,13 @@ python scripts/download_statsbomb.py 3869151      # cacheia o JSON bruto em data
 python scripts/run_ingestion.py 3869151           # gera data/processed/3869151.parquet
 ```
 
+`GET /report/{match_id}` sempre gera a mesma síntese completa da partida.
+Pra perguntas específicas ("quem pressionou mais no 2º tempo?", "qual foi o
+corredor mais usado pelo Barcelona?"), use `GET /ask/{match_id}?q=...`: ele
+roda a mesma busca híbrida sem LLM, mas com a sua pergunta em vez de uma
+query fixa, e o agente responde só com base nos fatos recuperados — se o
+grafo não tiver o fato, ele diz isso em vez de inventar.
+
 Depois disso:
 
 ```bash
@@ -44,6 +51,8 @@ curl "http://localhost:8000/report/3869151"                      # relatório p�
 
 curl -X POST "http://localhost:8000/replay/3869151/start"        # simula ingestão ao vivo
 curl "http://localhost:8000/live/3869151/insights"                # consulta incremental
+
+curl -G "http://localhost:8000/ask/3869151" --data-urlencode "q=quem pressionou mais?"
 
 curl http://localhost:8000/health
 ```
@@ -55,7 +64,7 @@ nomeado do Neo4j).
 
 ```bash
 pip install -e ".[dev]"
-pytest tests/                              # 17 testes, offline, sem Neo4j/Redis/LLM
+pytest tests/                              # 21 testes, offline, sem Neo4j/Redis/LLM
 python scripts/download_statsbomb.py 15946
 python scripts/run_ingestion.py 15946
 uvicorn football_graphrag.api.main:app --reload
@@ -100,3 +109,17 @@ sem LLM) + dois scorers LLM-as-judge (`retrieval_accuracy`,
   processos de fato distintos, como no desenho de produção). Se isso virar
   um obstáculo, a alternativa mais simples é uma `asyncio.Queue` em memória
   num único processo — ver seção 6.5 do plano.
+- **PPDA/field tilt são injetados como um episode extra, só em modo batch**:
+  essas métricas são agregados por time/partida, não por ação, então nunca
+  apareceriam no texto de nenhum episode de fase de posse.
+  `graph/client.py::ingest_match_summary_facts` injeta um episode adicional
+  com esses números depois de todas as fases, só no modo batch (injetar o
+  total da partida no meio de um replay "ao vivo" vazaria informação do
+  futuro pro grafo incremental).
+- **Índices do Neo4j: não chamamos `build_indices_and_constraints()`
+  explicitamente**: o `Neo4jDriver` do graphiti-core já agenda essa criação
+  sozinho como task em background assim que é construído. Como `api` e
+  `replay-worker` constroem cada um seu próprio driver, é normal ver um
+  `EquivalentSchemaRuleAlreadyExists` nos logs na subida — o graphiti-core
+  já trata essa corrida como benigna internamente
+  (`Neo4jDriver._execute_index_query`); é só ruído de log, não um erro real.

@@ -82,6 +82,21 @@ def _build_match_summary(ctx: MatchContext, processed: pd.DataFrame) -> dict:
     }
 
 
+def load_match_summary(match_id: str, processed_dir: Path = DATA_PROCESSED_DIR) -> dict | None:
+    """Lê `{match_id}_summary.json` de volta, sem recalcular nada.
+
+    Usado por `graph.client.ingest_match_batch` para injetar PPDA/field
+    tilt/VAEP agregados por time no grafo (ver seção 6.3 do plano). Retorna
+    `None` se o arquivo não existir, em vez de levantar — uma partida
+    processada por uma versão anterior do pipeline pode não ter esse
+    sidecar ainda, e isso não deveria impedir a ingestão por fase de posse.
+    """
+    summary_path = processed_dir / f"{match_id}_summary.json"
+    if not summary_path.exists():
+        return None
+    return json.loads(summary_path.read_text())
+
+
 def process_match(match_id: str, vaep_model=None, raw_dir: Path | None = None) -> tuple[pd.DataFrame, MatchContext]:
     """Baixa (se preciso), converte para SPADL e enriquece uma única partida.
 

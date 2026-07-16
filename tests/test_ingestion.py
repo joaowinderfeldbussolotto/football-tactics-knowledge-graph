@@ -1,7 +1,23 @@
+import json
+
 import pandas as pd
 import pytest
 
 from football_graphrag.ingestion import tactical_metrics as tm
+from football_graphrag.ingestion.pipeline import load_match_summary
+
+
+def test_load_match_summary_reads_existing_sidecar(tmp_path):
+    (tmp_path / "15946_summary.json").write_text(json.dumps({"match_id": "15946", "team_summaries": []}))
+
+    summary = load_match_summary("15946", processed_dir=tmp_path)
+
+    assert summary is not None
+    assert summary["match_id"] == "15946"
+
+
+def test_load_match_summary_returns_none_when_missing(tmp_path):
+    assert load_match_summary("99999", processed_dir=tmp_path) is None
 
 
 @pytest.fixture

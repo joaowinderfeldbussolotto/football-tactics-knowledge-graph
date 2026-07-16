@@ -1,10 +1,21 @@
 """App FastAPI da PoC (seção 7 do plano).
 
-O startup faz quatro coisas, nessa ordem: liga o tracing (Langfuse + OTel),
+O startup faz três coisas, nessa ordem: liga o tracing (Langfuse + OTel),
 instrumenta todos os agentes PydanticAI de uma vez (`Agent.instrument_all()`,
-sem decorator manual por rota), constrói o cliente Graphiti e cria o
-semáforo compartilhado que limita a concorrência de chamadas de LLM (seção
-5.2 — o mesmo `SEMAPHORE_LIMIT` que o Graphiti já usa internamente).
+sem decorator manual por rota), e constrói o cliente Graphiti + o semáforo
+compartilhado que limita a concorrência de chamadas de LLM (seção 5.2 — o
+mesmo `SEMAPHORE_LIMIT` que o Graphiti já usa internamente).
+
+Não chamamos `build_indices_and_constraints()` explicitamente aqui: o
+`Neo4jDriver` do graphiti-core já agenda essa criação sozinho, como uma task
+em background, assim que é construído (dentro de `build_graphiti`). Chamar
+de novo aqui só duplicava a corrida contra a mesma criação de índice — o que
+o `docker compose up` real deste projeto expôs como um `EquivalentSchemaRuleAlreadyExists`
+nos logs do `replay-worker` (o container `api` e o `replay-worker` constroem
+cada um seu próprio driver, e cada um agenda a própria criação de índices).
+O graphiti-core já trata essa corrida como benigna internamente
+(`Neo4jDriver._execute_index_query` ignora esse erro específico); a única
+coisa que dependia de nós era não adicionar uma terceira tentativa.
 """
 
 from __future__ import annotations
@@ -17,12 +28,13 @@ import redis.asyncio as redis
 from fastapi import FastAPI
 from pydantic_ai import Agent
 
+from football_graphrag.api.routes_ask import router as ask_router
 from football_graphrag.api.routes_ingest import router as ingest_router
 from football_graphrag.api.routes_live import router as live_router
 from football_graphrag.api.routes_report import router as report_router
 from football_graphrag.api.schemas import HealthResponse
 from football_graphrag.config import get_settings
-from football_graphrag.graph.client import build_graphiti, ensure_indices
+from football_graphrag.graph.client import build_graphiti
 from football_graphrag.observability.langfuse_setup import setup_langfuse
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -38,10 +50,6 @@ async def lifespan(app: FastAPI):
     Agent.instrument_all()
 
     app.state.graphiti = build_graphiti(settings)
-    try:
-        await ensure_indices(app.state.graphiti)
-    except Exception:
-        logger.exception("Não foi possível garantir índices do Neo4j no startup (ele já subiu?).")
 
     app.state.llm_semaphore = asyncio.Semaphore(settings.semaphore_limit)
     app.state.replay_producer_tasks = {}
@@ -55,6 +63,7 @@ app = FastAPI(title="Football GraphRAG PoC", lifespan=lifespan)
 app.include_router(ingest_router)
 app.include_router(report_router)
 app.include_router(live_router)
+app.include_router(ask_router)
 
 
 @app.get("/health", response_model=HealthResponse)

@@ -4,6 +4,7 @@ import pandas as pd
 
 from football_graphrag.graph.client import (
     _phase_reference_time,
+    build_match_summary_episode_body,
     build_phase_episode_body,
     group_id_for_match,
 )
@@ -48,3 +49,42 @@ def test_build_phase_episode_body_mentions_key_facts():
     assert "progressivo" in body
     assert "shot" in body
     assert "1º tempo" in body
+
+
+def test_build_match_summary_episode_body_mentions_ppda_and_field_tilt():
+    # Regressão: PPDA/field tilt são agregados por time/partida, nunca
+    # aparecem em `build_phase_episode_body` (que só vê ações individuais).
+    # Sem este episode extra, nenhuma pergunta sobre pressão teria como ser
+    # respondida via /report ou /ask, porque o fato nunca entraria no grafo.
+    summary = {
+        "teams": {
+            "217": {"name": "Barcelona", "ground": "home"},
+            "206": {"name": "Deportivo Alavés", "ground": "away"},
+        },
+        "team_summaries": [
+            {"team_id": "217", "ppda": 7.0, "field_tilt_pct": 72.89, "vaep_total": 2.5316},
+            {"team_id": "206", "ppda": 16.78, "field_tilt_pct": 27.11, "vaep_total": 1.3174},
+        ],
+    }
+
+    body = build_match_summary_episode_body(summary)
+
+    assert "Barcelona" in body
+    assert "Deportivo Alavés" in body
+    assert "PPDA 7.00" in body
+    assert "PPDA 16.78" in body
+    assert "field tilt 72.9%" in body
+    assert "field tilt 27.1%" in body
+
+
+def test_build_match_summary_episode_body_skips_missing_metrics():
+    summary = {
+        "teams": {"1": {"name": "Time A", "ground": "home"}},
+        "team_summaries": [{"team_id": "1", "ppda": None, "field_tilt_pct": None, "vaep_total": None}],
+    }
+
+    body = build_match_summary_episode_body(summary)
+
+    assert "Time A" in body
+    assert "PPDA" not in body
+    assert "field tilt" not in body

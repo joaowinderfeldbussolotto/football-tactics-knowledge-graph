@@ -43,6 +43,15 @@ class LiveInsightsResponse(BaseModel):
     n_facts_retrieved: int
 
 
+class AskResponse(BaseModel):
+    match_id: str
+    question: str
+    report: TacticalReport
+    retrieval_ms: float
+    generation_ms: float
+    n_facts_retrieved: int
+
+
 class HealthResponse(BaseModel):
     status: str
     neo4j: bool
