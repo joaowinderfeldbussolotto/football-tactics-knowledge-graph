@@ -123,3 +123,19 @@ sem LLM) + dois scorers LLM-as-judge (`retrieval_accuracy`,
   `EquivalentSchemaRuleAlreadyExists` nos logs na subida — o graphiti-core
   já trata essa corrida como benigna internamente
   (`Neo4jDriver._execute_index_query`); é só ruído de log, não um erro real.
+- **Embedder envolvido num deduplicador (`llm/provider.py::_DedupingEmbedder`)**:
+  achado rodando ingestão de verdade — fases de posse mencionam o mesmo
+  jogador mais de uma vez, então o LLM de extração pode devolver o mesmo
+  nome de entidade repetido antes da deduplicação do Graphiti; a API de
+  embeddings da OpenAI devolve menos vetores do que strings quando a lista
+  tem duplicatas exatas, e o graphiti-core assume 1:1
+  (`zip(extracted_nodes, query_vectors, strict=True)`), quebrando com
+  `ValueError: zip() argument 2 is shorter than argument 1`. O wrapper
+  dedup/reexpande antes de chamar a API de verdade.
+- **`Dockerfile` usa `uv`, não `pip`, para instalar dependências**: medido
+  nesta sessão — `uv pip install` resolve e instala as ~100 dependências do
+  projeto em ~13-20s; o resolver do `pip` puro ainda estava fazendo
+  backtracking só nas versões do `langfuse` depois de 2m30s+. O layer de
+  instalação também foi separado do `COPY src/` (com um pacote-placeholder
+  vazio antes), pra mudanças de código não invalidarem o cache do layer
+  caro de dependências a cada `docker compose up --build`.
