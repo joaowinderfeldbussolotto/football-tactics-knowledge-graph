@@ -11,6 +11,7 @@ from __future__ import annotations
 from anthropic import AsyncAnthropic
 from google import genai
 from graphiti_core import Graphiti
+from graphiti_core.cross_encoder.client import CrossEncoderClient
 from graphiti_core.driver.neo4j_driver import Neo4jDriver
 from graphiti_core.embedder.client import EmbedderClient
 from graphiti_core.embedder.gemini import GeminiEmbedder, GeminiEmbedderConfig
@@ -88,6 +89,25 @@ def build_embedder(settings: Settings) -> EmbedderClient:
     raise ValueError(f"EMBEDDER_PROVIDER desconhecido: {settings.embedder_provider}")
 
 
+class _PassthroughCrossEncoder(CrossEncoderClient):
+    """Cross-encoder no-op: mantém a ordem de entrada, com scores decrescentes.
+
+    O Graphiti sempre exige um `CrossEncoderClient` construído no `__init__`
+    (por padrão, um `OpenAIRerankerClient()` sem argumentos — que quebra se
+    `OPENAI_API_KEY` não estiver setada, mesmo rodando 100% em outro
+    provedor). Essa PoC nunca depende de reranking via cross-encoder: a
+    recuperação usada em `graph.client.get_match_facts` é `graphiti.search()`,
+    que já usa RRF (bm25 + embeddings) sem chamar LLM — exatamente para
+    cumprir o critério de retrieval <1s da seção 9. Este passthrough existe
+    só para não acoplar a troca de `LLM_PROVIDER` à disponibilidade de um
+    reranker de um provedor específico.
+    """
+
+    async def rank(self, query: str, passages: list[str]) -> list[tuple[str, float]]:
+        n = max(len(passages), 1)
+        return [(p, 1.0 - i / n) for i, p in enumerate(passages)]
+
+
 def build_graphiti(settings: Settings) -> Graphiti:
     """Monta o Graphiti com o driver Neo4j + cliente de LLM + embedder.
 
@@ -104,6 +124,7 @@ def build_graphiti(settings: Settings) -> Graphiti:
         graph_driver=driver,
         llm_client=build_graphiti_llm_client(settings),
         embedder=build_embedder(settings),
+        cross_encoder=_PassthroughCrossEncoder(),
         max_coroutines=settings.semaphore_limit,
     )
 

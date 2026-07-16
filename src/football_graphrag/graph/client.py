@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pandas as pd
 from graphiti_core import Graphiti
+from graphiti_core.edges import EntityEdge
 from graphiti_core.graphiti import AddEpisodeResults
 from graphiti_core.nodes import EpisodeType
 
@@ -59,6 +60,20 @@ async def ensure_indices(graphiti: Graphiti) -> None:
     """Cria índices/constraints do Neo4j se ainda não existirem. Idempotente,
     chamar uma vez no startup da API (ver `api/main.py`)."""
     await graphiti.build_indices_and_constraints()
+
+
+async def get_match_facts(
+    graphiti: Graphiti,
+    match_id: str,
+    query: str,
+    num_results: int = 15,
+) -> list[EntityEdge]:
+    """Busca híbrida (bm25 + similaridade de embeddings, sem LLM) restrita ao
+    `group_id` da partida. Usada tanto para os "fatos candidatos" que
+    embasam `TacticalReport.cited_metrics` (seções 7/8) quanto para o
+    retrieval de `/live/{match_id}/insights` (seção 9, critério 3: deve
+    responder em menos de 1s)."""
+    return await graphiti.search(query=query, group_ids=[group_id_for_match(match_id)], num_results=num_results)
 
 
 @dataclass
