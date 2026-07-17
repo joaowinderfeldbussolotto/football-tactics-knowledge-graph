@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- projeto: artefatos locais ---
+data/raw/
+data/processed/
+data/models/
+plugins-cache/

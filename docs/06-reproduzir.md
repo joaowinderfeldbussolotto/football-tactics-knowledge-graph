@@ -1,0 +1,138 @@
+# 06 — Reproduzir do zero
+
+## Pré-requisitos
+
+- Docker + Docker Compose
+- (opcional, para rodar fora do container) Python 3.11 e [uv](https://docs.astral.sh/uv/)
+
+## 1. Clonar e configurar
+
+```bash
+git clone <repo>
+cd football-tactics-knowledge-graph
+cp .env.example .env
+# editar .env: NEO4J_PASSWORD e, para /report, /ask e avaliação,
+# LLM_PROVIDER + LLM_API_KEY + LLM_MODEL + EMBEDDER_*
+```
+
+Sem chaves de LLM tudo funciona **exceto** `/report`, `/ask`, indexação Graphiti e a
+avaliação com juízes — as camadas 0, 1 e 2 são 100% determinísticas e não usam LLM.
+
+## 2. Subir o stack
+
+```bash
+docker compose up -d
+```
+
+Saída esperada: serviço `neo4j` fica `healthy` (healthcheck `RETURN 1`), depois `api`
+sobe em `http://localhost:8000` (docs em `/docs`).
+
+Validar o GDS na primeira subida (Neo4j Browser em `http://localhost:7474`, usuário
+`neo4j`, senha do `.env`):
+
+```cypher
+RETURN gds.version();   // esperado: "2.13.2"
+RETURN apoc.version();  // esperado: "5.26.0"
+```
+
+**Pegadinha clássica dos plugins:** `NEO4J_PLUGINS` só baixa os plugins **antes da
+primeira inicialização do volume**. Se o volume `neo4j_data` já existe de uma subida
+anterior sem plugin, faça `docker compose down -v` e suba de novo.
+
+**Ambiente sem acesso ao GitHub/graphdatascience.ninja** (ver ADR-6): resolva os jars do
+Maven Central com um pom contendo `org.neo4j.gds:proc`, `org.neo4j.gds:opengds-extension`,
+`org.neo4j.gds:open-model-catalog` e `org.neo4j.gds:open-write-services` (versão 2.13.2) +
+`org.neo4j.procedure:apoc-core:5.26.0` (classifier `core`), suba `commons-lang3` para
+3.18.0, e monte tudo em `/plugins` do container.
+
+## 3. Baixar dados e rodar a pipeline (camada 0)
+
+```bash
+# dentro do container da api (ou no venv local):
+docker compose exec api python scripts/run_pipeline.py
+```
+
+Saída esperada (primeira execução baixa as 16 partidas de treino e treina xT/VAEP, ~1 min;
+as seguintes usam cache e levam ~1,5 s por partida):
+
+```
+[3869685] 4527 eventos kloppy -> 2584 ações SPADL (537 fases de posse) em 53.0s
+[3869519] 3891 eventos kloppy -> 2272 ações SPADL (346 fases de posse) em 1.5s
+[3869354] 3351 eventos kloppy -> 1895 ações SPADL (326 fases de posse) em 1.2s
+```
+
+Artefatos em `data/processed/` (parquet + `_phases` + `_windows` + `_pressures` +
+`_meta.json` + `_schema.json` por partida).
+
+## 4. Construir o grafo factual (camada 1)
+
+```bash
+docker compose exec api python scripts/build_graph.py
+```
+
+Saída esperada (final): `5351 escritas em ~7s` e stats com
+`PASSOU_PARA: 989, PRESSIONOU: 301, FaseDePosse: 537...`. Rodar duas vezes não muda as
+contagens (idempotente).
+
+## 5. Rodar a análise (camada 2)
+
+```bash
+docker compose exec api python scripts/run_analysis.py
+```
+
+Saída esperada:
+
+```
+[3869685] 24 padrões táticos: {'pivo_estrutural': 2, 'terceiro_homem': 6, ...}
+[3869519] 22 padrões táticos: ...
+[3869354] 23 padrões táticos: ...
+```
+
+## 6. Relatório e Q&A (camada 3 — exige chaves de LLM)
+
+```bash
+curl -X POST localhost:8000/analyze/3869685        # (re)gera padrões + indexa no Graphiti
+curl localhost:8000/report/3869685                  # relatório estruturado com citações
+curl -X POST localhost:8000/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"match_id": 3869685, "pergunta": "Qual jogador foi o gargalo estrutural da progressão da Argentina?"}'
+```
+
+Endpoints auxiliares sem LLM: `GET /health`, `GET /graph/3869685/stats`,
+`POST /ingest/{match_id}` (camadas 0+1 de uma partida nova).
+
+## 7. Avaliação
+
+```bash
+docker compose exec api python scripts/run_evaluation.py
+```
+
+Roda o golden dataset (10 perguntas) no sistema de grafo E no baseline vetorial plano,
+com fidelidade determinística + 2 juízes LLM, e salva
+`data/processed/eval_results.json` com a tabela comparativa por categoria
+(estrutural vs agregada).
+
+## 8. Testes
+
+```bash
+docker compose exec api pytest tests/ -q
+```
+
+Esperado: `22 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
+está disponível (rodam completos com o stack de pé e a pipeline executada).
+
+## Troca de provedor de LLM
+
+Editar apenas o `.env` (nenhum código):
+
+```bash
+LLM_PROVIDER=anthropic   # ou mistral, gemini
+LLM_API_KEY=...
+LLM_MODEL=claude-sonnet-5
+LLM_SMALL_MODEL=claude-haiku-4-5
+EMBEDDER_PROVIDER=mistral        # anthropic não tem API de embeddings
+EMBEDDER_API_KEY=...
+EMBEDDER_MODEL=mistral-embed
+```
+
+e reiniciar a api: `docker compose restart api`.
