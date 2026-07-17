@@ -8,7 +8,9 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 COPY scripts ./scripts
 
-RUN uv pip install --system --no-cache .
+# Editável: o pacote roda a partir de /app/src, então o bind mount de ./src
+# do docker-compose.override.yml passa a valer (hot-reload em dev funciona).
+RUN uv pip install --system --no-cache -e .
 
 EXPOSE 8000
 

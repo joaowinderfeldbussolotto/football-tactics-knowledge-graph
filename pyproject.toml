@@ -5,11 +5,16 @@ description = "PoC: grafo tático de futebol com insights não triviais (StatsBo
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "kloppy>=3.15",
+    # kloppy pinado: socceraction 1.5.3 quebra com kloppy >=3.17 (ADR-4)
+    "kloppy==3.16.0",
     "socceraction>=1.5",
     "statsbombpy>=1.13",
     "pandas>=2.0",
     "pyarrow>=15.0",
+    # multimethod 2.x quebra o pandera que o socceraction importa
+    "multimethod<2",
+    # xgboost: treino único do VAEP (ADR-3)
+    "xgboost>=2.0",
     "neo4j>=5.20",
     "graphiti-core>=0.11",
     "pydantic-ai-slim[openai,anthropic,google,mistral]>=0.2",
