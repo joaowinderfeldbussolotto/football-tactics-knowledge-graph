@@ -30,22 +30,42 @@ async def main() -> None:
         raise SystemExit("LLM_API_KEY ausente no .env: a avaliação usa o agente e os juízes")
     driver = db.make_driver(settings)
     match_ids = sorted({q.match_id for q in GOLDEN_QUESTIONS})
-    baseline_index = await baseline_rag.build_index(match_ids, settings.data_dir)
+    try:
+        baseline_index = await baseline_rag.build_index(match_ids, settings.data_dir)
+    except Exception as exc:
+        # ex.: cota diária de embeddings esgotada (free tier). O lado do grafo
+        # não usa embeddings — avalia só ele e registra o baseline como ausente.
+        logger.warning("baseline indisponível (%s); avaliando só o sistema de grafo", exc)
+        baseline_index = None
 
     results = []
     for q in GOLDEN_QUESTIONS:
         logger.info("pergunta %s", q.id)
         # --- sistema de grafo ---
         patterns, extra_facts, timings = await retrieval.retrieve_context(driver, q.match_id, q.pergunta)
-        graph_answer = await agents.answer_question(q.pergunta, patterns, extra_facts)
+        graph_answer = await agents.answer_question(q.pergunta, patterns, extra_facts, driver, q.match_id)
         fid = faithfulness.check_citations(driver, graph_answer.metricas_citadas)
+        qfid = faithfulness.check_queries(driver, graph_answer.consultas_executadas)
+        # o "contexto" do modo autônomo inclui as consultas executadas e seus resumos
         contexto_str = json.dumps(patterns, ensure_ascii=False, default=str)
+        if graph_answer.consultas_executadas:
+            contexto_str += "\n\nCONSULTAS EXECUTADAS NO GRAFO:\n" + "\n".join(
+                f"- {c.cypher} => {c.resultado_resumido}" for c in graph_answer.consultas_executadas
+            )
         graph_retrieval = await judges.judge_retrieval(q.pergunta, q.resposta_referencia, contexto_str)
         graph_insight = await judges.judge_insight(q.pergunta, q.resposta_referencia, graph_answer.resposta)
-        # --- baseline vetorial ---
-        base_answer, base_context = await baseline_rag.answer_with_baseline(baseline_index, q.pergunta)
-        base_retrieval = await judges.judge_retrieval(q.pergunta, q.resposta_referencia, "\n".join(base_context))
-        base_insight = await judges.judge_insight(q.pergunta, q.resposta_referencia, base_answer)
+        # --- baseline vetorial (opcional: exige embedder disponível) ---
+        if baseline_index is not None:
+            base_answer, base_context = await baseline_rag.answer_with_baseline(baseline_index, q.pergunta)
+            base_retrieval = await judges.judge_retrieval(q.pergunta, q.resposta_referencia, "\n".join(base_context))
+            base_insight = await judges.judge_insight(q.pergunta, q.resposta_referencia, base_answer)
+            baseline_result = {
+                "resposta": base_answer,
+                "retrieval_accuracy": base_retrieval.score,
+                "tactical_insight": base_insight.score,
+            }
+        else:
+            baseline_result = None
 
         results.append(
             {
@@ -56,15 +76,13 @@ async def main() -> None:
                 "grafo": {
                     "resposta": graph_answer.resposta,
                     "faithfulness": fid.score,
+                    "query_reexec": qfid.score,
+                    "n_consultas": len(graph_answer.consultas_executadas),
                     "retrieval_accuracy": graph_retrieval.score,
                     "tactical_insight": graph_insight.score,
                     "timings": timings,
                 },
-                "baseline": {
-                    "resposta": base_answer,
-                    "retrieval_accuracy": base_retrieval.score,
-                    "tactical_insight": base_insight.score,
-                },
+                "baseline": baseline_result,
             }
         )
 
@@ -77,11 +95,11 @@ async def main() -> None:
 
 def _summarize(results: list[dict]) -> dict:
     def avg(rows, system, metric):
-        vals = [r[system][metric] for r in rows]
+        vals = [r[system][metric] for r in rows if r[system] is not None]
         return round(sum(vals) / len(vals), 2) if vals else None
 
     by_cat = {}
-    for cat in ("estrutural", "agregada"):
+    for cat in ("estrutural", "factual", "agregada"):
         rows = [r for r in results if r["categoria"] == cat]
         by_cat[cat] = {
             "n": len(rows),

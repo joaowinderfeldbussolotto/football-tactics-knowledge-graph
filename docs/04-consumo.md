@@ -39,7 +39,22 @@ flowchart LR
     Q --> H[busca híbrida Graphiti\nsemântica + BM25 + travessia\nse credenciais configuradas]
     S & H --> CTX[contexto]
     CTX --> A[agente PydanticAI\noutput_type=RespostaTatica]
+    A <-->|"consultar_grafo(cypher)\nread-only, até 4x"| N[(Neo4j\ngrafo factual)]
 ```
+
+**Modo autônomo (ADR-8):** além dos padrões pré-calculados, o agente tem a ferramenta
+`consultar_grafo` — Cypher **somente-leitura** gerado pelo próprio LLM contra o grafo
+factual, com o schema completo no prompt de sistema. É isso que responde perguntas
+factuais que nenhum padrão cobre: gols, assistências, finalizações, contagens de passes,
+duplas, zonas, fases de posse. Três garantias mantêm a tese de pé:
+1. **quem calcula é o Neo4j** (agregação determinística) — o LLM decide *o que*
+   consultar, nunca faz aritmética de cabeça;
+2. **read-only de verdade**: transação READ do servidor + guarda sintática que recusa
+   cláusulas de escrita e `CALL` (procedures), com limite de linhas e timeout
+   (`graph/db.py::run_readonly`);
+3. **auditabilidade**: cada consulta usada volta na resposta
+   (`consultas_executadas`) e é re-executada pela checagem de fidelidade
+   (`faithfulness.check_queries`).
 
 **Por que filtro estruturado vem antes de busca semântica:** aprendizado validado por
 Heredia (2025): quando a pergunta nomeia uma entidade, resolução por identificador +
@@ -100,24 +115,46 @@ longo do jogo), não uma seção por padrão.
 ### Q&A (`api/agents.py::PROMPT_QA`)
 
 ```
-Você é um analista tático de futebol respondendo uma pergunta específica sobre
-uma partida. Recebe contexto recuperado do grafo da partida: padrões táticos
-calculados por algoritmos determinísticos e, às vezes, fatos factuais do grafo.
+Você é um analista de futebol respondendo perguntas sobre uma partida. Tem
+duas fontes, nesta ordem de preferência:
+
+1. PADRÕES TÁTICOS pré-calculados por algoritmos de grafo (vêm no contexto).
+   Use-os para perguntas táticas/estruturais; cite em metricas_citadas com
+   padrao_tatico_id (uid), nome_metrica, valor e algoritmo_origem EXATOS.
+2. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
+   grafo factual da partida. Use-a para perguntas factuais que os padrões não
+   cobrem: gols, assistências, finalizações, contagens de passes, pressões,
+   zonas, duplas, fases de posse. Registre CADA consulta usada em
+   consultas_executadas (cypher + resultado_resumido).
+
+[SCHEMA DO GRAFO — bloco agents.GRAPH_SCHEMA, com labels, propriedades e
+convenções, incluindo o aviso de não fazer join DEU_ASSISTENCIA×FINALIZOU]
 
 Regras invioláveis:
-1. Você NÃO calcula nada; responde apenas com o que está no contexto.
-2. Toda métrica citada entra em metricas_citadas com o padrao_tatico_id (uid),
-   nome_metrica, valor e algoritmo_origem EXATOS.
-3. Se o contexto não contém a resposta, diga isso explicitamente e marque
-   confianca=baixa. NÃO complete com conhecimento externo sobre a partida.
-4. Não mencione placar nem resultado, a menos que a pergunta seja sobre isso
-   e o dado esteja no contexto.
+1. TODO número e TODO fato da resposta vem de um padrão citado ou do
+   resultado de uma consulta registrada. NUNCA de memória — você não sabe
+   nada sobre a partida além do grafo: não acrescente placar agregado,
+   disputa de pênaltis, contexto histórico nem qualquer detalhe que as
+   consultas não retornaram. Se a consulta retornar vazio, diga que o grafo
+   não tem o dado (confianca=baixa); não complete com conhecimento externo.
+2. Filtre SEMPRE por match_id da partida em questão (vem no contexto).
+3. Máximo de 4 consultas por pergunta; prefira agregações (count, sum) com
+   LIMIT a listar linhas.
+4. Cuidado com joins que multiplicam linhas (um MATCH extra pode duplicar a
+   contagem): conte arestas diretamente e use COUNT(DISTINCT ...) quando
+   juntar dois padrões de aresta. Antes de responder, cheque se o número
+   faz sentido com o resultado bruto da consulta.
 Responda em português, direto ao ponto, em DOIS registros:
 - resposta: linguagem tática (tatiquês), com as métricas.
 - em_bom_portugues: a MESMA resposta em termos do dia a dia, sem jargão,
   como você explicaria para alguém que assiste futebol no bar — o que isso
   significava em campo, na prática.
 ```
+
+As regras 1 e 4 vêm de erros reais observados na validação (ADR-8): o modelo completou
+"3-3, pênaltis" de memória, e um join `DEU_ASSISTENCIA×FINALIZOU` multiplicou 1
+assistência por 3 gols do mesmo autor. A re-execução de consultas não pega erro
+semântico — a mitigação é orientação de consulta no prompt + schema anotado.
 
 ## Exemplo real de recuperação (sem LLM)
 
@@ -169,8 +206,11 @@ Uma pergunta por insight da seção 7 (o golden dataset em
 | Mudança de comportamento | "A Argentina mudou de comportamento defensivo durante a final? Quando?" | 7.7 |
 | Caça a um jogador | "A Inglaterra caçou algum jogador específico da França?" | 7.8 |
 | Métricas agregadas | "Qual time terminou a final pressionando mais alto?" | agregada |
+| **Fatos do jogo (modo autônomo)** | "Quem fez os gols?" / "Quem deu as assistências?" / "Qual dupla mais trocou passes?" / "Quem finalizou mais?" | Cypher read-only (ADR-8) |
 
-Perguntas **fora do escopo** (o agente responde `confianca=baixa` dizendo que o contexto
-não cobre): placar/resultado, lances individuais ("foi pênalti?"), partidas não
-ingeridas, e qualquer número que não exista como `PadraoTatico` no grafo — por
-construção, o LLM não calcula nada novo na hora da pergunta.
+Com o modo autônomo, qualquer pergunta cuja resposta exista no **grafo factual**
+(finalizações/gols, assistências, passes, pressões, zonas, fases de posse, escalação)
+é respondível — o LLM escreve a consulta, o Neo4j calcula. Continuam **fora do
+escopo** (resposta honesta com `confianca=baixa`): disputa de pênaltis (período 5 é
+excluído da pipeline por não ser jogo corrido), cartões (não modelados no grafo),
+lances subjetivos ("foi pênalti?") e partidas não ingeridas.

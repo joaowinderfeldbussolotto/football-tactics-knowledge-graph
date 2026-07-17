@@ -5,6 +5,8 @@ referência conferida manualmente contra a saída da camada 2 (os padrões
 reais listados em docs/03-insights.md). ``categoria``:
 - "estrutural": a resposta só existe na topologia do grafo (a tese do
   projeto prevê que o baseline vetorial ERRE estas);
+- "factual": fato bruto do jogo (gols, assistências, contagens) respondido
+  pelo modo autônomo (Cypher read-only gerado pelo LLM, ADR-8);
 - "agregada": métrica agregada clássica (o baseline pode empatar).
 """
 
@@ -200,5 +202,48 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         ),
         insight="7.3 gatilho_pressao",
         categoria="estrutural",
+    ),
+    GoldenQuestion(
+        id="q17_gols_final",
+        match_id=3869685,
+        pergunta="Quem fez os gols da final (tempo normal e prorrogação)?",
+        resposta_referencia=(
+            "6 gols: Messi 2 (pênalti aos 22 do 1ºT e aos 3 da 2ª prorrogação), Di María "
+            "(35 do 1ºT) pela Argentina; Mbappé 3 (pênalti aos 34 e gol aos 36 do 2ºT, "
+            "pênalti aos 12 da 2ª prorrogação) pela França."
+        ),
+        insight="factual (FINALIZOU, modo autônomo)",
+        categoria="factual",
+    ),
+    GoldenQuestion(
+        id="q18_assistencias_final",
+        match_id=3869685,
+        pergunta="Quem deu as assistências dos gols da final?",
+        resposta_referencia=(
+            "Duas assistências registradas: Mac Allister para o gol de Di María e Thuram "
+            "para o gol de Mbappé aos 36 do 2ºT; os demais gols (pênaltis e rebote) não "
+            "têm assistência."
+        ),
+        insight="factual (DEU_ASSISTENCIA, modo autônomo)",
+        categoria="factual",
+    ),
+    GoldenQuestion(
+        id="q19_dupla_passes",
+        match_id=3869685,
+        pergunta="Qual dupla mais trocou passes na final e quantos foram?",
+        resposta_referencia="Otamendi para Romero: 18 passes (a dupla de zagueiros argentinos).",
+        insight="factual (PASSOU_PARA, modo autônomo)",
+        categoria="factual",
+    ),
+    GoldenQuestion(
+        id="q20_top_passador",
+        match_id=3869685,
+        pergunta="Quem deu mais passes na final?",
+        resposta_referencia=(
+            "Enzo Fernandez (79 passes completos com recebedor no grafo; Otamendi 68 e "
+            "Romero 59 na sequência)."
+        ),
+        insight="factual (PASSOU_PARA, modo autônomo)",
+        categoria="factual",
     ),
 ]

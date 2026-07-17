@@ -87,7 +87,9 @@ async def ask(body: schemas.AskRequest, request: Request):
         _driver(request), body.match_id, body.pergunta, _graphiti(request)
     )
     t0 = time.perf_counter()
-    result = await agents.answer_question(body.pergunta, patterns, extra_facts)
+    result = await agents.answer_question(
+        body.pergunta, patterns, extra_facts, _driver(request), body.match_id
+    )
     timings["generation_seconds"] = round(time.perf_counter() - t0, 4)
     logger.info("ask %s: %s", body.match_id, timings)
     return result

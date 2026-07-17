@@ -33,6 +33,8 @@ graph LR
 | Aresta | De → Para | Chave de idempotência | Propriedades |
 |---|---|---|---|
 | `PASSOU_PARA` | Jogador → Jogador | match_id + action_id | minuto, periodo, xt_gerado, vaep, progressivo, sucesso, zona_origem, zona_destino, fase_posse_id |
+| `FINALIZOU` | Jogador → Partida | match_id + action_id | minuto, periodo, tipo (shot/shot_penalty/shot_freekick), resultado, **gol** (bool), zona |
+| `DEU_ASSISTENCIA` | Jogador → Jogador (autor do gol) | match_id + action_id | minuto, periodo — último passe completo da mesma posse recebido pelo autor (pênalti não tem assistência) |
 | `PRESSIONOU` | Jogador → Jogador | match_id + pressure_idx | minuto, periodo, zona |
 | `ATUOU_EM` | Jogador → Zona | match_id | contagem_acoes, xt_acumulado |
 | `PARTICIPOU_DE` | Jogador → FaseDePosse | match_id | numero_de_toques |

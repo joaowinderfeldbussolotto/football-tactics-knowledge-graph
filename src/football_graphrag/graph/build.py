@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 PASS_TYPES = ["pass", "cross", "freekick_short", "corner_short", "throw_in", "goalkick", "freekick_crossed", "corner_crossed"]
 MOVE_TYPES = ["pass", "cross", "dribble", "carry"]
+SHOT_TYPES = ["shot", "shot_penalty", "shot_freekick"]
 
 
 def build_factual_graph(match_id: int, data_dir: Path, driver: Driver) -> dict:
@@ -60,6 +61,8 @@ def build_factual_graph(match_id: int, data_dir: Path, driver: Driver) -> dict:
     counts["MEMBRO_DE"] = _write_membro_de(driver, match_id, actions)
     counts["PASSOU_PARA"] = _write_passes(driver, match_id, actions)
     counts["PRESSIONOU"] = _write_pressoes(driver, match_id, pressures)
+    counts["FINALIZOU"] = _write_finalizacoes(driver, match_id, actions)
+    counts["DEU_ASSISTENCIA"] = _write_assistencias(driver, match_id, actions)
     counts["ATUOU_EM"] = _write_atuou_em(driver, match_id, actions)
     counts["PARTICIPOU_DE"] = _write_participou_de(driver, match_id, actions)
     counts["PROGREDIU_PARA"] = _write_progrediu_para(driver, match_id, actions)
@@ -239,6 +242,80 @@ def _write_pressoes(driver: Driver, match_id: int, pressures: pd.DataFrame) -> i
            MATCH (a:Jogador {uid: r.origem}), (b:Jogador {uid: r.destino})
            MERGE (a)-[p:PRESSIONOU {match_id: r.match_id, pressure_idx: r.pressure_idx}]->(b)
            SET p.minuto = r.minuto, p.periodo = r.periodo, p.zona = r.zona""",
+        rows,
+    )
+
+
+def _write_finalizacoes(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    """Jogador -[FINALIZOU]-> Partida: uma aresta por finalização (chute,
+    pênalti em jogo, falta direta), com ``gol`` booleano. Seleção direta de
+    linhas do parquet — nada calculado aqui."""
+    shots = actions[actions["type_name"].isin(SHOT_TYPES)]
+    rows = [
+        {
+            "jogador": uid_for("jogador", int(s.player_id)),
+            "partida": uid_for("partida", match_id),
+            "match_id": match_id,
+            "action_id": int(s.action_id),
+            "minuto": float(s.time_seconds) / 60.0,
+            "periodo": int(s.period_id),
+            "tipo": s.type_name,
+            "resultado": s.result_name,
+            "gol": s.result_name == "success",
+            "zona": int(s.zone_start),
+        }
+        for s in shots.itertuples()
+        if pd.notna(s.player_id)
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (j:Jogador {uid: r.jogador}), (m:Partida {uid: r.partida})
+           MERGE (j)-[f:FINALIZOU {match_id: r.match_id, action_id: r.action_id}]->(m)
+           SET f.minuto = r.minuto, f.periodo = r.periodo, f.tipo = r.tipo,
+               f.resultado = r.resultado, f.gol = r.gol, f.zona = r.zona""",
+        rows,
+    )
+
+
+def _write_assistencias(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    """Jogador -[DEU_ASSISTENCIA]-> Jogador (autor do gol).
+
+    Assistência = último passe bem-sucedido do mesmo time, na mesma fase de
+    posse, cujo recebedor é o autor do gol (gols de pênalti não têm
+    assistência). Seleção sobre colunas já existentes do parquet
+    (possession_id, receiver_player_id) — sem métrica nova.
+    """
+    goals = actions[
+        actions["type_name"].isin(["shot", "shot_freekick"]) & (actions["result_name"] == "success")
+    ]
+    rows = []
+    for g in goals.itertuples():
+        prev = actions[
+            (actions["possession_id"] == g.possession_id)
+            & (actions["action_id"] < g.action_id)
+            & (actions["team_id"] == g.team_id)
+            & (actions["receiver_player_id"] == g.player_id)
+        ]
+        if len(prev) == 0:
+            continue
+        p = prev.iloc[-1]
+        rows.append(
+            {
+                "assistente": uid_for("jogador", int(p.player_id)),
+                "autor": uid_for("jogador", int(g.player_id)),
+                "match_id": match_id,
+                "action_id": int(g.action_id),
+                "minuto": float(g.time_seconds) / 60.0,
+                "periodo": int(g.period_id),
+            }
+        )
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (a:Jogador {uid: r.assistente}), (b:Jogador {uid: r.autor})
+           MERGE (a)-[s:DEU_ASSISTENCIA {match_id: r.match_id, action_id: r.action_id}]->(b)
+           SET s.minuto = r.minuto, s.periodo = r.periodo""",
         rows,
     )
 

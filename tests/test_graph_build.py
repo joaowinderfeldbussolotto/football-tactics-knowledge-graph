@@ -47,3 +47,58 @@ def test_pass_edges_match_parquet():
         assert stats["edges"]["PASSOU_PARA"] == expected
     finally:
         driver.close()
+
+
+@requires_neo4j
+@requires_data
+def test_goal_and_assist_edges():
+    """A final teve 6 gols no jogo corrido (períodos 1-4) e 2 assistências."""
+    settings = get_settings()
+    driver = db.make_driver(settings)
+    try:
+        with driver.session() as session:
+            gols = session.run(
+                "MATCH ()-[f:FINALIZOU {match_id: $m}]->() WHERE f.gol RETURN count(f) AS n",
+                m=MATCH_ID,
+            ).single()["n"]
+            assists = session.run(
+                "MATCH ()-[a:DEU_ASSISTENCIA {match_id: $m}]->() RETURN count(a) AS n",
+                m=MATCH_ID,
+            ).single()["n"]
+        assert gols == 6
+        assert assists == 2
+    finally:
+        driver.close()
+
+
+def test_readonly_guard_rejects_writes_and_calls():
+    import pytest
+
+    for bad in (
+        "CREATE (n:Hack) RETURN n",
+        "MATCH (n) DETACH DELETE n",
+        "MATCH (n) SET n.x = 1 RETURN n",
+        "CALL dbms.components()",
+        "CALL { MATCH (n) RETURN n } RETURN 1",
+    ):
+        with pytest.raises(db.UnsafeCypherError):
+            db.assert_readonly_cypher(bad)
+    # leitura legítima passa
+    db.assert_readonly_cypher("MATCH (j:Jogador)-[p:PASSOU_PARA {match_id: 1}]->(k) RETURN j.nome, count(p)")
+
+
+@requires_neo4j
+def test_run_readonly_blocks_write_at_server():
+    """Defesa em profundidade: mesmo se a guarda sintática falhasse, a
+    transação READ do servidor rejeita escrita."""
+    import pytest
+
+    settings = get_settings()
+    driver = db.make_driver(settings)
+    try:
+        with pytest.raises(db.UnsafeCypherError):
+            db.run_readonly(driver, "CREATE (n:Hack) RETURN n")
+        rows = db.run_readonly(driver, "MATCH (t:Time) RETURN t.nome LIMIT 2")
+        assert len(rows) <= 2
+    finally:
+        driver.close()

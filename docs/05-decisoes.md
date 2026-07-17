@@ -180,3 +180,49 @@ respeitando o que o servidor pedir; nenhum código do projeto contém laço de r
 Coberto por testes de introspecção sem rede (`tests/test_provider.py`, seção "Rate
 limits") e por teste de estresse ao vivo com a cota estourada de propósito (medições em
 `07-validacao.md`). `SEMAPHORE_LIMIT` permanece como único controle de concorrência.
+
+---
+
+## ADR-8 — Modo autônomo do Q&A: text-to-Cypher read-only (2026-07-17)
+
+**Contexto.** A arquitetura original restringia o Q&A ao que existisse como
+`PadraoTatico`: perguntas factuais legítimas ("quem fez os gols?", "qual dupla mais
+trocou passes?") recebiam "não tenho no contexto", embora o dado existisse no grafo
+factual. Requisito do usuário: o sistema deve responder TUDO sobre o jogo — fatos e
+tática — com o LLM tendo autonomia para navegar o grafo.
+
+**Alternativas.** (a) Pré-computar mais padrões (não escala para a cauda longa de
+perguntas factuais); (b) `graphiti.search` (já usado como busca híbrida, mas só enxerga
+o que foi indexado — padrões —, não os ~5.000 fatos por partida, que o ADR-1
+deliberadamente não indexa); (c) tool use com consultas Cypher geradas pelo LLM.
+
+**Decisão.** Opção (c), com três invariantes que preservam a tese da seção 0.2 do plano
+("o LLM não calcula"):
+1. **Quem calcula é o Neo4j.** O LLM decide *o que* consultar; contagens/somas/rankings
+   são agregação determinística do banco. A regra "nada é computado na hora" vale para
+   MÉTRICAS (que continuam nascendo nas camadas 0/2); recuperação factual é leitura.
+2. **Somente leitura, imposto em duas camadas** (`graph/db.py::run_readonly`): transação
+   READ do Neo4j (o servidor rejeita escrita) + guarda sintática que recusa cláusulas de
+   escrita e `CALL` (bloqueia procedures dbms/apoc/gds), com limite de 50 linhas e
+   timeout de 15 s.
+3. **Auditabilidade.** Toda consulta usada volta na resposta (`consultas_executadas`) e
+   `faithfulness.check_queries` a re-executa. A fidelidade dos padrões continua exata
+   (valor contra nó); a das consultas é "re-executa e retorna dados".
+
+Para isso o grafo factual ganhou o que faltava: arestas `FINALIZOU` (com `gol`
+booleano) e `DEU_ASSISTENCIA` (seleções diretas do parquet, dentro das regras da
+camada 1).
+
+**Risco aceito e mitigado.** Text-to-Cypher pode gerar a *consulta errada que roda
+certo* — observado ao vivo na primeira validação: join `DEU_ASSISTENCIA×FINALIZOU`
+multiplicou 1 assistência de Thuram pelos 3 gols de Mbappé; e o modelo completou
+"3-3, pênaltis" de memória. Mitigações aplicadas: schema anotado no prompt (com o
+anti-padrão explícito), regra de `COUNT(DISTINCT)`/contagem direta de arestas, proibição
+de completar com conhecimento externo, e máximo de 4 consultas. A re-execução NÃO detecta
+erro semântico — limitação documentada; o golden dataset ganhou categoria `factual`
+para medir exatamente isso.
+
+**Consequências.** O sistema responde fatos (gols, assistências, passes, duplas,
+zonas...) e tática no mesmo endpoint; o relatório (`/report`) permanece sem ferramenta
+(verbalização pura de padrões). A comparação com o baseline segue válida: as perguntas
+estruturais continuam decididas pelos algoritmos da camada 2.
