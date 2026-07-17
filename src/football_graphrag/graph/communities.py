@@ -50,15 +50,32 @@ def _fetch_patterns(driver: Driver, match_id: int) -> list[dict]:
         ).value()
 
 
-async def index_match_patterns(graphiti: Graphiti, driver: Driver, match_id: int) -> int:
+async def index_match_patterns(
+    graphiti: Graphiti, driver: Driver, match_id: int, pace_seconds: float = 2.0
+) -> int:
     """Indexa os PadraoTatico de uma partida como fatos temporais no Graphiti.
 
     Um triplet por padrão: (Time) -[EXIBE_PADRAO {fact: descricao}]-> (Padrao).
     Padrões bitemporais (mudanca_estado) carregam valid_at/invalid_at
     derivados dos minutos de validade — o fato antigo fica invalidado, não
     apagado, que é exatamente o modelo do Graphiti.
+
+    Nota operacional (validado ao vivo, ADR-5): o grupo é limpo antes de
+    reindexar — ``add_triplet`` gera uuids novos por execução e a resolução
+    de duplicatas não é garantida entre execuções. ``pace_seconds`` espaça
+    os triplets (~3 chamadas de embedding cada) para caber em cotas de
+    provedores free-tier (Gemini: 100 embed-requests/min).
     """
+    import asyncio
+
     group_id = f"match-{match_id}"
+    with driver.session() as session:
+        session.run(
+            "MATCH (n:Entity {group_id: $g}) DETACH DELETE n", g=group_id
+        ).consume()
+        session.run(
+            "MATCH (n:Community {group_id: $g}) DETACH DELETE n", g=group_id
+        ).consume()
     patterns = _fetch_patterns(driver, match_id)
     for p in patterns:
         team_node = EntityNode(name=p["time"], group_id=group_id, labels=["Entity"], summary=f"Seleção {p['time']}")
@@ -82,6 +99,8 @@ async def index_match_patterns(graphiti: Graphiti, driver: Driver, match_id: int
             invalid_at=invalid_at,
         )
         await graphiti.add_triplet(team_node, edge, pattern_node)
+        if pace_seconds:
+            await asyncio.sleep(pace_seconds)
     logger.info("indexados %d padrões da partida %s no Graphiti", len(patterns), match_id)
     return len(patterns)
 

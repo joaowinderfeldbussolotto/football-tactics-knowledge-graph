@@ -62,12 +62,20 @@ def _semaphore() -> asyncio.Semaphore:
     return asyncio.Semaphore(get_settings().semaphore_limit)
 
 
+# Knobs nativos do PydanticAI (não são camada nossa): retries = novas
+# tentativas quando a saída estruturada falha na validação; max_tokens alto
+# porque o relatório completo não cabe no default de 4096 do SDK.
+_MODEL_SETTINGS = {"max_tokens": 16000}
+
+
 @lru_cache
 def report_agent() -> Agent:
     return Agent(
         pydantic_ai_model(get_settings()),
         output_type=RelatorioTatico,
         system_prompt=PROMPT_RELATORIO,
+        retries=2,
+        model_settings=_MODEL_SETTINGS,
     )
 
 
@@ -77,6 +85,8 @@ def qa_agent() -> Agent:
         pydantic_ai_model(get_settings()),
         output_type=RespostaTatica,
         system_prompt=PROMPT_QA,
+        retries=2,
+        model_settings=_MODEL_SETTINGS,
     )
 
 

@@ -118,4 +118,18 @@ Pergunta: *"Qual jogador foi o gargalo estrutural da progressão da Argentina na
 4. O agente responde citando `{padrao_tatico_id: <uid>, nome_metrica:
    "betweenness_centrality", valor: 50.0, algoritmo_origem: "gds.betweenness.stream"}`.
 
-A geração (passos 4) exige chave de LLM no `.env`; a recuperação (1–3) roda sem nenhuma.
+A geração (passo 4) exige chave de LLM no `.env`; a recuperação (1–3) roda sem nenhuma.
+
+## Latências medidas ao vivo (claude-haiku-4-5)
+
+| Operação | Medição real |
+|---|---|
+| `GET /report/3869685` | 43 s (5 seções, 25 citações, **fidelidade 100%**, sem menção a placar) |
+| `/ask` — recuperação estruturada | 0,02–0,43 s |
+| `/ask` — geração | 5–7 s |
+
+Exemplo real de resposta do `/ask` (pergunta do exemplo acima): *"Nicolás Hernán Otamendi
+foi o gargalo estrutural da progressão da Argentina na final. O algoritmo de betweenness
+centrality identificou Otamendi como o jogador através do qual passa obrigatoriamente a
+maior parte dos caminhos de progressão..."* — `confianca=alta`, 2/2 citações válidas
+contra o grafo.

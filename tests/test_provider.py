@@ -22,8 +22,16 @@ def make_settings(**overrides) -> Settings:
     ("llm_provider", "expected"),
     [("mistral", "mistral:m"), ("anthropic", "anthropic:m"), ("gemini", "google-gla:m")],
 )
-def test_pydantic_ai_model_string(llm_provider, expected):
-    assert provider.pydantic_ai_model(make_settings(llm_provider=llm_provider)) == expected
+def test_pydantic_ai_model_name_string(llm_provider, expected):
+    assert provider.pydantic_ai_model_name(make_settings(llm_provider=llm_provider)) == expected
+
+
+@pytest.mark.parametrize("llm_provider", ["mistral", "anthropic", "gemini"])
+def test_pydantic_ai_model_carries_explicit_credentials(llm_provider):
+    # o Model é construído com Provider explícito (chave do .env), sem depender
+    # das env vars nativas de cada provedor (ANTHROPIC_API_KEY etc.)
+    model = provider.pydantic_ai_model(make_settings(llm_provider=llm_provider))
+    assert model.model_name == "m"
 
 
 def test_graphiti_client_mistral_uses_openai_generic_with_base_url():
@@ -47,6 +55,6 @@ def test_graphiti_client_gemini():
     assert isinstance(client, GeminiClient)
 
 
-def test_cross_encoder_only_for_gemini():
-    assert provider.graphiti_cross_encoder(make_settings(llm_provider="mistral")) is None
+def test_cross_encoder_never_none():
+    assert provider.graphiti_cross_encoder(make_settings(llm_provider="mistral")) is not None
     assert provider.graphiti_cross_encoder(make_settings(llm_provider="gemini")) is not None

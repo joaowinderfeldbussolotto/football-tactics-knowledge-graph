@@ -186,3 +186,30 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 | alvo_de_pressao | 0 | 1 | 1 |
 | mudanca_estado | 8 | 8 | 8 |
 | **total** | **24** | **22** | **23** |
+
+## Avaliação: grafo vs baseline vetorial (o resultado central)
+
+Golden dataset de 10 perguntas (`evaluation/golden_dataset.py`) rodado ao vivo nos dois
+sistemas com `claude-haiku-4-5` como gerador e juiz, embeddings Gemini no baseline
+(`scripts/run_evaluation.py`; saída completa em `data/processed/eval_results.json`).
+Scores 1–5 dos juízes; fidelidade determinística só se aplica ao sistema de grafo:
+
+| Categoria (n) | Grafo: retrieval | Grafo: insight | Grafo: fidelidade | Baseline: retrieval | Baseline: insight |
+|---|---|---|---|---|---|
+| **estrutural** (9) | **5.0** | **4.33** | **100%** | 1.0 | 1.0 |
+| **agregada** (1) | 5.0 | 5.0 | 100% | 1.0 | 1.0 |
+
+A tese da seção 0.2 do plano se confirmou pelo mecanismo previsto: nas perguntas
+estruturais o baseline respondeu literalmente *"não é possível responder a essa pergunta
+com os dados disponíveis"* — a informação (betweenness, comunidades, trios, pontes)
+**não existe** no resumo agregado que ele indexa; não é um problema de recuperação, é
+limite arquitetural. Exemplo (q01, pivô da Argentina): grafo responde Otamendi com
+betweenness 50.0 citando o padrão; baseline lista os jogadores com mais passes e declara
+que isso não identifica gargalo estrutural.
+
+**Nuance honesta na pergunta agregada:** esperava-se empate, e o baseline de fato chegou
+perto pela direção certa (comparou PPDA do 2º tempo entre os times), mas errou por não
+conseguir identificar qual partida era "a final" — os chunks dele carregam `match_id`
+numérico, sem rótulo da fase. É um artefato do desenho do baseline (fiel aos RAGs
+descritivos existentes), registrado aqui em vez de inflar a diferença: com rótulos de
+fase nos chunks, essa pergunta específica provavelmente empataria.

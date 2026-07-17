@@ -19,9 +19,33 @@ MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
 _PYDANTIC_AI_PREFIX = {"mistral": "mistral", "anthropic": "anthropic", "gemini": "google-gla"}
 
 
-def pydantic_ai_model(settings: Settings) -> str:
-    """String de modelo do PydanticAI, ex: 'anthropic:claude-sonnet-5'."""
+def pydantic_ai_model_name(settings: Settings) -> str:
+    """String de modelo do PydanticAI, ex: 'anthropic:claude-haiku-4-5'."""
     return f"{_PYDANTIC_AI_PREFIX[settings.llm_provider]}:{settings.llm_model}"
+
+
+def pydantic_ai_model(settings: Settings):
+    """Modelo PydanticAI com a credencial do .env injetada explicitamente.
+
+    A forma-string ('anthropic:<modelo>') deixaria o PydanticAI ler a env var
+    do próprio provedor (ANTHROPIC_API_KEY etc.); aqui a chave vem de
+    LLM_API_KEY, então construímos o Model com o Provider explícito.
+    Validado ao vivo com Anthropic (ver ADR-5).
+    """
+    if settings.llm_provider == "anthropic":
+        from pydantic_ai.models.anthropic import AnthropicModel
+        from pydantic_ai.providers.anthropic import AnthropicProvider
+
+        return AnthropicModel(settings.llm_model, provider=AnthropicProvider(api_key=settings.llm_api_key))
+    if settings.llm_provider == "mistral":
+        from pydantic_ai.models.mistral import MistralModel
+        from pydantic_ai.providers.mistral import MistralProvider
+
+        return MistralModel(settings.llm_model, provider=MistralProvider(api_key=settings.llm_api_key))
+    from pydantic_ai.models.google import GoogleModel
+    from pydantic_ai.providers.google import GoogleProvider
+
+    return GoogleModel(settings.llm_model, provider=GoogleProvider(api_key=settings.llm_api_key))
 
 
 def graphiti_llm_client(settings: Settings) -> LLMClient:
@@ -69,14 +93,25 @@ def graphiti_embedder(settings: Settings) -> EmbedderClient:
     )
 
 
-def graphiti_cross_encoder(settings: Settings) -> CrossEncoderClient | None:
-    """Reranker: o Graphiti tem um dedicado para Gemini; para os demais o
-    default interno (OpenAIRerankerClient) não se aplica sem chave OpenAI,
-    então devolvemos None e o Graphiti usa RRF puro na busca híbrida."""
-    if settings.llm_provider == "gemini":
+def graphiti_cross_encoder(settings: Settings) -> CrossEncoderClient:
+    """Reranker da busca híbrida. Atenção (validado ao vivo, ver ADR-5):
+    passar None faz o Graphiti instanciar o OpenAIRerankerClient default,
+    que exige OPENAI_API_KEY — não existe fallback "sem reranker". Então:
+    - provedor gemini, ou embedder gemini: GeminiRerankerClient (usa a chave
+      Gemini disponível; modelo default do próprio cliente);
+    - mistral: OpenAIRerankerClient apontado para o endpoint compatível.
+    """
+    if settings.llm_provider == "gemini" or settings.embedder_provider == "gemini":
         from graphiti_core.cross_encoder.gemini_reranker_client import GeminiRerankerClient
 
-        return GeminiRerankerClient(
-            config=LLMConfig(api_key=settings.llm_api_key, model=settings.llm_small_model)
+        api_key = settings.llm_api_key if settings.llm_provider == "gemini" else settings.embedder_api_key
+        return GeminiRerankerClient(config=LLMConfig(api_key=api_key))
+    from graphiti_core.cross_encoder.openai_reranker_client import OpenAIRerankerClient
+
+    return OpenAIRerankerClient(
+        config=LLMConfig(
+            api_key=settings.llm_api_key,
+            model=settings.llm_small_model or settings.llm_model,
+            base_url=MISTRAL_BASE_URL if settings.llm_provider == "mistral" else None,
         )
-    return None
+    )

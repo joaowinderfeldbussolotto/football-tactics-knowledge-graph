@@ -109,8 +109,22 @@ docker compose exec api python scripts/run_evaluation.py
 
 Roda o golden dataset (10 perguntas) no sistema de grafo E no baseline vetorial plano,
 com fidelidade determinística + 2 juízes LLM, e salva
-`data/processed/eval_results.json` com a tabela comparativa por categoria
-(estrutural vs agregada).
+`data/processed/eval_results.json`. Saída esperada (execução real com
+`claude-haiku-4-5`, ~12 min):
+
+```json
+{
+  "faithfulness_media": 1.0,
+  "por_categoria": {
+    "estrutural": {"n": 9, "grafo_retrieval": 5.0, "grafo_insight": 4.33,
+                    "baseline_retrieval": 1.0, "baseline_insight": 1.0},
+    "agregada":   {"n": 1, "grafo_retrieval": 5.0, "grafo_insight": 5.0,
+                    "baseline_retrieval": 1.0, "baseline_insight": 1.0}
+  }
+}
+```
+
+Análise da tabela em `docs/03-insights.md` (seção "Avaliação").
 
 ## 8. Testes
 
@@ -136,3 +150,7 @@ EMBEDDER_MODEL=mistral-embed
 ```
 
 e reiniciar a api: `docker compose restart api`.
+
+Nota: com chave Gemini **free-tier**, a cota de embeddings é 100 requests/min — a
+indexação do Graphiti (`/analyze`) é ritmada automaticamente (`pace_seconds=2` em
+`graph/communities.py`) e leva ~3 min por partida; com chave paga, reduza o pace.

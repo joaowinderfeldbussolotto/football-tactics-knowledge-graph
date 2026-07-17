@@ -86,21 +86,46 @@ da conversão (sem tática de jogo corrido a modelar — ver `01-pipeline.md`).
 
 ---
 
-## ADR-5 — Provedores de LLM: implementação e estado de validação (2026-07-17)
+## ADR-5 — Provedores de LLM: implementação e validação ao vivo (2026-07-17)
 
 **Contexto.** Troca de provedor deve ser só `.env` (mistral | anthropic | gemini).
 
-**Implementação.** `llm/provider.py`: PydanticAI via string (`mistral:*`, `anthropic:*`,
-`google-gla:*`); Graphiti via classe (`OpenAIGenericClient` com
-`base_url=https://api.mistral.ai/v1`, `AnthropicClient`, `GeminiClient`; reranker dedicado
-só para Gemini, RRF puro nos demais). Coberto por `tests/test_provider.py` (sem rede).
+**Implementação.** `llm/provider.py`: PydanticAI via `Model` construído com `Provider`
+explícito; Graphiti via classe (`OpenAIGenericClient` com `base_url` da Mistral,
+`AnthropicClient`, `GeminiClient`). Coberto por `tests/test_provider.py` (sem rede).
 
-**Estado de validação.** O ambiente de desenvolvimento desta PoC **não tinha chaves de
-API**, então o comportamento de structured output de cada provedor (inclusive o risco
-documentado do `json_schema` em endpoints compatíveis com OpenAI, caso do Mistral) **ainda
-não foi validado ao vivo**. Fica como passo 10 do plano: rodar `/report` e `/ask` com cada
-provedor, e registrar aqui o resultado (inclusive eventual troca de
-`structured_output_mode` para `json_object` no Graphiti).
+**Validação ao vivo (Anthropic `claude-haiku-4-5` + embeddings Gemini
+`gemini-embedding-001`).** Achados reais, cada um corrigido no código:
+
+1. **A forma-string do PydanticAI ignora `LLM_API_KEY`.** `Agent("anthropic:<m>")` lê a
+   env var nativa do provedor (`ANTHROPIC_API_KEY`). Correção: `pydantic_ai_model()`
+   constrói `AnthropicModel/MistralModel/GoogleModel` com o `Provider` explícito e a
+   chave do `.env`.
+2. **Saída estruturada longa precisa de knobs nativos.** Com o default do SDK
+   (`max_tokens=4096`, 1 retry de validação), o Haiku truncou o `RelatorioTatico`
+   (faltou `secoes`). Correção: `retries=2` + `model_settings={"max_tokens": 16000}`
+   nos agentes — knobs do PydanticAI, não camada nossa.
+3. **`cross_encoder=None` no Graphiti NÃO significa "sem reranker".** O construtor cai
+   no `OpenAIRerankerClient` default e exige `OPENAI_API_KEY`. Correção: reranker
+   Gemini sempre que houver chave Gemini; `OpenAIRerankerClient` apontado para o
+   endpoint da Mistral no caso mistral.
+4. **`text-embedding-004` foi descontinuado na API do Gemini** (404). Modelo atual:
+   `gemini-embedding-001`.
+5. **Cotas free-tier limitam a indexação do Graphiti** (100 embed-requests/min no
+   Gemini gratuito). `index_match_patterns` limpa o grupo antes de reindexar (os uuids
+   do `add_triplet` mudam a cada execução) e espaça os triplets (`pace_seconds=2`).
+
+**Resultados medidos (Haiku 4.5):** relatório da final com 5 seções e 25 citações em
+43 s, **fidelidade determinística 100% (25/25)**, sem menção a placar; Q&A com recuperação
+estruturada em 0,02–0,43 s e geração em 5–7 s, citações 100% válidas. Structured output
+do Anthropic funcionou sem ajuste de `structured_output_mode`. Camada 3 do Graphiti
+medida ao vivo: `add_triplet` de 24 padrões em 196 s (ritmado pela cota free-tier do
+Gemini — sem a cota, ~3 s/padrão), `build_communities` gerou 2 comunidades coerentes
+(uma por seleção) em 15 s, busca híbrida em 0,29 s retornando fatos relevantes. Isso
+também confirma o ADR-1 pelo outro lado: ~8 s/fato indexado com embeddings + dedupe é
+adequado para dezenas de padrões e inviável para os ~5.000 fatos da camada factual.
+Mistral segue não validado ao vivo (o ambiente desta sessão bloqueia `api.mistral.ai`);
+Gemini validado como embedder/reranker, não como LLM principal.
 
 ---
 
