@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     # semáforo de aplicação que envolve cada agent.run() do PydanticAI.
     semaphore_limit: int = 5
 
+    # Pacing proativo da indexação do Graphiti (segundos entre triplets).
+    # Cada triplet faz ~3-4 chamadas de embedding; 2.0 mantém a indexação
+    # dentro da cota free-tier do Gemini (100 embed-requests/min). Com chave
+    # paga, use 0. O retry nativo (LLM_MAX_RETRIES) cobre o que passar disso.
+    graphiti_pace_seconds: float = 2.0
+
     # --- Neo4j ---
     neo4j_uri: str = "bolt://neo4j:7687"
     neo4j_user: str = "neo4j"

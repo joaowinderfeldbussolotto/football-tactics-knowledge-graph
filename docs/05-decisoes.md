@@ -145,3 +145,43 @@ montados em `/plugins`. Verificação: `RETURN gds.version()` → `2.13.2`;
 **Consequências.** Em ambientes com rede normal, o `docker-compose.yml` como está
 (plugin download automático) é o caminho padrão e nada disso é necessário. O procedimento
 Maven fica documentado em `06-reproduzir.md` como alternativa para ambientes restritos.
+
+---
+
+## ADR-7 — Rate limits (free-tier): retry nativo em todos os clientes, pacing só onde é previsível (2026-07-17)
+
+**Contexto.** A validação ao vivo usou chaves free-tier. O Gemini gratuito limita
+embeddings a 100 requests/min e devolve 429 com `retryDelay` de até ~50 s; o retry
+default dos SDKs (poucas tentativas, backoff curto) esgotava antes da janela virar e a
+indexação do Graphiti quebrava no meio. O plano do projeto (seção 4) proíbe empilhar
+tenacity/token bucket por cima dos SDKs.
+
+**Alternativas.** (a) camada própria de retry (tenacity) — vetada pelo plano; (b) token
+bucket/limiter próprio — vetado pelo plano; (c) configurar o retry NATIVO de cada SDK
+pelos knobs de construtor e manter um pacing proativo apenas onde o volume de chamadas é
+conhecido de antemão.
+
+**Decisão.** Opção (c), implementada inteira em `llm/provider.py` (fábricas de cliente
+SDK) e aplicada tanto ao LLM quanto ao embedder/reranker:
+
+| SDK | Knob nativo | Comportamento |
+|---|---|---|
+| Anthropic (`AsyncAnthropic`) | `max_retries=LLM_MAX_RETRIES` | respeita `Retry-After` do servidor |
+| OpenAI-compat (`AsyncOpenAI`, usado p/ Mistral no Graphiti) | `max_retries=LLM_MAX_RETRIES` | idem |
+| google-genai (`genai.Client`) | `HttpOptions(retry_options=HttpRetryOptions(attempts=LLM_MAX_RETRIES+2, initial_delay=2, max_delay=65, exp_base=2, jitter=0.5, http_status_codes=[429,5xx]))` | backoff exponencial dimensionado para cruzar a janela de 1 min das cotas por minuto |
+| mistralai (`Mistral`) | `RetryConfig(strategy="backoff", BackoffStrategy(2 s → 65 s, exp 2))` | idem |
+
+Os clientes configurados são injetados em TODOS os consumidores: modelos do PydanticAI
+(`AnthropicModel/MistralModel/GoogleModel` com provider explícito), clientes de LLM do
+Graphiti, embedders (`GeminiEmbedder`/`OpenAIEmbedder`) e rerankers — todos aceitam
+`client=` no construtor, então não há wrapper nenhum.
+
+**Pacing proativo** existe num único lugar: `index_match_patterns`
+(`GRAPHITI_PACE_SECONDS`, default 2.0), porque ali o número de chamadas é previsível
+(~3-4 embeddings por triplet) e evitar o 429 é mais barato e mais rápido que absorvê-lo
+por retry. Com chave paga, `GRAPHITI_PACE_SECONDS=0`.
+
+**Consequências.** 429 esporádico em qualquer camada é absorvido pelo próprio SDK
+respeitando o que o servidor pedir; nenhum código do projeto contém laço de retry.
+Coberto por testes de introspecção sem rede (`tests/test_provider.py`, seção "Rate
+limits"). `SEMAPHORE_LIMIT` permanece como único controle de concorrência.

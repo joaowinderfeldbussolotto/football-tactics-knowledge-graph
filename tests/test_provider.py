@@ -11,6 +11,7 @@ def make_settings(**overrides) -> Settings:
         "llm_provider": "mistral",
         "llm_api_key": "k",
         "llm_model": "m",
+        "llm_max_retries": 7,
         "embedder_api_key": "k",
         "embedder_model": "e",
         "_env_file": None,
@@ -58,3 +59,44 @@ def test_graphiti_client_gemini():
 def test_cross_encoder_never_none():
     assert provider.graphiti_cross_encoder(make_settings(llm_provider="mistral")) is not None
     assert provider.graphiti_cross_encoder(make_settings(llm_provider="gemini")) is not None
+
+
+# --- Rate limits: LLM_MAX_RETRIES chega aos SDKs por baixo (sem rede) ---
+
+
+def test_anthropic_sdk_clients_carry_max_retries():
+    settings = make_settings(llm_provider="anthropic")
+    model = provider.pydantic_ai_model(settings)
+    assert model.client.max_retries == 7
+    graphiti_client = provider.graphiti_llm_client(settings)
+    assert graphiti_client.client.max_retries == 7
+
+
+def test_openai_compat_clients_carry_max_retries():
+    settings = make_settings(llm_provider="mistral", embedder_provider="mistral")
+    graphiti_client = provider.graphiti_llm_client(settings)
+    assert graphiti_client.client.max_retries == 7
+    embedder = provider.graphiti_embedder(settings)
+    assert embedder.client.max_retries == 7
+    reranker = provider.graphiti_cross_encoder(settings)
+    assert reranker.client.max_retries == 7
+
+
+def test_genai_clients_carry_retry_options():
+    settings = make_settings(llm_provider="gemini", embedder_provider="gemini")
+    for obj in (
+        provider.graphiti_llm_client(settings),
+        provider.graphiti_embedder(settings),
+        provider.graphiti_cross_encoder(settings),
+    ):
+        retry = obj.client._api_client._http_options.retry_options
+        assert retry is not None
+        assert retry.attempts == 7 + 2
+        assert 429 in retry.http_status_codes
+        assert retry.max_delay >= 60  # cruza a janela de 1 min das cotas free-tier
+
+
+def test_mistral_pydantic_ai_model_carries_retry_config():
+    model = provider.pydantic_ai_model(make_settings(llm_provider="mistral"))
+    retry = model.client.sdk_configuration.retry_config
+    assert retry is not None and retry.strategy == "backoff"

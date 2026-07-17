@@ -151,6 +151,9 @@ EMBEDDER_MODEL=mistral-embed
 
 e reiniciar a api: `docker compose restart api`.
 
-Nota: com chave Gemini **free-tier**, a cota de embeddings é 100 requests/min — a
-indexação do Graphiti (`/analyze`) é ritmada automaticamente (`pace_seconds=2` em
-`graph/communities.py`) e leva ~3 min por partida; com chave paga, reduza o pace.
+Nota sobre **rate limits / chaves free-tier** (ADR-7): `LLM_MAX_RETRIES` é repassado ao
+retry nativo de todos os SDKs (LLM, embedder e reranker), que respeitam o
+`Retry-After`/`retryDelay` do servidor — 429 esporádico se resolve sozinho. A indexação
+do Graphiti (`/analyze`) é adicionalmente ritmada por `GRAPHITI_PACE_SECONDS` (default
+2.0, ~3 min por partida, dimensionado para a cota gratuita do Gemini de 100
+embed-requests/min); com chave paga use `GRAPHITI_PACE_SECONDS=0`.

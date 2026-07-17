@@ -51,7 +51,7 @@ def _fetch_patterns(driver: Driver, match_id: int) -> list[dict]:
 
 
 async def index_match_patterns(
-    graphiti: Graphiti, driver: Driver, match_id: int, pace_seconds: float = 2.0
+    graphiti: Graphiti, driver: Driver, match_id: int, pace_seconds: float | None = None
 ) -> int:
     """Indexa os PadraoTatico de uma partida como fatos temporais no Graphiti.
 
@@ -60,14 +60,20 @@ async def index_match_patterns(
     derivados dos minutos de validade — o fato antigo fica invalidado, não
     apagado, que é exatamente o modelo do Graphiti.
 
-    Nota operacional (validado ao vivo, ADR-5): o grupo é limpo antes de
-    reindexar — ``add_triplet`` gera uuids novos por execução e a resolução
-    de duplicatas não é garantida entre execuções. ``pace_seconds`` espaça
-    os triplets (~3 chamadas de embedding cada) para caber em cotas de
-    provedores free-tier (Gemini: 100 embed-requests/min).
+    Nota operacional (validado ao vivo, ADR-5/ADR-7): o grupo é limpo antes
+    de reindexar — ``add_triplet`` gera uuids novos por execução e a resolução
+    de duplicatas não é garantida entre execuções. ``pace_seconds`` (default:
+    GRAPHITI_PACE_SECONDS do .env) espaça os triplets (~3-4 chamadas de
+    embedding cada) para caber em cotas free-tier (Gemini: 100
+    embed-requests/min); estouros residuais são absorvidos pelo retry nativo
+    dos SDKs (LLM_MAX_RETRIES, ver llm/provider.py).
     """
     import asyncio
 
+    from football_graphrag.config import get_settings
+
+    if pace_seconds is None:
+        pace_seconds = get_settings().graphiti_pace_seconds
     group_id = f"match-{match_id}"
     with driver.session() as session:
         session.run(
