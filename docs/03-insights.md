@@ -189,15 +189,16 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 
 ## Avaliação: grafo vs baseline vetorial (o resultado central)
 
-Golden dataset de 10 perguntas (`evaluation/golden_dataset.py`) rodado ao vivo nos dois
-sistemas com `claude-haiku-4-5` como gerador e juiz, embeddings Gemini no baseline
-(`scripts/run_evaluation.py`; saída completa em `data/processed/eval_results.json`).
-Scores 1–5 dos juízes; fidelidade determinística só se aplica ao sistema de grafo:
+Golden dataset de 16 perguntas (`evaluation/golden_dataset.py`, cobrindo os 8 insights
+nas 3 partidas) rodado ao vivo nos dois sistemas com `claude-haiku-4-5` como gerador e
+juiz, embeddings Gemini no baseline (`scripts/run_evaluation.py`; saída completa em
+`data/processed/eval_results.json`). Scores 1–5 dos juízes; fidelidade determinística
+só se aplica ao sistema de grafo:
 
 | Categoria (n) | Grafo: retrieval | Grafo: insight | Grafo: fidelidade | Baseline: retrieval | Baseline: insight |
 |---|---|---|---|---|---|
-| **estrutural** (9) | **5.0** | **4.33** | **100%** | 1.0 | 1.0 |
-| **agregada** (1) | 5.0 | 5.0 | 100% | 1.0 | 1.0 |
+| **estrutural** (15) | **5.0** | **5.0** | **100%** | 1.0 | 1.13 |
+| **agregada** (1) | 5.0 | 5.0 | 100% | 2.0 | 1.0 |
 
 A tese da seção 0.2 do plano se confirmou pelo mecanismo previsto: nas perguntas
 estruturais o baseline respondeu literalmente *"não é possível responder a essa pergunta
@@ -213,3 +214,9 @@ conseguir identificar qual partida era "a final" — os chunks dele carregam `ma
 numérico, sem rótulo da fase. É um artefato do desenho do baseline (fiel aos RAGs
 descritivos existentes), registrado aqui em vez de inflar a diferença: com rótulos de
 fase nos chunks, essa pergunta específica provavelmente empataria.
+
+**Nota de execução:** a rodada com o dataset expandido (16 perguntas) já usa o formato
+de resposta em dois registros (tatiquês + `em_bom_portugues`); o score de insight do
+grafo subiu de 4.33 para 5.0 em relação à rodada anterior de 10 perguntas — consistente
+com a rubrica do juiz, que pune resposta que "só repete o número" sem explicar o
+mecanismo. Histórico das duas rodadas em `07-validacao.md`.

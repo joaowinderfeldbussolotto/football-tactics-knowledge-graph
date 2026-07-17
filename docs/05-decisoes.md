@@ -20,9 +20,9 @@ um dataset validado — já sabemos, com certeza, que A passou para B no minuto 
 0.29.2, verificou-se que ele **gera embedding do fato a cada chamada** (além de resolução
 de duplicatas): para a camada factual seriam ~5.000 chamadas de embedding por partida —
 exatamente o acoplamento a serviço externo que a camada determinística não pode ter, e
-inviável de rodar offline. **Números medidos da opção 3:** final = 5.351 escritas em
-6,9 s (primeira execução) e 1,1 s (re-execução idempotente); semifinal = 4.565 em 1,1 s;
-quartas = 4.035 em 0,7 s.
+inviável de rodar offline. A validação ao vivo confirmou a ordem de grandeza dos dois
+lados (Cypher: segundos por partida; `add_triplet`: segundos por fato) — medições em
+`07-validacao.md`.
 
 **Consequências.** O Graphiti fica onde agrega: camada 3 — `add_triplet` para indexar as
 **dezenas** de `PadraoTatico` (volume compatível com embeddings), `build_communities()` e
@@ -115,17 +115,11 @@ explícito; Graphiti via classe (`OpenAIGenericClient` com `base_url` da Mistral
    Gemini gratuito). `index_match_patterns` limpa o grupo antes de reindexar (os uuids
    do `add_triplet` mudam a cada execução) e espaça os triplets (`pace_seconds=2`).
 
-**Resultados medidos (Haiku 4.5):** relatório da final com 5 seções e 25 citações em
-43 s, **fidelidade determinística 100% (25/25)**, sem menção a placar; Q&A com recuperação
-estruturada em 0,02–0,43 s e geração em 5–7 s, citações 100% válidas. Structured output
-do Anthropic funcionou sem ajuste de `structured_output_mode`. Camada 3 do Graphiti
-medida ao vivo: `add_triplet` de 24 padrões em 196 s (ritmado pela cota free-tier do
-Gemini — sem a cota, ~3 s/padrão), `build_communities` gerou 2 comunidades coerentes
-(uma por seleção) em 15 s, busca híbrida em 0,29 s retornando fatos relevantes. Isso
-também confirma o ADR-1 pelo outro lado: ~8 s/fato indexado com embeddings + dedupe é
-adequado para dezenas de padrões e inviável para os ~5.000 fatos da camada factual.
-Mistral segue não validado ao vivo (o ambiente desta sessão bloqueia `api.mistral.ai`);
-Gemini validado como embedder/reranker, não como LLM principal.
+**Consequências.** Structured output do Anthropic funcionou sem ajuste de
+`structured_output_mode`. Mistral segue não validado ao vivo (o ambiente da sessão
+bloqueia `api.mistral.ai`); Gemini foi validado como embedder/reranker, não como LLM
+principal. **Todas as medições da validação (latências, fidelidade, Graphiti) estão em
+`07-validacao.md`** — este ADR registra as decisões e correções, não os números.
 
 ---
 
@@ -184,4 +178,5 @@ por retry. Com chave paga, `GRAPHITI_PACE_SECONDS=0`.
 **Consequências.** 429 esporádico em qualquer camada é absorvido pelo próprio SDK
 respeitando o que o servidor pedir; nenhum código do projeto contém laço de retry.
 Coberto por testes de introspecção sem rede (`tests/test_provider.py`, seção "Rate
-limits"). `SEMAPHORE_LIMIT` permanece como único controle de concorrência.
+limits") e por teste de estresse ao vivo com a cota estourada de propósito (medições em
+`07-validacao.md`). `SEMAPHORE_LIMIT` permanece como único controle de concorrência.

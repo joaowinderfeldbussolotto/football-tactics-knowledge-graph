@@ -17,7 +17,11 @@ class MetricaCitada(BaseModel):
 
 class SecaoRelatorio(BaseModel):
     titulo: str
-    narrativa: str
+    narrativa: str = Field(description="análise em linguagem tática (tatiquês)")
+    em_bom_portugues: str = Field(
+        description="a mesma conclusão explicada em termos do dia a dia, sem jargão, "
+        "como se fosse para alguém que assiste futebol mas não estuda tática"
+    )
     metricas_citadas: list[MetricaCitada]
 
 
@@ -27,7 +31,10 @@ class RelatorioTatico(BaseModel):
 
 
 class RespostaTatica(BaseModel):
-    resposta: str
+    resposta: str = Field(description="resposta em linguagem tática (tatiquês)")
+    em_bom_portugues: str = Field(
+        description="a mesma resposta explicada em termos do dia a dia, sem jargão"
+    )
     metricas_citadas: list[MetricaCitada]
     confianca: str = Field(description="alta | media | baixa, segundo cobertura do contexto")
 

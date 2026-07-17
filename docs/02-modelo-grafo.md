@@ -43,15 +43,10 @@ graph LR
 Regra: toda propriedade numérica vem de coluna do parquet sem transformação; as agregações
 (`ATUOU_EM`, `PROGREDIU_PARA`, `PARTICIPOU_DE`) são somas/contagens diretas.
 
-## Volumes reais (medidos)
+## Volumes por partida
 
-| Partida | Escritas totais | Tempo | PASSOU_PARA | PRESSIONOU | FaseDePosse |
-|---|---|---|---|---|---|
-| 3869685 (final) | 5.351 | 6,9 s (primeira) / 1,1 s (re-execução) | 989 | 301 | 537 |
-| 3869519 (semi) | 4.565 | 1,1 s | 916 | 266 | 346 |
-| 3869354 (quartas) | 4.035 | 0,7 s | 791 | 210 | 863* |
-
-\* `PROGREDIU_PARA`; ver `GET /graph/{match_id}/stats` para o quadro completo por partida.
+Contagens de arestas por tipo: `GET /graph/{match_id}/stats`. Medições da execução de
+validação (escritas totais e tempos por partida): `07-validacao.md`.
 
 Teste de idempotência: `tests/test_graph_build.py::test_build_is_idempotent`
 (constrói duas vezes, compara contagens — passa).

@@ -133,4 +133,72 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         insight="7.7 mudanca_estado (agregável)",
         categoria="agregada",
     ),
+    GoldenQuestion(
+        id="q11_alvo_vlasic",
+        match_id=3869519,
+        pergunta="A Argentina caçou algum jogador específico da Croácia na semifinal?",
+        resposta_referencia=(
+            "Sim, Nikola Vlašić: 14 pressões em 39 toques (0.36 pressões por toque, "
+            "2.1x a média dos companheiros), medido por grau de entrada na rede de pressão."
+        ),
+        insight="7.8 alvo_de_pressao",
+        categoria="estrutural",
+    ),
+    GoldenQuestion(
+        id="q12_papel_sosa",
+        match_id=3869519,
+        pergunta="Borna Sosa atuou mesmo como lateral esquerdo na semifinal?",
+        resposta_referencia=(
+            "Não funcionalmente: escalado como Left Back, a comunidade de passes (Louvain) "
+            "o agrupa com a linha de meio-campo (70 ações) — operou adiantado, como ala/meia."
+        ),
+        insight="7.5 papel_divergente",
+        categoria="estrutural",
+    ),
+    GoldenQuestion(
+        id="q13_assimetria_croacia",
+        match_id=3869519,
+        pergunta="Por onde a Croácia chegava ao ataque na semifinal, comparado com onde construía?",
+        resposta_referencia=(
+            "O xT de chegada da Croácia concentra no corredor central (58%) de forma "
+            "desproporcional à construção, que passa pelo centro só 21% das vezes — a bola "
+            "atravessava de corredor antes de finalizar."
+        ),
+        insight="7.6 assimetria_construcao",
+        categoria="estrutural",
+    ),
+    GoldenQuestion(
+        id="q14_construcao_esteril_england",
+        match_id=3869354,
+        pergunta="A construção da Inglaterra pela esquerda rendia chegada ao ataque nas quartas?",
+        resposta_referencia=(
+            "Não: a Inglaterra construiu 50% das progressões de defesa/meio pelo corredor "
+            "esquerdo, mas só 27% do xT de chegada ao ataque veio por ele — corredor de "
+            "construção estéril; a finalização acontecia do outro lado."
+        ),
+        insight="7.6 assimetria_construcao",
+        categoria="estrutural",
+    ),
+    GoldenQuestion(
+        id="q15_papel_kounde",
+        match_id=3869354,
+        pergunta="Jules Koundé jogou como lateral direito de verdade nas quartas contra a Inglaterra?",
+        resposta_referencia=(
+            "Não funcionalmente: escalado como Right Back, a comunidade de passes o agrupa "
+            "com a linha de ataque (79 ações) — atuou como ala ofensivo de fato."
+        ),
+        insight="7.5 papel_divergente",
+        categoria="estrutural",
+    ),
+    GoldenQuestion(
+        id="q16_gatilho_franca",
+        match_id=3869685,
+        pergunta="O que disparava a pressão da França na final?",
+        resposta_referencia=(
+            "Passe para o corredor esquerdo na faixa de meio-campo adversário: 8 pressões "
+            "em até 8s após o passe, 47% dos passes para essa região sofreram pressão."
+        ),
+        insight="7.3 gatilho_pressao",
+        categoria="estrutural",
+    ),
 ]

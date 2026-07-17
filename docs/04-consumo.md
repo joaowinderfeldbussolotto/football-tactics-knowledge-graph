@@ -26,6 +26,10 @@ sequenceDiagram
    `metricas_citadas` com o `uid` do padrão — é isso que torna a checagem de fidelidade
    determinística (`evaluation/faithfulness.py`).
 
+Cada seção (e cada resposta do Q&A) sai em **dois registros**: `narrativa`/`resposta`
+em linguagem tática (tatiquês), e `em_bom_portugues` — a mesma conclusão explicada em
+termos do dia a dia, sem jargão, para quem assiste futebol mas não estuda tática.
+
 ## Q&A — `POST /ask` `{match_id, pergunta}`
 
 ```mermaid
@@ -80,8 +84,15 @@ Regras invioláveis:
 3. NÃO mencione placar, gols nem quem venceu: o relatório é sobre COMO o jogo
    foi jogado, não sobre o resultado.
 4. Não invente padrões, jogadores nem valores que não estejam no contexto.
-5. Escreva em português, tom analítico, explicando POR QUE cada padrão importa
-   taticamente (o que um treinador faria com essa informação).
+5. Escreva em DOIS registros por seção:
+   - narrativa: linguagem tática (tatiquês) — betweenness, PPDA, bloco, corredor,
+     linha de passe — explicando POR QUE cada padrão importa e o que um
+     treinador faria com essa informação.
+   - em_bom_portugues: a MESMA conclusão em termos do dia a dia, sem nenhum
+     jargão, como você explicaria para alguém que assiste futebol no bar:
+     o que aconteceu em campo e por que isso decidiu alguma coisa
+     (ex.: "quase toda jogada da Argentina passava pelo Otamendi; se a França
+     tivesse colado um atacante nele, o time ficava sem saída de bola").
 Organize as seções por tema (estrutura de construção, pressão, mudanças ao
 longo do jogo), não uma seção por padrão.
 ```
@@ -101,7 +112,11 @@ Regras invioláveis:
    confianca=baixa. NÃO complete com conhecimento externo sobre a partida.
 4. Não mencione placar nem resultado, a menos que a pergunta seja sobre isso
    e o dado esteja no contexto.
-Responda em português, direto ao ponto.
+Responda em português, direto ao ponto, em DOIS registros:
+- resposta: linguagem tática (tatiquês), com as métricas.
+- em_bom_portugues: a MESMA resposta em termos do dia a dia, sem jargão,
+  como você explicaria para alguém que assiste futebol no bar — o que isso
+  significava em campo, na prática.
 ```
 
 ## Exemplo real de recuperação (sem LLM)
@@ -120,16 +135,42 @@ Pergunta: *"Qual jogador foi o gargalo estrutural da progressão da Argentina na
 
 A geração (passo 4) exige chave de LLM no `.env`; a recuperação (1–3) roda sem nenhuma.
 
-## Latências medidas ao vivo (claude-haiku-4-5)
+## Exemplo real de resposta (os dois registros)
 
-| Operação | Medição real |
-|---|---|
-| `GET /report/3869685` | 43 s (5 seções, 25 citações, **fidelidade 100%**, sem menção a placar) |
-| `/ask` — recuperação estruturada | 0,02–0,43 s |
-| `/ask` — geração | 5–7 s |
+Pergunta: *"Qual jogador foi o gargalo estrutural da progressão da Argentina na final?"*
+— resposta real do sistema (`claude-haiku-4-5`, 3/3 citações válidas contra o grafo):
 
-Exemplo real de resposta do `/ask` (pergunta do exemplo acima): *"Nicolás Hernán Otamendi
-foi o gargalo estrutural da progressão da Argentina na final. O algoritmo de betweenness
-centrality identificou Otamendi como o jogador através do qual passa obrigatoriamente a
-maior parte dos caminhos de progressão..."* — `confianca=alta`, 2/2 citações válidas
-contra o grafo.
+> **resposta (tatiquês):** "Nicolás Hernán Otamendi foi o gargalo estrutural da
+> progressão da Argentina na final. Com betweenness centrality de 50.0 (2º colocado:
+> 25.0), ele concentrou 47% de todo o fluxo de passes entre os blocos
+> defensivo-ofensivo (ligação com Tagliafico)..."
+>
+> **em_bom_portugues:** "Nicolás Otamendi foi o jogador mais importante para a
+> Argentina sair jogando. Todos os passes de progressão passavam por ele — quando você
+> olhava para frente, ele estava lá. Se o adversário marcasse nele com intensidade, a
+> Argentina ficava travada, porque praticamente todos os caminhos do time iam por
+> suas mãos."
+
+Latências e demais medições da validação ao vivo: `07-validacao.md`.
+
+## Que perguntas o sistema responde
+
+Uma pergunta por insight da seção 7 (o golden dataset em
+`evaluation/golden_dataset.py` tem 16, todas com resposta de referência verificada):
+
+| Tipo de pergunta | Exemplo real | Insight |
+|---|---|---|
+| Gargalo de progressão | "Qual jogador foi o gargalo estrutural da progressão da Argentina?" | 7.1 |
+| Combinações recorrentes | "Que trio a Argentina repetiu para quebrar linhas?" | 7.2 |
+| Regra de pressing rival | "O que disparava a pressão da Argentina sobre a França?" | 7.3 |
+| Onde pressionar | "Onde a França deveria ter pressionado para desconectar a construção argentina?" | 7.4 |
+| Papel real vs escalação | "Theo Hernández jogou mesmo como lateral esquerdo?" / "Borna Sosa atuou como lateral na semi?" | 7.5 |
+| Lado de construção vs chegada | "A construção da Inglaterra pela esquerda rendia chegada ao ataque?" | 7.6 |
+| Mudança de comportamento | "A Argentina mudou de comportamento defensivo durante a final? Quando?" | 7.7 |
+| Caça a um jogador | "A Inglaterra caçou algum jogador específico da França?" | 7.8 |
+| Métricas agregadas | "Qual time terminou a final pressionando mais alto?" | agregada |
+
+Perguntas **fora do escopo** (o agente responde `confianca=baixa` dizendo que o contexto
+não cobre): placar/resultado, lances individuais ("foi pênalti?"), partidas não
+ingeridas, e qualquer número que não exista como `PadraoTatico` no grafo — por
+construção, o LLM não calcula nada novo na hora da pergunta.

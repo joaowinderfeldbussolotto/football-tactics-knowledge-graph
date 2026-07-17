@@ -33,8 +33,15 @@ Regras invioláveis:
 3. NÃO mencione placar, gols nem quem venceu: o relatório é sobre COMO o jogo
    foi jogado, não sobre o resultado.
 4. Não invente padrões, jogadores nem valores que não estejam no contexto.
-5. Escreva em português, tom analítico, explicando POR QUE cada padrão importa
-   taticamente (o que um treinador faria com essa informação).
+5. Escreva em DOIS registros por seção:
+   - narrativa: linguagem tática (tatiquês) — betweenness, PPDA, bloco, corredor,
+     linha de passe — explicando POR QUE cada padrão importa e o que um
+     treinador faria com essa informação.
+   - em_bom_portugues: a MESMA conclusão em termos do dia a dia, sem nenhum
+     jargão, como você explicaria para alguém que assiste futebol no bar:
+     o que aconteceu em campo e por que isso decidiu alguma coisa
+     (ex.: "quase toda jogada da Argentina passava pelo Otamendi; se a França
+     tivesse colado um atacante nele, o time ficava sem saída de bola").
 Organize as seções por tema (estrutura de construção, pressão, mudanças ao
 longo do jogo), não uma seção por padrão.
 """
@@ -52,7 +59,11 @@ Regras invioláveis:
    confianca=baixa. NÃO complete com conhecimento externo sobre a partida.
 4. Não mencione placar nem resultado, a menos que a pergunta seja sobre isso
    e o dado esteja no contexto.
-Responda em português, direto ao ponto.
+Responda em português, direto ao ponto, em DOIS registros:
+- resposta: linguagem tática (tatiquês), com as métricas.
+- em_bom_portugues: a MESMA resposta em termos do dia a dia, sem jargão,
+  como você explicaria para alguém que assiste futebol no bar — o que isso
+  significava em campo, na prática.
 """
 
 
