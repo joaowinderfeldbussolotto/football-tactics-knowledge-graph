@@ -67,14 +67,15 @@ async def analyze(match_id: int, request: Request):
 
 @router.get("/report/{match_id}", response_model=schemas.RelatorioTatico)
 async def report(match_id: int, request: Request):
-    """Relatório tático: padrões via Cypher direto (sabemos o que queremos),
-    narrativa via PydanticAI. O agente não calcula nada."""
+    """Relatório tático: padrões via Cypher direto (sabemos o que queremos) +
+    ficha factual via consultar_grafo (ADR-8). O agente não calcula nada —
+    todo fato vem de padrão ou de consulta auditável."""
     _require_llm()
     patterns = retrieval.fetch_all_patterns(_driver(request), match_id)
     if not patterns:
         raise HTTPException(status_code=404, detail=f"sem padrões para {match_id}; rode /analyze antes")
     t0 = time.perf_counter()
-    result = await agents.generate_report(patterns)
+    result = await agents.generate_report(patterns, _driver(request), match_id)
     logger.info("relatório %s gerado em %.2fs (%d padrões)", match_id, time.perf_counter() - t0, len(patterns))
     return result
 

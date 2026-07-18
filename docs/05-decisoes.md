@@ -183,7 +183,7 @@ limits") e por teste de estresse ao vivo com a cota estourada de propósito (med
 
 ---
 
-## ADR-8 — Modo autônomo do Q&A: text-to-Cypher read-only (2026-07-17)
+## ADR-8 — Modo autônomo: text-to-Cypher read-only no Q&A e no relatório (2026-07-17, ampliado 2026-07-18)
 
 **Contexto.** A arquitetura original restringia o Q&A ao que existisse como
 `PadraoTatico`: perguntas factuais legítimas ("quem fez os gols?", "qual dupla mais
@@ -213,6 +213,20 @@ Para isso o grafo factual ganhou o que faltava: arestas `FINALIZOU` (com `gol`
 booleano) e `DEU_ASSISTENCIA` (seleções diretas do parquet, dentro das regras da
 camada 1).
 
+**Ampliação (2026-07-18) — cobertura total e relatório autônomo.**
+1. Aresta `REALIZOU`: o log COMPLETO de ações SPADL (uma aresta por ação, cópia direta
+   do parquet). Antes, perguntas sobre dribles, desarmes, interceptações, faltas,
+   cartões amarelos, defesas de goleiro e passes errados não tinham dado no grafo;
+   agora qualquer ação do jogo é consultável. O schema no prompt anota as armadilhas de
+   nomenclatura SPADL (`dribble`=condução, `take_on`=drible) e proíbe somar contagens
+   de `REALIZOU` com as das arestas dedicadas.
+2. A MESMA ferramenta `consultar_grafo` foi dada ao agente de **relatório**: o
+   `RelatorioTatico` abre com uma seção factual ("O jogo em fatos" — gols e
+   assistências vindos de consulta, máx. 3) e ganha `consultas_executadas`. A regra
+   antiga "não mencione placar/gols" (que existia para evitar alucinação de memória)
+   foi substituída pela regra certa: fatos do jogo SÓ se sustentados por consulta
+   registrada. O processo completo está documentado em `08-autonomia.md`.
+
 **Risco aceito e mitigado.** Text-to-Cypher pode gerar a *consulta errada que roda
 certo* — observado ao vivo na primeira validação: join `DEU_ASSISTENCIA×FINALIZOU`
 multiplicou 1 assistência de Thuram pelos 3 gols de Mbappé; e o modelo completou
@@ -222,7 +236,8 @@ de completar com conhecimento externo, e máximo de 4 consultas. A re-execução
 erro semântico — limitação documentada; o golden dataset ganhou categoria `factual`
 para medir exatamente isso.
 
-**Consequências.** O sistema responde fatos (gols, assistências, passes, duplas,
-zonas...) e tática no mesmo endpoint; o relatório (`/report`) permanece sem ferramenta
-(verbalização pura de padrões). A comparação com o baseline segue válida: as perguntas
-estruturais continuam decididas pelos algoritmos da camada 2.
+**Consequências.** O sistema responde fatos (gols, assistências, passes, dribles,
+desarmes, cartões, duplas, zonas...) e tática nos DOIS caminhos de consumo (`/ask` e
+`/report`), sempre com auditoria por consulta. A comparação com o baseline segue
+válida: as perguntas estruturais continuam decididas pelos algoritmos da camada 2 —
+o text-to-Cypher recupera fatos, não substitui os insights.

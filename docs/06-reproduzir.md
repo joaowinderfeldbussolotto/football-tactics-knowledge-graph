@@ -107,7 +107,8 @@ Endpoints auxiliares sem LLM: `GET /health`, `GET /graph/3869685/stats`,
 docker compose exec api python scripts/run_evaluation.py
 ```
 
-Roda o golden dataset (10 perguntas) no sistema de grafo E no baseline vetorial plano,
+Roda o golden dataset (24 perguntas: estruturais, agregada e factuais do modo
+autônomo) no sistema de grafo E no baseline vetorial plano,
 com fidelidade determinística + 2 juízes LLM, e salva
 `data/processed/eval_results.json`. Saída esperada (execução real com
 `claude-haiku-4-5`, ~12 min):

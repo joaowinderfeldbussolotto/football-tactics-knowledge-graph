@@ -1,9 +1,10 @@
 """Agentes PydanticAI (camada 3). O LLM NUNCA calcula: lê, consulta e escreve.
 
-- Relatório: verbalização pura dos PadraoTatico (sem ferramenta).
-- Q&A: padrões pré-calculados + modo autônomo (ADR-8) — a ferramenta
-  ``consultar_grafo`` executa Cypher SOMENTE-LEITURA gerado pelo modelo;
-  quem agrega/conta é o Neo4j, e cada consulta fica auditável na resposta.
+Os DOIS agentes (relatório e Q&A) operam em modo autônomo (ADR-8): além dos
+PadraoTatico pré-calculados, ambos têm a ferramenta ``consultar_grafo``, que
+executa Cypher SOMENTE-LEITURA gerado pelo modelo sobre o grafo factual.
+Quem agrega/conta é o Neo4j; o LLM decide O QUE perguntar ao grafo e cada
+consulta fica auditável na saída (``consultas_executadas``).
 
 Regras da seção 4 do plano aplicadas aqui:
 - Troca de provedor: modelo vindo de llm/provider.py (credencial + retry nativos).
@@ -29,34 +30,6 @@ from football_graphrag.llm.provider import pydantic_ai_model
 
 logger = logging.getLogger(__name__)
 
-PROMPT_RELATORIO = """\
-Você é um analista tático de futebol. Recebe uma lista de PADRÕES TÁTICOS já
-calculados por algoritmos de grafo determinísticos (betweenness, comunidades,
-caminhos multi-hop, janelas temporais) sobre o grafo da partida, e opcionalmente
-resumos de comunidades de padrões.
-
-Sua tarefa é VERBALIZAR esses achados numa narrativa tática estruturada.
-
-Regras invioláveis:
-1. Você NÃO calcula nada. Todo número da narrativa vem de um padrão recebido.
-2. Toda métrica mencionada entra em metricas_citadas com o padrao_tatico_id
-   (campo uid), nome_metrica, valor e algoritmo_origem EXATOS do padrão citado.
-3. NÃO mencione placar, gols nem quem venceu: o relatório é sobre COMO o jogo
-   foi jogado, não sobre o resultado.
-4. Não invente padrões, jogadores nem valores que não estejam no contexto.
-5. Escreva em DOIS registros por seção:
-   - narrativa: linguagem tática (tatiquês) — betweenness, PPDA, bloco, corredor,
-     linha de passe — explicando POR QUE cada padrão importa e o que um
-     treinador faria com essa informação.
-   - em_bom_portugues: a MESMA conclusão em termos do dia a dia, sem nenhum
-     jargão, como você explicaria para alguém que assiste futebol no bar:
-     o que aconteceu em campo e por que isso decidiu alguma coisa
-     (ex.: "quase toda jogada da Argentina passava pelo Otamendi; se a França
-     tivesse colado um atacante nele, o time ficava sem saída de bola").
-Organize as seções por tema (estrutura de construção, pressão, mudanças ao
-longo do jogo), não uma seção por padrão.
-"""
-
 GRAPH_SCHEMA = """\
 SCHEMA DO GRAFO (Neo4j) — use nos MATCH exatamente estes labels/propriedades:
 
@@ -71,8 +44,22 @@ Nós:
 Arestas (TODAS carregam match_id — filtre SEMPRE por ele):
 - (Jogador)-[:PASSOU_PARA {match_id, action_id, minuto, periodo, xt_gerado, vaep, progressivo, zona_origem, zona_destino, fase_posse_id}]->(Jogador)
 - (Jogador)-[:FINALIZOU {match_id, minuto, periodo, tipo: 'shot'|'shot_penalty'|'shot_freekick', resultado, gol: boolean, zona}]->(Partida)
+  // ao listar gols retorne SEMPRE j.nome E j.time: a atribuição de time vem
+  // do grafo, nunca de memória
 - (Jogador)-[:DEU_ASSISTENCIA {match_id, minuto, periodo}]->(Jogador)  // destino = autor do gol; UMA aresta POR GOL assistido — conte as arestas direto, NUNCA faça join com FINALIZOU (multiplica linhas)
 - (Jogador)-[:PRESSIONOU {match_id, minuto, periodo, zona}]->(Jogador)
+- (Jogador)-[:REALIZOU {match_id, action_id, tipo, resultado, corpo, minuto, periodo, zona, xt_gerado, vaep, fase_posse_id}]->(Partida)
+  // log COMPLETO de ações SPADL, uma aresta por ação — cobre o que as arestas
+  // dedicadas não cobrem. tipo: pass|cross|throw_in|freekick_short|freekick_crossed|
+  // corner_short|corner_crossed|goalkick|shot|shot_penalty|shot_freekick|
+  // dribble|take_on|tackle|interception|clearance|foul|bad_touch|
+  // keeper_save|keeper_claim|keeper_punch|keeper_pick_up.
+  // ATENÇÃO à nomenclatura SPADL: 'dribble' = CONDUÇÃO de bola;
+  // 'take_on' = drible sobre o marcador; 'tackle' = desarme;
+  // 'interception' = interceptação; 'clearance' = corte/afastamento.
+  // resultado: success|fail|offside|yellow_card ('foul' com resultado
+  // 'yellow_card' = cartão amarelo). corpo: foot|head|other|head/other.
+  // Passes errados: tipo de passe com resultado <> 'success'.
 - (Jogador)-[:ATUOU_EM {match_id, contagem_acoes, xt_acumulado}]->(Zona)
 - (Jogador)-[:PARTICIPOU_DE {match_id, numero_de_toques}]->(FaseDePosse)
 - (Jogador)-[:MEMBRO_DE {match_id}]->(Time)
@@ -82,7 +69,53 @@ Arestas (TODAS carregam match_id — filtre SEMPRE por ele):
 Convenções: minuto reinicia por periodo (1=1ºT, 2=2ºT, 3/4=prorrogação);
 'gols' = FINALIZOU com gol=true; nomes de jogador são completos (use CONTAINS
 para apelidos, ex. j.nome CONTAINS 'Messi'). PASSOU_PARA existe só para
-passes completos com recebedor identificado.
+passes completos com recebedor identificado; REALIZOU tem TODAS as ações
+(inclusive passes errados) — não some contagens de PASSOU_PARA e REALIZOU.
+"""
+
+PROMPT_RELATORIO = f"""\
+Você é um analista tático de futebol produzindo o relatório de uma partida.
+Tem duas fontes, cada uma com um papel:
+
+1. PADRÕES TÁTICOS já calculados por algoritmos de grafo determinísticos
+   (betweenness, comunidades, caminhos multi-hop, janelas temporais) — vêm no
+   contexto, com resumos de comunidades opcionais. São a espinha dorsal das
+   seções táticas.
+2. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
+   grafo factual da partida, para ancorar o relatório nos FATOS do jogo:
+   gols, assistências, cartões. Registre CADA consulta usada em
+   consultas_executadas (cypher + resultado_resumido).
+
+{GRAPH_SCHEMA}
+
+Regras invioláveis:
+1. Você NÃO calcula nada e não sabe NADA sobre a partida além do grafo. Todo
+   número vem de um padrão recebido ou do resultado de uma consulta
+   registrada — NUNCA de memória. Em particular (vale também para o
+   resumo_executivo): não diga quem venceu, não mencione placar agregado nem
+   disputa de pênaltis — o grafo não cobre pênaltis pós-prorrogação e o
+   relatório é sobre COMO se jogou, não sobre o desfecho.
+2. Toda métrica de padrão citada entra em metricas_citadas com o
+   padrao_tatico_id (campo uid), nome_metrica, valor e algoritmo_origem
+   EXATOS do padrão citado.
+3. Abra o relatório com uma seção factual curta ("O jogo em fatos"), com NO
+   MÁXIMO 3 consultas, sempre filtradas por match_id (vem no contexto):
+   - gols: liste as arestas FINALIZOU com gol=true retornando j.nome, j.time,
+     minuto, periodo e tipo (tipo='shot_penalty' = pênalti) — time e ordem dos
+     gols vêm DESSE resultado, não da sua memória;
+   - assistências: liste as arestas DEU_ASSISTENCIA (retorne os dois nomes e
+     j.time) — NUNCA em join com FINALIZOU: uma aresta já é uma assistência.
+4. Não invente padrões, jogadores nem valores que não estejam no contexto ou
+   em resultado de consulta.
+5. Escreva em DOIS registros por seção:
+   - narrativa: linguagem tática (tatiquês) — betweenness, PPDA, bloco,
+     corredor, linha de passe — explicando POR QUE cada padrão importa e o
+     que um treinador faria com essa informação.
+   - em_bom_portugues: a MESMA conclusão em termos do dia a dia, sem nenhum
+     jargão, como você explicaria para alguém que assiste futebol no bar:
+     o que aconteceu em campo e por que isso decidiu alguma coisa
+     (ex.: "quase toda jogada da Argentina passava pelo Otamendi; se a França
+     tivesse colado um atacante nele, o time ficava sem saída de bola").
 """
 
 PROMPT_QA = f"""\
@@ -134,43 +167,31 @@ def _semaphore() -> asyncio.Semaphore:
 _MODEL_SETTINGS = {"max_tokens": 16000}
 
 
-@lru_cache
-def report_agent() -> Agent:
-    return Agent(
-        pydantic_ai_model(get_settings()),
-        output_type=RelatorioTatico,
-        system_prompt=PROMPT_RELATORIO,
-        retries=2,
-        model_settings=_MODEL_SETTINGS,
-    )
-
-
 @dataclass
-class QADeps:
-    """Dependências do agente de Q&A: acesso somente-leitura ao grafo."""
+class GraphDeps:
+    """Dependências dos agentes: acesso somente-leitura ao grafo da partida."""
 
     driver: Driver
     match_id: int
 
 
-@lru_cache
-def qa_agent() -> Agent:
-    agent = Agent(
-        pydantic_ai_model(get_settings()),
-        deps_type=QADeps,
-        output_type=RespostaTatica,
-        system_prompt=PROMPT_QA,
-        retries=2,
-        model_settings=_MODEL_SETTINGS,
-    )
+# compatibilidade com código/testes que importavam o nome antigo
+QADeps = GraphDeps
+
+
+def _register_consultar_grafo(agent: Agent) -> None:
+    """Registra a ferramenta de autonomia (ADR-8), a MESMA para relatório e
+    Q&A: Cypher read-only gerado pelo modelo, executado com guarda sintática
+    + transação READ (graph/db.py)."""
 
     @agent.tool
-    def consultar_grafo(ctx: RunContext[QADeps], cypher: str) -> str:
+    def consultar_grafo(ctx: RunContext[GraphDeps], cypher: str) -> str:
         """Executa uma consulta Cypher SOMENTE-LEITURA no grafo da partida.
 
         Use para fatos que os padrões táticos não cobrem: gols, assistências,
-        finalizações, contagens de passes/pressões, zonas, duplas. Sempre
-        filtre por match_id. Retorna as linhas em JSON (truncado em 50).
+        finalizações, contagens de qualquer ação (dribles, desarmes, faltas,
+        cartões...), passes, pressões, zonas, duplas. Sempre filtre por
+        match_id. Retorna as linhas em JSON (truncado em 50).
         """
         try:
             rows = db.run_readonly(ctx.deps.driver, cypher)
@@ -181,6 +202,32 @@ def qa_agent() -> Agent:
         logger.info("consultar_grafo match=%s rows=%d cypher=%s", ctx.deps.match_id, len(rows), cypher)
         return json.dumps(rows, ensure_ascii=False, default=str)
 
+
+@lru_cache
+def report_agent() -> Agent:
+    agent = Agent(
+        pydantic_ai_model(get_settings()),
+        deps_type=GraphDeps,
+        output_type=RelatorioTatico,
+        system_prompt=PROMPT_RELATORIO,
+        retries=2,
+        model_settings=_MODEL_SETTINGS,
+    )
+    _register_consultar_grafo(agent)
+    return agent
+
+
+@lru_cache
+def qa_agent() -> Agent:
+    agent = Agent(
+        pydantic_ai_model(get_settings()),
+        deps_type=GraphDeps,
+        output_type=RespostaTatica,
+        system_prompt=PROMPT_QA,
+        retries=2,
+        model_settings=_MODEL_SETTINGS,
+    )
+    _register_consultar_grafo(agent)
     return agent
 
 
@@ -188,13 +235,23 @@ def _format_patterns(patterns: list[dict]) -> str:
     return json.dumps(patterns, ensure_ascii=False, indent=2, default=str)
 
 
-async def generate_report(patterns: list[dict], community_summaries: list[str] | None = None) -> RelatorioTatico:
-    """Gera o relatório tático a partir de padrões JÁ calculados (camada 2)."""
-    context = "PADRÕES TÁTICOS CALCULADOS:\n" + _format_patterns(patterns)
+async def generate_report(
+    patterns: list[dict],
+    driver: Driver,
+    match_id: int,
+    community_summaries: list[str] | None = None,
+) -> RelatorioTatico:
+    """Gera o relatório tático: padrões JÁ calculados (camada 2) para as seções
+    táticas + consultas read-only ao grafo factual (ADR-8) para a ficha do jogo
+    (gols/assistências), tudo auditável em consultas_executadas."""
+    context = (
+        f"MATCH_ID DA PARTIDA: {match_id}\n\n"
+        "PADRÕES TÁTICOS CALCULADOS:\n" + _format_patterns(patterns)
+    )
     if community_summaries:
         context += "\n\nRESUMOS DE COMUNIDADES:\n" + "\n".join(community_summaries)
     async with _semaphore():
-        result = await report_agent().run(context)
+        result = await report_agent().run(context, deps=GraphDeps(driver=driver, match_id=match_id))
     return result.output
 
 
@@ -215,7 +272,7 @@ async def answer_question(
     if extra_facts:
         context += "\n\nFATOS ADICIONAIS RECUPERADOS:\n" + "\n".join(f"- {f}" for f in extra_facts)
     async with _semaphore():
-        result = await qa_agent().run(context, deps=QADeps(driver=driver, match_id=match_id))
+        result = await qa_agent().run(context, deps=GraphDeps(driver=driver, match_id=match_id))
     return result.output
 
 

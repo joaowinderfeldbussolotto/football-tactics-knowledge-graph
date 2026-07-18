@@ -63,6 +63,7 @@ def build_factual_graph(match_id: int, data_dir: Path, driver: Driver) -> dict:
     counts["PRESSIONOU"] = _write_pressoes(driver, match_id, pressures)
     counts["FINALIZOU"] = _write_finalizacoes(driver, match_id, actions)
     counts["DEU_ASSISTENCIA"] = _write_assistencias(driver, match_id, actions)
+    counts["REALIZOU"] = _write_acoes(driver, match_id, actions)
     counts["ATUOU_EM"] = _write_atuou_em(driver, match_id, actions)
     counts["PARTICIPOU_DE"] = _write_participou_de(driver, match_id, actions)
     counts["PROGREDIU_PARA"] = _write_progrediu_para(driver, match_id, actions)
@@ -316,6 +317,45 @@ def _write_assistencias(driver: Driver, match_id: int, actions: pd.DataFrame) ->
            MATCH (a:Jogador {uid: r.assistente}), (b:Jogador {uid: r.autor})
            MERGE (a)-[s:DEU_ASSISTENCIA {match_id: r.match_id, action_id: r.action_id}]->(b)
            SET s.minuto = r.minuto, s.periodo = r.periodo""",
+        rows,
+    )
+
+
+def _write_acoes(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    """Jogador -[REALIZOU]-> Partida: o log COMPLETO de ações SPADL, uma aresta
+    por ação. É o que garante que QUALQUER pergunta factual sobre o jogo tenha
+    dado no grafo (dribles, desarmes, interceptações, faltas, cartões amarelos,
+    defesas do goleiro, passes errados...), não só as ações com aresta dedicada.
+    Cópia direta das linhas do parquet — nada calculado aqui."""
+    valid = actions.dropna(subset=["player_id"])
+    partida_uid = uid_for("partida", match_id)
+    rows = [
+        {
+            "jogador": uid_for("jogador", int(a.player_id)),
+            "partida": partida_uid,
+            "match_id": match_id,
+            "action_id": int(a.action_id),
+            "tipo": a.type_name,
+            "resultado": a.result_name,
+            "corpo": a.bodypart_name,
+            "minuto": float(a.time_seconds) / 60.0,
+            "periodo": int(a.period_id),
+            "zona": int(a.zone_start),
+            "xt_gerado": float(a.xt_value),
+            "vaep": float(a.vaep_value),
+            "fase_posse_id": f"{match_id}:{int(a.possession_id)}",
+        }
+        for a in valid.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (j:Jogador {uid: r.jogador}), (m:Partida {uid: r.partida})
+           MERGE (j)-[x:REALIZOU {match_id: r.match_id, action_id: r.action_id}]->(m)
+           SET x.tipo = r.tipo, x.resultado = r.resultado, x.corpo = r.corpo,
+               x.minuto = r.minuto, x.periodo = r.periodo, x.zona = r.zona,
+               x.xt_gerado = r.xt_gerado, x.vaep = r.vaep,
+               x.fase_posse_id = r.fase_posse_id""",
         rows,
     )
 

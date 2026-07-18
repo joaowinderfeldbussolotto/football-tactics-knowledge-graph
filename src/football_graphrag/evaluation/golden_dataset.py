@@ -246,4 +246,45 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         insight="factual (PASSOU_PARA, modo autônomo)",
         categoria="factual",
     ),
+    GoldenQuestion(
+        id="q21_cartoes_final",
+        match_id=3869685,
+        pergunta="Quem levou cartão amarelo na final?",
+        resposta_referencia=(
+            "Seis jogadores: Enzo Fernandez, Acuña, Paredes e Montiel pela Argentina; "
+            "Rabiot e Thuram pela França (Paredes e Montiel na prorrogação)."
+        ),
+        insight="factual (REALIZOU foul/yellow_card, modo autônomo)",
+        categoria="factual",
+    ),
+    GoldenQuestion(
+        id="q22_dribles_final",
+        match_id=3869685,
+        pergunta="Quem mais driblou adversários com sucesso na final?",
+        resposta_referencia=(
+            "Mbappé, com 6 dribles certos (take_on com sucesso); Di María teve 5 e "
+            "Coman 4."
+        ),
+        insight="factual (REALIZOU take_on, modo autônomo)",
+        categoria="factual",
+    ),
+    GoldenQuestion(
+        id="q23_desarmes_final",
+        match_id=3869685,
+        pergunta="Quem fez mais desarmes na final?",
+        resposta_referencia=(
+            "Enzo Fernandez, com 5 desarmes certos; Camavinga e Tagliafico fizeram 4 "
+            "cada."
+        ),
+        insight="factual (REALIZOU tackle, modo autônomo)",
+        categoria="factual",
+    ),
+    GoldenQuestion(
+        id="q24_defesas_goleiros",
+        match_id=3869685,
+        pergunta="Quantas defesas fez cada goleiro na final?",
+        resposta_referencia="Lloris fez 8 defesas; Emiliano Martínez fez 2.",
+        insight="factual (REALIZOU keeper_save, modo autônomo)",
+        categoria="factual",
+    ),
 ]

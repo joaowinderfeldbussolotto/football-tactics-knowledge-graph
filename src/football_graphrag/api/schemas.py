@@ -25,17 +25,21 @@ class SecaoRelatorio(BaseModel):
     metricas_citadas: list[MetricaCitada]
 
 
-class RelatorioTatico(BaseModel):
-    resumo_executivo: str
-    secoes: list[SecaoRelatorio]
-
-
 class ConsultaCypher(BaseModel):
     """Auditabilidade do modo autônomo: cada consulta que sustentou a resposta
     fica registrada e pode ser re-executada (evaluation/faithfulness.py)."""
 
     cypher: str
     resultado_resumido: str = Field(description="resumo de 1 linha do que a consulta retornou")
+
+
+class RelatorioTatico(BaseModel):
+    resumo_executivo: str
+    secoes: list[SecaoRelatorio]
+    consultas_executadas: list[ConsultaCypher] = Field(
+        default_factory=list,
+        description="consultas Cypher (read-only) que sustentam os fatos do jogo citados no relatório",
+    )
 
 
 class RespostaTatica(BaseModel):

@@ -220,3 +220,11 @@ de resposta em dois registros (tatiquês + `em_bom_portugues`); o score de insig
 grafo subiu de 4.33 para 5.0 em relação à rodada anterior de 10 perguntas — consistente
 com a rubrica do juiz, que pune resposta que "só repete o número" sem explicar o
 mecanismo. Histórico das duas rodadas em `07-validacao.md`.
+
+**Categoria `factual` (modo autônomo, ADR-8):** o golden dataset foi expandido para
+**24 perguntas** — 8 factuais novas (gols, assistências, dupla com mais passes, top
+passador, cartões, dribles, desarmes, defesas de goleiro), todas com referência
+conferida à mão contra o parquet. As 8 já foram validadas ao vivo individualmente
+(acerto 8/8, re-execução de consultas 100% — tabelas em `07-validacao.md`); a rodada
+formal do `run_evaluation.py` com as 24 fica pendente de chave de LLM ativa (a chave
+Anthropic foi rotacionada durante a validação; ver `07-validacao.md`).

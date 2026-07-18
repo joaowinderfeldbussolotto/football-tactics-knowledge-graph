@@ -35,6 +35,7 @@ graph LR
 | `PASSOU_PARA` | Jogador → Jogador | match_id + action_id | minuto, periodo, xt_gerado, vaep, progressivo, sucesso, zona_origem, zona_destino, fase_posse_id |
 | `FINALIZOU` | Jogador → Partida | match_id + action_id | minuto, periodo, tipo (shot/shot_penalty/shot_freekick), resultado, **gol** (bool), zona |
 | `DEU_ASSISTENCIA` | Jogador → Jogador (autor do gol) | match_id + action_id | minuto, periodo — último passe completo da mesma posse recebido pelo autor (pênalti não tem assistência) |
+| `REALIZOU` | Jogador → Partida | match_id + action_id | **log completo de ações SPADL** (uma aresta por ação): tipo, resultado, corpo, minuto, periodo, zona, xt_gerado, vaep, fase_posse_id |
 | `PRESSIONOU` | Jogador → Jogador | match_id + pressure_idx | minuto, periodo, zona |
 | `ATUOU_EM` | Jogador → Zona | match_id | contagem_acoes, xt_acumulado |
 | `PARTICIPOU_DE` | Jogador → FaseDePosse | match_id | numero_de_toques |
@@ -44,6 +45,14 @@ graph LR
 
 Regra: toda propriedade numérica vem de coluna do parquet sem transformação; as agregações
 (`ATUOU_EM`, `PROGREDIU_PARA`, `PARTICIPOU_DE`) são somas/contagens diretas.
+
+**`REALIZOU` é a garantia de cobertura factual total** (requisito do modo autônomo,
+ADR-8): dribles sobre o marcador (`take_on`), conduções (`dribble` — atenção à
+nomenclatura SPADL), desarmes (`tackle`), interceptações, cortes, faltas (com
+`resultado='yellow_card'` para cartão amarelo), defesas de goleiro e passes errados —
+tudo que não tem aresta dedicada continua consultável. As arestas dedicadas
+(`PASSOU_PARA`, `FINALIZOU`, ...) são recortes convenientes com o nó de destino certo
+(recebedor, partida); `REALIZOU` é o log bruto — **não** somar contagens dos dois.
 
 ## Volumes por partida
 

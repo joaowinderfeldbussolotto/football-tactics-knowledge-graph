@@ -1,7 +1,9 @@
 # 04 — Consumo do grafo (Camada 3)
 
 O LLM **nunca calcula**: recebe padrões prontos da camada 2 e verbaliza (relatório) ou
-responde (Q&A) com **citação obrigatória** das métricas.
+responde (Q&A) com **citação obrigatória** das métricas. Nos dois caminhos ele também
+tem **autonomia para percorrer o grafo factual** (ferramenta `consultar_grafo`,
+read-only, ADR-8) — o processo completo do modo autônomo está em `08-autonomia.md`.
 
 ## Relatório geral — `GET /report/{match_id}`
 
@@ -15,7 +17,9 @@ sequenceDiagram
     API->>N: MATCH (p:PadraoTatico {match_id}) RETURN p  (Cypher direto, sem LLM)
     N-->>API: 24 padrões prontos
     API->>A: contexto = padrões (+ resumos de comunidade, se Graphiti ativo)
-    A-->>API: RelatorioTatico {resumo_executivo, secoes[], metricas_citadas[]}
+    A->>N: consultar_grafo(cypher) — gols/assistências, read-only, máx. 3
+    N-->>A: linhas exatas
+    A-->>API: RelatorioTatico {resumo_executivo, secoes[], metricas_citadas[], consultas_executadas[]}
     API-->>C: JSON estruturado
 ```
 
@@ -25,6 +29,11 @@ sequenceDiagram
 3. Agente PydanticAI com `output_type=RelatorioTatico`. Cada número citado entra em
    `metricas_citadas` com o `uid` do padrão — é isso que torna a checagem de fidelidade
    determinística (`evaluation/faithfulness.py`).
+4. **Ficha factual autônoma:** o relatório abre com a seção "O jogo em fatos" (gols com
+   minuto/período, assistências), obtida pelo próprio agente via `consultar_grafo` e
+   auditável em `consultas_executadas` (re-executáveis por
+   `faithfulness.check_queries`). A regra antiga "não mencione gols" virou "fatos do
+   jogo SÓ com consulta registrada".
 
 Cada seção (e cada resposta do Q&A) sai em **dois registros**: `narrativa`/`resposta`
 em linguagem tática (tatiquês), e `em_bom_portugues` — a mesma conclusão explicada em
@@ -46,7 +55,9 @@ flowchart LR
 `consultar_grafo` — Cypher **somente-leitura** gerado pelo próprio LLM contra o grafo
 factual, com o schema completo no prompt de sistema. É isso que responde perguntas
 factuais que nenhum padrão cobre: gols, assistências, finalizações, contagens de passes,
-duplas, zonas, fases de posse. Três garantias mantêm a tese de pé:
+dribles, desarmes, cartões, duplas, zonas, fases de posse — a aresta `REALIZOU` (log
+completo de ações SPADL) garante que **qualquer** ação do jogo tem dado consultável.
+Três garantias mantêm a tese de pé:
 1. **quem calcula é o Neo4j** (agregação determinística) — o LLM decide *o que*
    consultar, nunca faz aritmética de cabeça;
 2. **read-only de verdade**: transação READ do servidor + guarda sintática que recusa
@@ -85,31 +96,44 @@ Latência de recuperação e de geração são medidas separadamente e logadas
 ### Relatório (`api/agents.py::PROMPT_RELATORIO`)
 
 ```
-Você é um analista tático de futebol. Recebe uma lista de PADRÕES TÁTICOS já
-calculados por algoritmos de grafo determinísticos (betweenness, comunidades,
-caminhos multi-hop, janelas temporais) sobre o grafo da partida, e opcionalmente
-resumos de comunidades de padrões.
+Você é um analista tático de futebol produzindo o relatório de uma partida.
+Tem duas fontes, cada uma com um papel:
 
-Sua tarefa é VERBALIZAR esses achados numa narrativa tática estruturada.
+1. PADRÕES TÁTICOS já calculados por algoritmos de grafo determinísticos
+   (betweenness, comunidades, caminhos multi-hop, janelas temporais) — vêm no
+   contexto, com resumos de comunidades opcionais. São a espinha dorsal das
+   seções táticas.
+2. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
+   grafo factual da partida, para ancorar o relatório nos FATOS do jogo:
+   gols, assistências, cartões. Registre CADA consulta usada em
+   consultas_executadas (cypher + resultado_resumido).
+
+[SCHEMA DO GRAFO — bloco agents.GRAPH_SCHEMA, o mesmo do Q&A]
 
 Regras invioláveis:
-1. Você NÃO calcula nada. Todo número da narrativa vem de um padrão recebido.
-2. Toda métrica mencionada entra em metricas_citadas com o padrao_tatico_id
-   (campo uid), nome_metrica, valor e algoritmo_origem EXATOS do padrão citado.
-3. NÃO mencione placar, gols nem quem venceu: o relatório é sobre COMO o jogo
-   foi jogado, não sobre o resultado.
-4. Não invente padrões, jogadores nem valores que não estejam no contexto.
+1. Você NÃO calcula nada. Todo número da narrativa vem de um padrão recebido
+   ou do resultado de uma consulta registrada — NUNCA de memória: não
+   acrescente placar agregado, disputa de pênaltis nem contexto histórico que
+   as consultas não retornaram.
+2. Toda métrica de padrão citada entra em metricas_citadas com o
+   padrao_tatico_id (campo uid), nome_metrica, valor e algoritmo_origem
+   EXATOS do padrão citado.
+3. Abra o relatório com uma seção factual curta ("O jogo em fatos"): gols
+   (autor, minuto, período, se foi pênalti) e assistências, obtidos com NO
+   MÁXIMO 3 consultas. Filtre sempre por match_id (vem no contexto). As
+   demais seções são táticas, organizadas por tema (estrutura de construção,
+   pressão, mudanças ao longo do jogo), não uma seção por padrão.
+4. Não invente padrões, jogadores nem valores que não estejam no contexto ou
+   em resultado de consulta.
 5. Escreva em DOIS registros por seção:
-   - narrativa: linguagem tática (tatiquês) — betweenness, PPDA, bloco, corredor,
-     linha de passe — explicando POR QUE cada padrão importa e o que um
-     treinador faria com essa informação.
+   - narrativa: linguagem tática (tatiquês) — betweenness, PPDA, bloco,
+     corredor, linha de passe — explicando POR QUE cada padrão importa e o
+     que um treinador faria com essa informação.
    - em_bom_portugues: a MESMA conclusão em termos do dia a dia, sem nenhum
      jargão, como você explicaria para alguém que assiste futebol no bar:
      o que aconteceu em campo e por que isso decidiu alguma coisa
      (ex.: "quase toda jogada da Argentina passava pelo Otamendi; se a França
      tivesse colado um atacante nele, o time ficava sem saída de bola").
-Organize as seções por tema (estrutura de construção, pressão, mudanças ao
-longo do jogo), não uma seção por padrão.
 ```
 
 ### Q&A (`api/agents.py::PROMPT_QA`)
@@ -128,7 +152,9 @@ duas fontes, nesta ordem de preferência:
    consultas_executadas (cypher + resultado_resumido).
 
 [SCHEMA DO GRAFO — bloco agents.GRAPH_SCHEMA, com labels, propriedades e
-convenções, incluindo o aviso de não fazer join DEU_ASSISTENCIA×FINALIZOU]
+convenções: o aviso de não fazer join DEU_ASSISTENCIA×FINALIZOU, a
+nomenclatura SPADL do REALIZOU (dribble=condução, take_on=drible) e a regra
+de não somar contagens de REALIZOU com as das arestas dedicadas]
 
 Regras invioláveis:
 1. TODO número e TODO fato da resposta vem de um padrão citado ou do
@@ -193,7 +219,8 @@ Latências e demais medições da validação ao vivo: `07-validacao.md`.
 ## Que perguntas o sistema responde
 
 Uma pergunta por insight da seção 7 (o golden dataset em
-`evaluation/golden_dataset.py` tem 16, todas com resposta de referência verificada):
+`evaluation/golden_dataset.py` tem 24 — 16 estruturais/agregada + 8 factuais do modo
+autônomo — todas com resposta de referência verificada):
 
 | Tipo de pergunta | Exemplo real | Insight |
 |---|---|---|
@@ -207,10 +234,14 @@ Uma pergunta por insight da seção 7 (o golden dataset em
 | Caça a um jogador | "A Inglaterra caçou algum jogador específico da França?" | 7.8 |
 | Métricas agregadas | "Qual time terminou a final pressionando mais alto?" | agregada |
 | **Fatos do jogo (modo autônomo)** | "Quem fez os gols?" / "Quem deu as assistências?" / "Qual dupla mais trocou passes?" / "Quem finalizou mais?" | Cypher read-only (ADR-8) |
+| **Qualquer ação do jogo (REALIZOU)** | "Quem levou cartão amarelo?" / "Quem mais driblou?" / "Quem fez mais desarmes?" / "Quantas defesas fez cada goleiro?" / "Quem mais errou passes?" | Cypher read-only (ADR-8) |
 
-Com o modo autônomo, qualquer pergunta cuja resposta exista no **grafo factual**
-(finalizações/gols, assistências, passes, pressões, zonas, fases de posse, escalação)
-é respondível — o LLM escreve a consulta, o Neo4j calcula. Continuam **fora do
-escopo** (resposta honesta com `confianca=baixa`): disputa de pênaltis (período 5 é
-excluído da pipeline por não ser jogo corrido), cartões (não modelados no grafo),
-lances subjetivos ("foi pênalti?") e partidas não ingeridas.
+Com o modo autônomo, qualquer pergunta cuja resposta exista no **grafo factual** é
+respondível — o LLM escreve a consulta, o Neo4j calcula. A aresta `REALIZOU` (log
+completo de ações SPADL) garante que TODA ação individual do jogo está no grafo:
+finalizações/gols, assistências, passes (certos e errados), dribles, conduções,
+desarmes, interceptações, cortes, faltas e cartões amarelos, defesas de goleiro,
+pressões, zonas, fases de posse, escalação. Continuam **fora do escopo** (resposta
+honesta com `confianca=baixa`): disputa de pênaltis (período 5 é excluído da pipeline
+por não ser jogo corrido), cartão vermelho direto (o SPADL da StatsBomb não o modela
+como ação), lances subjetivos ("foi pênalti?") e partidas não ingeridas.

@@ -71,6 +71,32 @@ def test_goal_and_assist_edges():
         driver.close()
 
 
+@requires_neo4j
+@requires_data
+def test_realizou_covers_all_actions():
+    """REALIZOU é o log completo: uma aresta por ação SPADL com jogador."""
+    import pandas as pd
+
+    settings = get_settings()
+    parquet = pd.read_parquet(settings.processed_dir / f"{MATCH_ID}.parquet")
+    expected = int(parquet["player_id"].notna().sum())
+    driver = db.make_driver(settings)
+    try:
+        with driver.session() as session:
+            n = session.run(
+                "MATCH ()-[x:REALIZOU {match_id: $m}]->() RETURN count(x) AS n", m=MATCH_ID
+            ).single()["n"]
+            amarelos = session.run(
+                """MATCH ()-[x:REALIZOU {match_id: $m, tipo: 'foul', resultado: 'yellow_card'}]->()
+                   RETURN count(x) AS n""",
+                m=MATCH_ID,
+            ).single()["n"]
+        assert n == expected
+        assert amarelos == 6  # cartões amarelos da final no jogo corrido
+    finally:
+        driver.close()
+
+
 def test_readonly_guard_rejects_writes_and_calls():
     import pytest
 
