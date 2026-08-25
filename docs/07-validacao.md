@@ -23,28 +23,36 @@ padrões gerados, fidelidade e o comparativo com o baseline (dados e seeds fixos
 
 ## Camada 0 — pipeline (medições)
 
-| Partida | Eventos kloppy | Ações SPADL | Fases | Passes c/ recebedor | Pressões (c/ alvo) | Tempo* |
+| Partida | Eventos kloppy | Ações SPADL | Linhas no parquet* | Fases | Passes c/ recebedor | Pressões (c/ alvo) |
 |---|---|---|---|---|---|---|
-| 3869685 (final) | 4.527 | 2.584 | 537 | 989 | 361 (301) | 53 s / 1,5 s |
-| 3869519 (semi) | 3.891 | 2.272 | 346 | 916 | 290 (266) | 1,5 s |
-| 3869354 (quartas) | 3.351 | 1.895 | 326 | 791 | 230 (210) | 1,2 s |
+| 3869685 (final) | 4.527 | 2.584 | 2.585 | 537 | 989 | 361 (301) |
+| 3869519 (semi) | 3.891 | 2.272 | 2.274 | 346 | 916 | 290 (266) |
+| 3869354 (quartas) | 3.351 | 1.895 | 1.895 | 326 | 791 | 230 (210) |
+
+\* a diferença entre ações SPADL e linhas do parquet são os cartões que o SPADL
+descarta e o passo 0.4h recupera do JSON bruto (1 na final, 2 na semi, 0 nas
+quartas). Ver `01-pipeline.md`, passo 0.4h.
 
 \* primeira execução inclui download das 16 partidas de treino + treino de xT/VAEP;
 as demais usam cache.
 
 ## Camada 1 — grafo factual (medições)
 
-| Partida | Escritas | Tempo (1ª / re-execução) |
+| Partida | Escritas | Tempo |
 |---|---|---|
-| final | 5.351 | 6,9 s / 1,1 s |
-| semi | 4.565 | 1,1 s |
-| quartas | 4.035 | 0,7 s |
+| final | 8.004 | 3,2 s |
+| semi | 6.895 | 1,5 s |
+| quartas | 5.984 | 1,3 s |
+
+O salto em relação à medição anterior (5.351 na final) vem da camada 1b: os
+nós `EstatisticaJogador`/`EstatisticaTime` e a propagação do vocabulário de
+futebol para todas as arestas.
 
 Idempotência confirmada por teste (contagens idênticas após reconstrução).
 
 ## Camada 2 — insights (medições)
 
-69 padrões táticos no total (24 + 22 + 23); distribuição por tipo e exemplos reais em
+73 padrões táticos no total (24 + 22 + 27); distribuição por tipo e exemplos reais em
 `03-insights.md`. `alvo_de_pressao` não disparou na final (sem concentração ≥1.5x a
 média) — resultado honesto, registrado no catálogo.
 
@@ -83,14 +91,86 @@ JSON completo por pergunta em `data/processed/eval_results.json` (gerado por
 Na agregada (n=1), a 2ª rodada deu grafo 5.0/5.0 vs baseline 2.0/1.0. Custo total das
 duas rodadas + validações avulsas com `claude-haiku-4-5`: da ordem de centavos de dólar.
 
-**3ª rodada (pendente):** o golden foi expandido para 24 perguntas (8 factuais do modo
-autônomo, incluindo as do log `REALIZOU`); as 8 factuais já foram validadas ao vivo
-individualmente (8/8 corretas — tabela acima), mas a rodada formal do
-`run_evaluation.py` não pôde rodar: a chave Anthropic foi **rotacionada durante a
-validação de 2026-07-18** (as tentativas passaram a devolver 401) e a cota diária
-gratuita de embeddings do Gemini limita o baseline. Rodar com chave nova é 1 comando
-(`scripts/run_evaluation.py`); o baseline se auto-desativa se o embedder estiver sem
-cota.
+**3ª rodada (executada em 2026-08-25, `claude-sonnet-5` + embeddings Gemini):**
+golden de 24 perguntas, 24/24 sem erro de autenticação.
+
+| Categoria | n | Grafo (recuperação / insight) | Baseline vetorial | Fidelidade |
+|---|---|---|---|---|
+| estrutural | 15 | 4,93 / 4,73 | 1,13 / 1,13 | 100% |
+| factual | 8 | 2,62 / 3,38 | 1,25 / 1,12 | 100% |
+| agregada | 1 | 5,0 / 5,0 | 2,0 / 2,0 | 100% |
+
+Reexecução de consultas 100% em 23 das 24 perguntas (0,75 em `q12_papel_sosa`).
+
+**Duas ressalvas importantes sobre essa tabela**, ambas descobertas na análise
+posterior:
+
+1. **A nota "recuperação" da categoria factual (2,62) mede outra coisa.** O juiz
+   `judge_retrieval` pontua o CONTEXTO recuperado, e para pergunta factual o
+   contexto é o dump bruto do Cypher, não a resposta. Perguntas cuja resposta
+   final estava correta e bem citada tiraram 1/5 em recuperação e 4/5 em
+   insight. Não é falha do sistema; é a métrica sendo lida fora do lugar.
+
+2. **`q23_desarmes_final` estava genuinamente errada.** O sistema respondeu
+   "Enzo Fernández 9 desarmes, Tagliafico 7, Kolo Muani 6"; a resposta é "Enzo
+   5, Camavinga 4, Tagliafico 4". O modelo contou TENTATIVAS de desarme como
+   desarmes. O ranking inteiro muda. Na mesma execução ele acertou os dribles
+   (onde filtrou por sucesso) — ou seja, o comportamento era **inconsistente**,
+   porque a semântica de "desarme" vivia no prompt e não no dado.
+
+O achado 2 motivou a refatoração descrita em `00-entenda-o-projeto.md` (seção
+2.6) e `01-pipeline.md` (passo 0.4h): o vocabulário de futebol passou para o
+dado e as contagens viraram campos nomeados (`desarmes_certos` vs
+`desarmes_tentados`).
+
+**4ª rodada (não executada):** a refatoração deveria ser medida com uma nova
+rodada de `run_evaluation.py`, mas a conta Anthropic ficou sem crédito. **Os
+números da 3ª rodada acima são, portanto, do sistema ANTES da refatoração** —
+não há medição pós-refatoração com juiz de LLM, e este documento não afirma
+melhora que não foi medida.
+
+O que foi possível verificar sem API está na seção seguinte.
+
+## Verificação do modelo de dados (sem LLM, sem custo)
+
+`scripts/check_golden_queries.py` roda a consulta de referência de cada uma
+das 24 perguntas (`evaluation/reference_queries.py`) contra o grafo e imprime
+a resposta esperada ao lado do que o grafo devolve. Separa o que a avaliação
+completa mistura: **a qualidade do modelo de dados** e a qualidade do modelo
+de linguagem.
+
+Resultado em 2026-08-25: **24/24 perguntas com resposta no grafo.** As oito
+factuais são consulta de um hop sobre `EstatisticaJogador`, sem agregação
+escrita na hora — inclusive `q23`, que agora devolve Enzo 5 / Camavinga 4 /
+Tagliafico 4 por construção.
+
+Isto **não** substitui a avaliação com juiz: não mede se o LLM escolhe a
+consulta certa, nem a qualidade do texto. Mede que o dado está lá, correto e
+alcançável — que era a causa raiz do erro da 3ª rodada.
+
+## Defeitos de dado encontrados e corrigidos em 2026-08-25
+
+Três problemas achados ao auditar o grafo contra o StatsBomb bruto e a súmula
+oficial. Nenhum deles era detectável pela avaliação com juiz, porque em dois
+casos o golden dataset tinha sido conferido contra o próprio dado defeituoso.
+
+| Defeito | Sintoma | Correção |
+|---|---|---|
+| SPADL descarta cartões de `bad_behaviour` | a final tem **7 amarelos em campo** e o grafo registrava 6 (faltava o do Giroud aos 95', por reclamação). O golden dizia 6 | resgate do JSON bruto no passo 0.4h; golden corrigido |
+| `minuto` era contado dentro do período | o gol do Mbappé aos 80' estava gravado como "minuto 34.4" | `minuto` passa a ser o minuto de transmissão; os 6 gols batem com a súmula da FIFA (23, 36, 80, 81, 108, 118) |
+| Janela temporal do insight 7.3 comparava escalas diferentes | `PASSOU_PARA.minuto` era minuto-do-período (float) e `PRESSIONOU.minuto` era minuto-absoluto (int). No 1º tempo coincidem por acaso; do 2º em diante diferem em 45 a 105 minutos e a janela de 8 s nunca fechava | campo `segundo` (contínuo desde o apito) em ambas as arestas; consulta do insight passa a usá-lo |
+
+O terceiro é o mais sério em termos de método: o padrão `gatilho_pressao` vinha
+de um join quebrado, e as respostas de referência de `q04` e `q16` no golden
+dataset foram conferidas contra esse resultado — **estavam erradas as duas**.
+Ambas foram recalculadas. Este é o argumento prático a favor de
+`check_golden_queries.py`: um golden dataset conferido contra o sistema, e não
+contra a realidade, valida o sistema contra si mesmo.
+
+Cobertura de teste após as correções: **47 testes**, incluindo uma trava que
+falha se jargão SPADL (`take_on`, `tackle`, `tipo_spadl`) reaparecer no schema
+exposto ao agente, e uma que verifica que a súmula pré-agregada bate com a
+contagem ad-hoc sobre as mesmas arestas.
 
 ## Modo autônomo (ADR-8) — validação ao vivo
 
@@ -115,11 +195,23 @@ corretas contra o parquet, 1 consulta por pergunta, re-execução 100%:
 
 | Pergunta | Resposta do sistema | Confere? |
 |---|---|---|
-| cartões amarelos | 6 (Paredes, Montiel, Enzo, Acuña; Rabiot, Thuram), com time e período | ✅ |
-| dribles certos | Mbappé 6, Di María 5, Coman 4 (`take_on`/success) | ✅ |
+| cartões amarelos | 6 (Paredes, Montiel, Enzo, Acuña; Rabiot, Thuram) | ⚠️ ver abaixo |
+| dribles certos | Mbappé 6, Di María 5, Coman 4 | ✅ |
 | desarmes | Enzo Fernández 5; Tagliafico e Camavinga 4 | ✅ |
 | defesas de goleiro | Lloris 8, Martínez 2 | ✅ |
 | passes errados | Molina 16; Tchouaméni e Enzo 13 | ✅ |
+
+⚠️ **Correção retroativa (2026-08-25):** a linha dos cartões foi marcada como
+correta em 2026-07-18 porque batia com o grafo — mas o grafo estava errado. A
+final teve 7 amarelos em campo; o do Giroud (95', por reclamação) era
+descartado pelo SPADL. O sistema respondeu certo *sobre um dado incompleto*.
+É o padrão de falha que motivou a auditoria contra a fonte bruta descrita mais
+adiante: conferir a resposta contra o grafo só valida o grafo contra si mesmo.
+
+⚠️ Note também que os desarmes aparecem corretos aqui (validação manual, uma
+pergunta por vez) e ERRADOS na 3ª rodada de avaliação (9 em vez de 5). A
+diferença é a inconsistência do modelo diante de um dado ambíguo — motivo pelo
+qual a semântica saiu do prompt.
 
 **Relatório autônomo** (2026-07-18, Haiku): rodada 1 do relatório reproduziu DOIS bugs
 novos (o join das assistências reapareceu no outro agente + atribuição de time de
@@ -139,4 +231,10 @@ validação), o que de quebra validou ao vivo a troca de provedor só por `.env`
   com `LLM_PROVIDER=gemini`/`gemini-2.5-flash` (free tier) trocando apenas variáveis de
   ambiente, com seção factual correta e re-execução de consultas 100% (23/24 citações de
   padrão válidas nessa rodada).
-- A rodada formal de avaliação com o golden de 24 perguntas (ver seção de avaliação).
+- ~~A rodada formal de avaliação com o golden de 24 perguntas~~ — executada em
+  2026-08-25 (ver seção de avaliação).
+- **O sistema depois da refatoração do vocabulário de futebol.** A conta
+  Anthropic ficou sem crédito antes da 4ª rodada. Há verificação determinística
+  do modelo de dados (24/24 em `check_golden_queries.py`) e 47 testes, mas
+  nenhuma medição com juiz de LLM após a mudança. Qualquer afirmação de melhora
+  de nota seria não medida — e por isso não é feita aqui.

@@ -56,10 +56,13 @@ Saída esperada (primeira execução baixa as 16 partidas de treino e treina xT/
 as seguintes usam cache e levam ~1,5 s por partida):
 
 ```
-[3869685] 4527 eventos kloppy -> 2584 ações SPADL (537 fases de posse) em 53.0s
-[3869519] 3891 eventos kloppy -> 2272 ações SPADL (346 fases de posse) em 1.5s
-[3869354] 3351 eventos kloppy -> 1895 ações SPADL (326 fases de posse) em 1.2s
+[3869685] 4527 eventos kloppy -> 2585 ações SPADL (537 fases de posse) em 2.3s
+[3869519] 3891 eventos kloppy -> 2274 ações SPADL (346 fases de posse) em 1.9s
+[3869354] 3351 eventos kloppy -> 1895 ações SPADL (326 fases de posse) em 1.7s
 ```
+
+(2585 e não 2584 na final: o passo 0.4h recupera do JSON bruto um cartão que o
+SPADL descarta — ver `01-pipeline.md`.)
 
 Artefatos em `data/processed/` (parquet + `_phases` + `_windows` + `_pressures` +
 `_meta.json` + `_schema.json` por partida).
@@ -70,9 +73,9 @@ Artefatos em `data/processed/` (parquet + `_phases` + `_windows` + `_pressures` 
 docker compose exec api python scripts/build_graph.py
 ```
 
-Saída esperada (final): `5351 escritas em ~7s` e stats com
-`PASSOU_PARA: 989, PRESSIONOU: 301, FaseDePosse: 537...`. Rodar duas vezes não muda as
-contagens (idempotente).
+Saída esperada (final): `8004 escritas em ~3s` e stats com
+`PASSOU_PARA: 989, PRESSIONOU: 301, FaseDePosse: 537, EstatisticaJogador: 26...`.
+Rodar duas vezes não muda as contagens (idempotente).
 
 ## 5. Rodar a análise (camada 2)
 
@@ -85,8 +88,26 @@ Saída esperada:
 ```
 [3869685] 24 padrões táticos: {'pivo_estrutural': 2, 'terceiro_homem': 6, ...}
 [3869519] 22 padrões táticos: ...
-[3869354] 23 padrões táticos: ...
+[3869354] 27 padrões táticos: ...
 ```
+
+## 5b. Conferir o modelo de dados (sem LLM, sem custo)
+
+```bash
+docker compose exec api python scripts/check_golden_queries.py
+```
+
+Roda a consulta de referência das 24 perguntas do golden dataset contra o grafo
+e imprime, lado a lado, a resposta esperada e o que o grafo devolve. **Não usa
+LLM e não consome API.** Saída esperada na última linha:
+
+```
+RESUMO: 24/24 perguntas com resposta no grafo
+```
+
+Se alguma pergunta ficar sem linhas, o defeito é do modelo de dados — e o
+diagnóstico sai daqui em segundos, em vez de depender da avaliação completa.
+Aceita filtro por id: `check_golden_queries.py q23 q17`.
 
 ## 6. Relatório e Q&A (camada 3 — exige chaves de LLM)
 
@@ -133,7 +154,7 @@ Análise da tabela em `docs/03-insights.md` (seção "Avaliação").
 docker compose exec api pytest tests/ -q
 ```
 
-Esperado: `22 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
+Esperado: `47 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
 está disponível (rodam completos com o stack de pé e a pipeline executada).
 
 ## Troca de provedor de LLM

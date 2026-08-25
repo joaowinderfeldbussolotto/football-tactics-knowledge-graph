@@ -1,7 +1,13 @@
 # 01 — Pipeline de dados (Camada 0)
 
-Pipeline determinística, sem LLM: StatsBomb JSON → kloppy → SPADL → xT/VAEP → métricas → Parquet.
+Pipeline determinística, sem LLM: StatsBomb JSON → kloppy → SPADL → xT/VAEP → métricas →
+vocabulário de futebol → Parquet.
 Contrato duro: **a partir do parquet, nada mais é calculado**. Camadas 1–3 apenas leem.
+
+> Se este é seu primeiro contato com o projeto, leia antes
+> `00-entenda-o-projeto.md`: ele acompanha uma jogada real por todas as etapas
+> abaixo e explica o que cada métrica significa. Este documento é a referência
+> passo a passo.
 
 ## Fluxo
 
@@ -13,7 +19,10 @@ flowchart LR
     C -->|0.3b VAEP xgboost| E[vaep_*]
     C -->|0.4 zonas, fases, progressivo,\nrecebedor, PPDA, field tilt| F[métricas contextuais]
     A -->|0.4g pressões via related_events| G[pressures]
-    D & E & F --> H[data/processed/matchid.parquet\n+ _phases + _windows + _pressures\n+ _meta.json + _schema.json]
+    A -->|0.4h desfecho de finalização\n+ cartões descartados| I[resgate do bruto]
+    D & E & F --> J[0.4h vocabulário de futebol\nacao, sucesso, minuto, segundo]
+    I --> J
+    J --> H[data/processed/matchid.parquet\n+ _phases + _windows + _pressures\n+ _meta.json + _schema.json]
 ```
 
 ## Passo 0.1 — Aquisição (`ingestion/statsbomb_loader.py`)
@@ -94,6 +103,44 @@ Fórmula e referência completas nas docstrings; resumo:
 Números reais da final: 989 passes com recebedor resolvido (de 1.103), 537 fases de posse,
 361 pressões (301 com alvo resolvido, 83%). PPDA Argentina 6,8–6,8 por tempo; França 9,6–9,9.
 
+## Passo 0.4h — Vocabulário de futebol (`ingestion/football_semantics.py`)
+
+Último passo da camada 0, e o que faz o grafo deixar de falar SPADL. Sem ele,
+a semântica teria que ser explicada no prompt do agente — e prompt falha em
+silêncio (ver `07-validacao.md`).
+
+**Tradução.** Cada ação ganha `acao` (nome em português, vocabulário fechado
+sem acentos), `grupo_acao` (categoria grossa) e `sucesso` (booleano
+explícito). O mapa completo está no módulo; as três traduções que mais
+importam:
+
+| SPADL | português | por quê |
+|---|---|---|
+| `dribble` | `conducao` | correr com a bola dominada — **não é drible** |
+| `take_on` | `drible` | passar pelo marcador. Na final: 1005 conduções contra 54 dribles |
+| `tackle` | `desarme` | com `sucesso` separando os 9 do Enzo (tentativas) dos 5 (certos) |
+
+**Tempo.** `minuto` passa a ser o minuto da transmissão
+(`comeco_do_periodo + floor(segundos/60) + 1`), conferido contra a súmula da
+FIFA nos seis gols da final: 23, 36, 80, 81, 108, 118. E `segundo` (contínuo
+desde o apito) entra como a escala de **comparação** — `minuto` é inteiro e
+se sobrepõe entre períodos, então não serve para janela temporal.
+
+**Resgate do que o SPADL descarta.** Duas coisas voltam do JSON bruto, por
+junção determinística em `original_event_id`:
+
+| Recuperado | Sem isso |
+|---|---|
+| `desfecho` da finalização (gol/defendida/para_fora/bloqueada/na_trave) e `no_gol` | "quantas finalizações no gol?" não teria resposta — o SPADL só guarda gol/não-gol |
+| cartões de `bad_behaviour` (reclamação) | a final tem **7 amarelos em campo** e o grafo registrava 6, faltando o do Giroud aos 95' |
+
+Contagem da final depois deste passo: 2.585 linhas (2.584 ações SPADL + 1
+cartão por reclamação), 6 gols, 7 amarelos, 15 finalizações no gol.
+
+O passo roda **depois** de fases, janelas e PPDA, de propósito: as linhas de
+cartão recuperadas não têm bola e não podem entrar em segmentação de posse
+nem em métrica de janela.
+
 ## Passo 0.5 — Materialização
 
 Por partida, em `data/processed/`:
@@ -121,6 +168,11 @@ Por partida, em `data/processed/`:
 | passes+ações defensivas | 0.4e | PPDA por janela | `_windows.parquet` | `PadraoTatico(mudanca_estado)` | adimensional | intensidade de pressão |
 | passes terço final | 0.4e | field tilt por janela | `_windows.parquet` | `PadraoTatico(mudanca_estado)` | % | domínio territorial |
 | `events[type=Pressure]` | 0.4g | alvo via `related_events` | `_pressures.parquet` | `PRESSIONOU` | — | rede de pressão |
+| `type_name` + `result_name` | 0.4h | vocabulário fechado pt | `acao`, `grupo_acao`, `sucesso` | `REALIZOU.acao/.sucesso` | — | ação em português |
+| `period_id` + `time_seconds` | 0.4h | offset de período + 1 | `minuto` | `.minuto` de todas as arestas temporais | min | minuto de transmissão |
+| `period_id` + `time_seconds` | 0.4h | offset de período em s | `segundo` | `REALIZOU/PASSOU_PARA/PRESSIONOU.segundo` | s | escala de comparação |
+| `events[].shot.outcome` | 0.4h | junção por `original_event_id` | `desfecho`, `no_gol` | `FINALIZOU.desfecho/.no_gol` | — | defendida/para fora/bloqueada |
+| `events[].bad_behaviour.card` | 0.4h | linha própria de ação | `cartao_amarelo` | `REALIZOU.cartao_amarelo` | bool | cartão que o SPADL perde |
 | `lineups[].positions` | 0.5 | posição titular | `_meta.json player_positions` | `Jogador.posicao_nominal` | — | escalação nominal |
 
 Dicionário de dados completo: `python scripts/gen_data_dictionary.py 3869685`

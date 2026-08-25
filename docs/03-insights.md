@@ -5,7 +5,7 @@ o LLM apenas verbaliza e recupera.** Cada padrão gravado carrega `algoritmo_ori
 
 Todos os exemplos abaixo são **saídas reais** das partidas ingeridas (Copa 2022:
 final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
-`scripts/run_analysis.py`. Total gerado: 69 padrões (24 + 22 + 23).
+`scripts/run_analysis.py`. Total gerado: 73 padrões (24 + 22 + 27).
 
 ---
 

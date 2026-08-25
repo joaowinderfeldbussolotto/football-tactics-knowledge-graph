@@ -65,7 +65,8 @@ regras dela: seleção direta do parquet, zero cálculo novo, idempotente):
 | Rodada | Arestas novas | Cobre |
 |---|---|---|
 | 1ª | `FINALIZOU` (com `gol` booleano), `DEU_ASSISTENCIA` | gols, finalizações, assistências |
-| 2ª | `REALIZOU` — **log completo de ações SPADL**, uma aresta por ação (tipo, resultado, corpo, minuto, período, zona, xT, VAEP) | TODO o resto: dribles (`take_on`), conduções (`dribble`), desarmes, interceptações, cortes, faltas e cartões amarelos (`foul`/`yellow_card`), defesas de goleiro, passes errados |
+| 2ª | `REALIZOU` — **log completo de ações**, uma aresta por ação, com `acao` em português, `sucesso` booleano, `minuto` de transmissão, `gol`, `cartao_amarelo`, terço, corredor, xT e VAEP | TODO o resto: dribles, conduções, desarmes, interceptações, cortes, faltas, cartões, defesas de goleiro, passes errados |
+| 3ª | `EstatisticaJogador` / `EstatisticaTime` — **súmula pré-agregada** (camada 1b) | as contagens que perguntas factuais pedem, já somadas e com certo/tentado separados: `desarmes_certos`, `dribles_certos`, `passes_certos`, `gols`, `assistencias`... |
 
 Com `REALIZOU`, qualquer ação individual do jogo tem dado consultável — a cauda longa
 de perguntas factuais deixou de depender de aresta dedicada.
@@ -79,7 +80,8 @@ autonomia se endurece com erro observado, não com paranoia a priori.
 | # | Onde | Sintoma observado | Correção |
 |---|---|---|---|
 | 1 | Q&A | **Vazamento de memória externa**: a resposta dos gols completou "3-3 nos 90 minutos, com pênaltis" — informação que NENHUMA consulta retornou (e errada: 3-3 é o placar de 120 min) | regra de prompt: "você não sabe nada além do grafo", explícita sobre placar agregado e pênaltis |
-| 2 | Q&A | **Join que multiplica linhas**: `DEU_ASSISTENCIA×FINALIZOU` virou "Thuram: 3 assistências" (1 assistência × 3 gols do Mbappé) | schema anotado com o anti-padrão + regra de `COUNT(DISTINCT)`/contagem direta de arestas |
+| 2 | Q&A | **Join que multiplica linhas**: `DEU_ASSISTENCIA×FINALIZOU` virou "Thuram: 3 assistências" (1 assistência × 3 gols do Mbappé) | à época, aviso no prompt. Hoje: `assistencias` é campo de `EstatisticaJogador` e não há join a errar |
+| 6 | Q&A | **Tentativa contada como acerto**: "Enzo fez 9 desarmes" (são 5 certos, 9 tentativas). O aviso sobre a nomenclatura ESTAVA no prompt e foi ignorado; na mesma execução o modelo acertou os dribles | `desarmes_certos` e `desarmes_tentados` viram campos distintos no dado (camada 1b). Deixa de ser uma instrução a obedecer |
 | 3 | Relatório | **O MESMO join do bug 2 reapareceu** no agente de relatório na primeira validação dele — prova de que regra de prompt não migra sozinha entre agentes | a regra do "O jogo em fatos" instrui: assistências = listar arestas `DEU_ASSISTENCIA`, NUNCA join com `FINALIZOU` |
 | 4 | Relatório | **Atribuição de time de memória**: as consultas de gol não retornavam `j.time`, e a narrativa embaralhou os times ("Argentina... Mbappé aos 12'"; "France respondeu com Messi") | prompt e schema exigem `RETURN j.nome, j.time` nos gols: atribuição vem do grafo |
 | 5 | Relatório | **Vazamento no resumo_executivo**: mesmo com a seção factual correta, o resumo abriu com "decidida nos pênaltis após empate em 3 a 3" — de memória, sem consulta | regra 1 explícita de que vale TAMBÉM para o resumo_executivo: não dizer quem venceu, sem placar agregado, sem pênaltis |
@@ -87,7 +89,9 @@ autonomia se endurece com erro observado, não com paranoia a priori.
 A re-execução de consultas (`check_queries`) **não** detecta os bugs 2–4: a consulta
 errada roda e retorna linhas. É uma limitação documentada — a detecção veio de
 validação humana contra o parquet (golden dataset, categoria `factual`), e a
-mitigação é orientação de consulta no prompt + schema anotado com os anti-padrões.
+mitigação mudou de natureza: em vez de instruir o modelo a evitar o anti-padrão,
+o dado passou a não ter o anti-padrão disponível (contagens prontas em vez de
+join, campo nomeado em vez de filtro ambíguo).
 
 ## 6. Validação final (medições em `07-validacao.md`)
 
@@ -107,7 +111,7 @@ mitigação é orientação de consulta no prompt + schema anotado com os anti-p
 ## 7. Limites honestos
 
 - **Consulta errada que roda certo** continua sendo o risco estrutural do
-  text-to-Cypher; o sistema o reduz (schema anotado, regras, `COUNT(DISTINCT)`) e o
+  text-to-Cypher; o sistema o reduz (súmula pré-agregada, schema gerado do banco, regras) e o
   torna auditável (`consultas_executadas`), mas não o elimina.
 - Fora do escopo dos dados: disputa de pênaltis (período 5 excluído da pipeline),
   cartão vermelho direto (não é ação SPADL), lances subjetivos, partidas não

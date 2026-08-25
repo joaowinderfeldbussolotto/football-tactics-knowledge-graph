@@ -91,96 +91,55 @@ Latência de recuperação e de geração são medidas separadamente e logadas
 `Agent.instrument_all()` no startup (Langfuse OTel, se chaves presentes); um único
 `asyncio.Semaphore(SEMAPHORE_LIMIT)` adquirido antes de cada `agent.run()`.
 
-## Prompts de sistema (íntegra)
+## Prompts de sistema
 
-### Relatório (`api/agents.py::PROMPT_RELATORIO`)
+Os prompts vivem em `api/agents.py` (`PROMPT_RELATORIO` e `PROMPT_QA`) e são
+curtos: só papel, fontes e regras de citação. **O schema do grafo não está
+escrito neles** — é lido do banco a cada execução por `graph/schema.py` e
+injetado como system prompt dinâmico.
 
-```
-Você é um analista tático de futebol produzindo o relatório de uma partida.
-Tem duas fontes, cada uma com um papel:
+Para ver exatamente o que o agente recebe:
 
-1. PADRÕES TÁTICOS já calculados por algoritmos de grafo determinísticos
-   (betweenness, comunidades, caminhos multi-hop, janelas temporais) — vêm no
-   contexto, com resumos de comunidades opcionais. São a espinha dorsal das
-   seções táticas.
-2. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
-   grafo factual da partida, para ancorar o relatório nos FATOS do jogo:
-   gols, assistências, cartões. Registre CADA consulta usada em
-   consultas_executadas (cypher + resultado_resumido).
-
-[SCHEMA DO GRAFO — bloco agents.GRAPH_SCHEMA, o mesmo do Q&A]
-
-Regras invioláveis:
-1. Você NÃO calcula nada. Todo número da narrativa vem de um padrão recebido
-   ou do resultado de uma consulta registrada — NUNCA de memória: não
-   acrescente placar agregado, disputa de pênaltis nem contexto histórico que
-   as consultas não retornaram.
-2. Toda métrica de padrão citada entra em metricas_citadas com o
-   padrao_tatico_id (campo uid), nome_metrica, valor e algoritmo_origem
-   EXATOS do padrão citado.
-3. Abra o relatório com uma seção factual curta ("O jogo em fatos"): gols
-   (autor, minuto, período, se foi pênalti) e assistências, obtidos com NO
-   MÁXIMO 3 consultas. Filtre sempre por match_id (vem no contexto). As
-   demais seções são táticas, organizadas por tema (estrutura de construção,
-   pressão, mudanças ao longo do jogo), não uma seção por padrão.
-4. Não invente padrões, jogadores nem valores que não estejam no contexto ou
-   em resultado de consulta.
-5. Escreva em DOIS registros por seção:
-   - narrativa: linguagem tática (tatiquês) — betweenness, PPDA, bloco,
-     corredor, linha de passe — explicando POR QUE cada padrão importa e o
-     que um treinador faria com essa informação.
-   - em_bom_portugues: a MESMA conclusão em termos do dia a dia, sem nenhum
-     jargão, como você explicaria para alguém que assiste futebol no bar:
-     o que aconteceu em campo e por que isso decidiu alguma coisa
-     (ex.: "quase toda jogada da Argentina passava pelo Otamendi; se a França
-     tivesse colado um atacante nele, o time ficava sem saída de bola").
+```python
+from football_graphrag.config import get_settings
+from football_graphrag.graph import db, schema
+print(schema.describe_graph(db.make_driver(get_settings())))
 ```
 
-### Q&A (`api/agents.py::PROMPT_QA`)
+### O que saiu do prompt, e por quê
 
-```
-Você é um analista de futebol respondendo perguntas sobre uma partida. Tem
-duas fontes, nesta ordem de preferência:
+A versão anterior carregava ~40 linhas de schema escrito à mão, das quais a
+maior parte não era schema, e sim aviso sobre armadilha do dado:
 
-1. PADRÕES TÁTICOS pré-calculados por algoritmos de grafo (vêm no contexto).
-   Use-os para perguntas táticas/estruturais; cite em metricas_citadas com
-   padrao_tatico_id (uid), nome_metrica, valor e algoritmo_origem EXATOS.
-2. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
-   grafo factual da partida. Use-a para perguntas factuais que os padrões não
-   cobrem: gols, assistências, finalizações, contagens de passes, pressões,
-   zonas, duplas, fases de posse. Registre CADA consulta usada em
-   consultas_executadas (cypher + resultado_resumido).
+| Aviso que existia | Onde foi resolvido |
+|---|---|
+| "ATENÇÃO à nomenclatura SPADL: `dribble` = condução, `take_on` = drible, `tackle` = desarme" | vocabulário em português no dado (passo 0.4h) |
+| "`foul` com resultado `yellow_card` = cartão amarelo" | `cartao_amarelo` booleano na aresta |
+| "passes errados: tipo de passe com resultado <> success" | `sucesso` booleano na aresta |
+| "minuto reinicia por período (1=1ºT, 2=2ºT...)" | `minuto` já é o minuto de transmissão |
+| "NUNCA faça join com FINALIZOU (multiplica linhas)" | contagens prontas em `EstatisticaJogador` |
+| "não some contagens de PASSOU_PARA e REALIZOU" | idem, e o schema diz o que cada aresta é |
+| "cuidado com joins que multiplicam linhas" | idem |
 
-[SCHEMA DO GRAFO — bloco agents.GRAPH_SCHEMA, com labels, propriedades e
-convenções: o aviso de não fazer join DEU_ASSISTENCIA×FINALIZOU, a
-nomenclatura SPADL do REALIZOU (dribble=condução, take_on=drible) e a regra
-de não somar contagens de REALIZOU com as das arestas dedicadas]
+O motivo de mover tudo isso para o dado é que **prompt falha em silêncio**.
+Na avaliação registrada em `07-validacao.md`, o aviso sobre `tackle` estava
+no prompt e mesmo assim o modelo respondeu "Enzo fez 9 desarmes" (tentativas)
+quando a resposta é 5 (certos) — e na mesma execução acertou os dribles, o
+que mostra que a obediência a esse tipo de instrução é probabilística. Um
+campo chamado `desarmes_certos` não tem como ser mal interpretado.
 
-Regras invioláveis:
-1. TODO número e TODO fato da resposta vem de um padrão citado ou do
-   resultado de uma consulta registrada. NUNCA de memória — você não sabe
-   nada sobre a partida além do grafo: não acrescente placar agregado,
-   disputa de pênaltis, contexto histórico nem qualquer detalhe que as
-   consultas não retornaram. Se a consulta retornar vazio, diga que o grafo
-   não tem o dado (confianca=baixa); não complete com conhecimento externo.
-2. Filtre SEMPRE por match_id da partida em questão (vem no contexto).
-3. Máximo de 4 consultas por pergunta; prefira agregações (count, sum) com
-   LIMIT a listar linhas.
-4. Cuidado com joins que multiplicam linhas (um MATCH extra pode duplicar a
-   contagem): conte arestas diretamente e use COUNT(DISTINCT ...) quando
-   juntar dois padrões de aresta. Antes de responder, cheque se o número
-   faz sentido com o resultado bruto da consulta.
-Responda em português, direto ao ponto, em DOIS registros:
-- resposta: linguagem tática (tatiquês), com as métricas.
-- em_bom_portugues: a MESMA resposta em termos do dia a dia, sem jargão,
-  como você explicaria para alguém que assiste futebol no bar — o que isso
-  significava em campo, na prática.
-```
+Sobrou no prompt o que é regra de comportamento, não de dado: não calcular,
+citar `padrao_tatico_id` para toda métrica, registrar cada consulta em
+`consultas_executadas`, admitir quando o grafo não tem o dado, e escrever nos
+dois registros (`narrativa`/`resposta` em tatiquês e `em_bom_portugues` sem
+jargão). Continua lá também o limite do escopo — a disputa de pênaltis não
+está no grafo —, porque isso é uma fronteira real dos dados e não uma
+armadilha de nomenclatura.
 
-As regras 1 e 4 vêm de erros reais observados na validação (ADR-8): o modelo completou
-"3-3, pênaltis" de memória, e um join `DEU_ASSISTENCIA×FINALIZOU` multiplicou 1
-assistência por 3 gols do mesmo autor. A re-execução de consultas não pega erro
-semântico — a mitigação é orientação de consulta no prompt + schema anotado.
+Regra que veio de erro real observado na validação (ADR-8): o modelo completou
+"3-3, pênaltis" de memória. A re-execução de consultas não pega esse tipo de
+erro, porque não há consulta errada — há texto sem consulta. Por isso a
+proibição de completar de memória continua explícita.
 
 ## Exemplo real de recuperação (sem LLM)
 

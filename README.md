@@ -5,18 +5,25 @@ PoC de **grafo tático de futebol com insights não triviais**: dados de evento
 algoritmos de grafo (GDS) produzem insights que **não existem em nenhuma linha da tabela**
 — o LLM (Graphiti + PydanticAI) apenas verbaliza e recupera, nunca calcula.
 
+> **Novo por aqui?** Comece por
+> **[docs/00-entenda-o-projeto.md](docs/00-entenda-o-projeto.md)** — explica do
+> zero de onde vem o dado e o que cada transformação faz, acompanhando o gol
+> do Di María na final da Copa de 2022 da origem até a resposta.
+
 ## Arquitetura
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ CAMADA 0: PIPELINE DE DADOS             (determinística, sem LLM) │
-│ StatsBomb JSON → kloppy → SPADL → xT/VAEP → métricas → Parquet    │
+│ StatsBomb JSON → kloppy → SPADL → xT/VAEP → métricas →            │
+│ vocabulário de futebol (acao, sucesso, minuto) → Parquet          │
 └──────────────────────────────────────────────────────────────────┘
                               ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │ CAMADA 1: GRAFO FACTUAL                 (determinística, sem LLM) │
 │ Jogador, Time, Zona, FaseDePosse + PASSOU_PARA, PRESSIONOU,       │
 │ PROGREDIU_PARA... com valores EXATOS do parquet                   │
+│ + 1b: EstatisticaJogador/EstatisticaTime (súmula pré-agregada)    │
 └──────────────────────────────────────────────────────────────────┘
                               ▼
 ┌──────────────────────────────────────────────────────────────────┐
@@ -46,6 +53,7 @@ docker compose exec api python scripts/run_analysis.py   # 5. camada 2 (insights
 
 | Doc | Conteúdo |
 |---|---|
+| [docs/00-entenda-o-projeto.md](docs/00-entenda-o-projeto.md) | **comece aqui**: o projeto do zero, seguindo uma jogada real por todas as etapas |
 | [docs/01-pipeline.md](docs/01-pipeline.md) | linhagem completa StatsBomb → grafo, com contagens reais |
 | [docs/02-modelo-grafo.md](docs/02-modelo-grafo.md) | schema do grafo, projeções do GDS, volumes medidos |
 | [docs/03-insights.md](docs/03-insights.md) | catálogo dos 8 insights, com exemplos reais das partidas |

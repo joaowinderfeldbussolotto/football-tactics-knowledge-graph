@@ -218,7 +218,8 @@ camada 1).
    do parquet). Antes, perguntas sobre dribles, desarmes, interceptações, faltas,
    cartões amarelos, defesas de goleiro e passes errados não tinham dado no grafo;
    agora qualquer ação do jogo é consultável. O schema no prompt anota as armadilhas de
-   nomenclatura SPADL (`dribble`=condução, `take_on`=drible) e proíbe somar contagens
+   vocabulário de futebol lido do banco (`acao`, `sucesso`, `minuto`) e não precisa
+   mais avisar sobre nomenclatura SPADL nem proibir somar contagens
    de `REALIZOU` com as das arestas dedicadas.
 2. A MESMA ferramenta `consultar_grafo` foi dada ao agente de **relatório**: o
    `RelatorioTatico` abre com uma seção factual ("O jogo em fatos" — gols e
@@ -230,7 +231,7 @@ camada 1).
 **Risco aceito e mitigado.** Text-to-Cypher pode gerar a *consulta errada que roda
 certo* — observado ao vivo na primeira validação: join `DEU_ASSISTENCIA×FINALIZOU`
 multiplicou 1 assistência de Thuram pelos 3 gols de Mbappé; e o modelo completou
-"3-3, pênaltis" de memória. Mitigações aplicadas: schema anotado no prompt (com o
+"3-3, pênaltis" de memória. Mitigações aplicadas: schema gerado do banco (com o
 anti-padrão explícito), regra de `COUNT(DISTINCT)`/contagem direta de arestas, proibição
 de completar com conhecimento externo, e máximo de 4 consultas. A re-execução NÃO detecta
 erro semântico — limitação documentada; o golden dataset ganhou categoria `factual`
