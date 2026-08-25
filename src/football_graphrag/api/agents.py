@@ -25,55 +25,18 @@ from pydantic_ai import Agent, RunContext
 
 from football_graphrag.api.schemas import RelatorioTatico, RespostaTatica
 from football_graphrag.config import Settings, get_settings
-from football_graphrag.graph import db
+from football_graphrag.graph import db, schema
 from football_graphrag.llm.provider import pydantic_ai_model
 
 logger = logging.getLogger(__name__)
 
-GRAPH_SCHEMA = """\
-SCHEMA DO GRAFO (Neo4j) — use nos MATCH exatamente estes labels/propriedades:
+# O schema NÃO está escrito aqui: é lido do banco a cada execução por
+# graph/schema.py e injetado como system prompt dinâmico. Ver a docstring
+# daquele módulo para o porquê — em resumo, o texto que existia aqui era
+# 90% aviso sobre armadilhas do dado, e as armadilhas foram removidas na
+# origem (ingestion/football_semantics.py + graph/statistics.py).
 
-Nós:
-- (j:Jogador {nome, player_id, time, posicao_nominal})  // time = nome da seleção, ex. 'Argentina'
-- (t:Time {nome, team_id})
-- (m:Partida {match_id, competicao, times})
-- (z:Zona {id_zona 0-95, faixa: 'defesa'|'meio'|'ataque', corredor: 'esquerda'|'centro'|'direita'})
-- (f:FaseDePosse {fase_id, match_id, team_id, minuto_inicio, minuto_fim, xt_total, n_acoes})
-- (p:PadraoTatico {uid, tipo, descricao_curta, time, valor_metrica, nome_metrica, algoritmo_origem, match_id})
-
-Arestas (TODAS carregam match_id — filtre SEMPRE por ele):
-- (Jogador)-[:PASSOU_PARA {match_id, action_id, minuto, periodo, xt_gerado, vaep, progressivo, zona_origem, zona_destino, fase_posse_id}]->(Jogador)
-- (Jogador)-[:FINALIZOU {match_id, minuto, periodo, tipo: 'shot'|'shot_penalty'|'shot_freekick', resultado, gol: boolean, zona}]->(Partida)
-  // ao listar gols retorne SEMPRE j.nome E j.time: a atribuição de time vem
-  // do grafo, nunca de memória
-- (Jogador)-[:DEU_ASSISTENCIA {match_id, minuto, periodo}]->(Jogador)  // destino = autor do gol; UMA aresta POR GOL assistido — conte as arestas direto, NUNCA faça join com FINALIZOU (multiplica linhas)
-- (Jogador)-[:PRESSIONOU {match_id, minuto, periodo, zona}]->(Jogador)
-- (Jogador)-[:REALIZOU {match_id, action_id, tipo, resultado, corpo, minuto, periodo, zona, xt_gerado, vaep, fase_posse_id}]->(Partida)
-  // log COMPLETO de ações SPADL, uma aresta por ação — cobre o que as arestas
-  // dedicadas não cobrem. tipo: pass|cross|throw_in|freekick_short|freekick_crossed|
-  // corner_short|corner_crossed|goalkick|shot|shot_penalty|shot_freekick|
-  // dribble|take_on|tackle|interception|clearance|foul|bad_touch|
-  // keeper_save|keeper_claim|keeper_punch|keeper_pick_up.
-  // ATENÇÃO à nomenclatura SPADL: 'dribble' = CONDUÇÃO de bola;
-  // 'take_on' = drible sobre o marcador; 'tackle' = desarme;
-  // 'interception' = interceptação; 'clearance' = corte/afastamento.
-  // resultado: success|fail|offside|yellow_card ('foul' com resultado
-  // 'yellow_card' = cartão amarelo). corpo: foot|head|other|head/other.
-  // Passes errados: tipo de passe com resultado <> 'success'.
-- (Jogador)-[:ATUOU_EM {match_id, contagem_acoes, xt_acumulado}]->(Zona)
-- (Jogador)-[:PARTICIPOU_DE {match_id, numero_de_toques}]->(FaseDePosse)
-- (Jogador)-[:MEMBRO_DE {match_id}]->(Time)
-- (Zona)-[:PROGREDIU_PARA {match_id, team_id, contagem, xt_medio}]->(Zona)
-- (PadraoTatico)-[:OBSERVADO_EM]->(Partida)
-
-Convenções: minuto reinicia por periodo (1=1ºT, 2=2ºT, 3/4=prorrogação);
-'gols' = FINALIZOU com gol=true; nomes de jogador são completos (use CONTAINS
-para apelidos, ex. j.nome CONTAINS 'Messi'). PASSOU_PARA existe só para
-passes completos com recebedor identificado; REALIZOU tem TODAS as ações
-(inclusive passes errados) — não some contagens de PASSOU_PARA e REALIZOU.
-"""
-
-PROMPT_RELATORIO = f"""\
+PROMPT_RELATORIO = """\
 Você é um analista tático de futebol produzindo o relatório de uma partida.
 Tem duas fontes, cada uma com um papel:
 
@@ -82,29 +45,22 @@ Tem duas fontes, cada uma com um papel:
    contexto, com resumos de comunidades opcionais. São a espinha dorsal das
    seções táticas.
 2. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
-   grafo factual da partida, para ancorar o relatório nos FATOS do jogo:
-   gols, assistências, cartões. Registre CADA consulta usada em
+   grafo da partida, para ancorar o relatório nos FATOS do jogo: gols,
+   assistências, cartões. Registre CADA consulta usada em
    consultas_executadas (cypher + resultado_resumido).
-
-{GRAPH_SCHEMA}
 
 Regras invioláveis:
 1. Você NÃO calcula nada e não sabe NADA sobre a partida além do grafo. Todo
    número vem de um padrão recebido ou do resultado de uma consulta
    registrada — NUNCA de memória. Em particular (vale também para o
-   resumo_executivo): não diga quem venceu, não mencione placar agregado nem
-   disputa de pênaltis — o grafo não cobre pênaltis pós-prorrogação e o
-   relatório é sobre COMO se jogou, não sobre o desfecho.
+   resumo_executivo): não diga quem venceu nem mencione disputa de pênaltis
+   — o relatório é sobre COMO se jogou, não sobre o desfecho.
 2. Toda métrica de padrão citada entra em metricas_citadas com o
    padrao_tatico_id (campo uid), nome_metrica, valor e algoritmo_origem
    EXATOS do padrão citado.
-3. Abra o relatório com uma seção factual curta ("O jogo em fatos"), com NO
-   MÁXIMO 3 consultas, sempre filtradas por match_id (vem no contexto):
-   - gols: liste as arestas FINALIZOU com gol=true retornando j.nome, j.time,
-     minuto, periodo e tipo (tipo='shot_penalty' = pênalti) — time e ordem dos
-     gols vêm DESSE resultado, não da sua memória;
-   - assistências: liste as arestas DEU_ASSISTENCIA (retorne os dois nomes e
-     j.time) — NUNCA em join com FINALIZOU: uma aresta já é uma assistência.
+3. Abra o relatório com uma seção factual curta ("O jogo em fatos"), com no
+   máximo 3 consultas: gols e assistências, com nome e time vindos do
+   resultado da consulta, nunca da sua memória.
 4. Não invente padrões, jogadores nem valores que não estejam no contexto ou
    em resultado de consulta.
 5. Escreva em DOIS registros por seção:
@@ -118,7 +74,7 @@ Regras invioláveis:
      tivesse colado um atacante nele, o time ficava sem saída de bola").
 """
 
-PROMPT_QA = f"""\
+PROMPT_QA = """\
 Você é um analista de futebol respondendo perguntas sobre uma partida. Tem
 duas fontes, nesta ordem de preferência:
 
@@ -126,27 +82,21 @@ duas fontes, nesta ordem de preferência:
    Use-os para perguntas táticas/estruturais; cite em metricas_citadas com
    padrao_tatico_id (uid), nome_metrica, valor e algoritmo_origem EXATOS.
 2. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
-   grafo factual da partida. Use-a para perguntas factuais que os padrões não
-   cobrem: gols, assistências, finalizações, contagens de passes, pressões,
-   zonas, duplas, fases de posse. Registre CADA consulta usada em
-   consultas_executadas (cypher + resultado_resumido).
-
-{GRAPH_SCHEMA}
+   grafo da partida, para qualquer fato que os padrões não cubram. Registre
+   CADA consulta usada em consultas_executadas (cypher + resultado_resumido).
 
 Regras invioláveis:
 1. TODO número e TODO fato da resposta vem de um padrão citado ou do
    resultado de uma consulta registrada. NUNCA de memória — você não sabe
-   nada sobre a partida além do grafo: não acrescente placar agregado,
-   disputa de pênaltis, contexto histórico nem qualquer detalhe que as
-   consultas não retornaram. Se a consulta retornar vazio, diga que o grafo
-   não tem o dado (confianca=baixa); não complete com conhecimento externo.
+   nada sobre a partida além do grafo: não acrescente placar, contexto
+   histórico nem qualquer detalhe que as consultas não retornaram. Se a
+   consulta retornar vazio, diga que o grafo não tem o dado
+   (confianca=baixa); não complete com conhecimento externo.
 2. Filtre SEMPRE por match_id da partida em questão (vem no contexto).
-3. Máximo de 4 consultas por pergunta; prefira agregações (count, sum) com
-   LIMIT a listar linhas.
-4. Cuidado com joins que multiplicam linhas (um MATCH extra pode duplicar a
-   contagem): conte arestas diretamente e use COUNT(DISTINCT ...) quando
-   juntar dois padrões de aresta. Antes de responder, cheque se o número
-   faz sentido com o resultado bruto da consulta.
+3. O grafo cobre os quatro períodos em campo. A disputa de pênaltis não está
+   no grafo: se perguntarem sobre ela, diga isso.
+4. Máximo de 4 consultas por pergunta.
+
 Responda em português, direto ao ponto, em DOIS registros:
 - resposta: linguagem tática (tatiquês), com as métricas.
 - em_bom_portugues: a MESMA resposta em termos do dia a dia, sem jargão,
@@ -177,6 +127,19 @@ class GraphDeps:
 
 # compatibilidade com código/testes que importavam o nome antigo
 QADeps = GraphDeps
+
+
+def _register_schema(agent: Agent) -> None:
+    """Injeta o schema do grafo como system prompt DINÂMICO.
+
+    Lido do banco a cada execução (com cache de processo), em vez de escrito
+    à mão no módulo: o prompt não pode divergir do grafo porque não há cópia
+    do schema para divergir.
+    """
+
+    @agent.system_prompt
+    def schema_do_grafo(ctx: RunContext[GraphDeps]) -> str:
+        return schema.cached_schema(ctx.deps.driver)
 
 
 def _register_consultar_grafo(agent: Agent) -> None:
@@ -213,6 +176,7 @@ def report_agent() -> Agent:
         retries=2,
         model_settings=_MODEL_SETTINGS,
     )
+    _register_schema(agent)
     _register_consultar_grafo(agent)
     return agent
 
@@ -227,6 +191,7 @@ def qa_agent() -> Agent:
         retries=2,
         model_settings=_MODEL_SETTINGS,
     )
+    _register_schema(agent)
     _register_consultar_grafo(agent)
     return agent
 

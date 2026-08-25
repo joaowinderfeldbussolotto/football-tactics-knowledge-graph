@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """Roda a camada 2 (insights via GDS) para as partidas do .env."""
 
-import logging
 import sys
 
 from football_graphrag.config import get_settings
+from football_graphrag.observability import logging_setup
 from football_graphrag.graph import analysis, db
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+logging_setup.setup()
 
 if __name__ == "__main__":
     settings = get_settings()

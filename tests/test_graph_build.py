@@ -87,12 +87,16 @@ def test_realizou_covers_all_actions():
                 "MATCH ()-[x:REALIZOU {match_id: $m}]->() RETURN count(x) AS n", m=MATCH_ID
             ).single()["n"]
             amarelos = session.run(
-                """MATCH ()-[x:REALIZOU {match_id: $m, tipo: 'foul', resultado: 'yellow_card'}]->()
-                   RETURN count(x) AS n""",
+                "MATCH ()-[x:REALIZOU {match_id: $m}]->() WHERE x.cartao_amarelo RETURN count(x) AS n",
                 m=MATCH_ID,
             ).single()["n"]
         assert n == expected
-        assert amarelos == 6  # cartões amarelos da final no jogo corrido
+        # 7 amarelos em campo na final: 6 vêm de falta e 1 (Giroud, 95') de
+        # reclamação. O SPADL só enxerga os 6 primeiros — o de reclamação é
+        # recuperado do StatsBomb bruto em ingestion/football_semantics.py.
+        # O 8º amarelo da partida (Emiliano Martínez) foi na disputa de
+        # pênaltis, que não faz parte do grafo.
+        assert amarelos == 7
     finally:
         driver.close()
 

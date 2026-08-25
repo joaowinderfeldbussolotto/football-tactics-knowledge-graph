@@ -16,11 +16,12 @@ import logging
 
 from football_graphrag.api import agents, retrieval
 from football_graphrag.config import get_settings
+from football_graphrag.observability import logging_setup
 from football_graphrag.evaluation import baseline_rag, faithfulness, judges
 from football_graphrag.evaluation.golden_dataset import GOLDEN_QUESTIONS
 from football_graphrag.graph import db
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+logging_setup.setup(formato="%(asctime)s %(message)s")
 logger = logging.getLogger(__name__)
 
 

@@ -61,6 +61,8 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT fase_uid IF NOT EXISTS FOR (n:FaseDePosse) REQUIRE n.uid IS UNIQUE",
     "CREATE CONSTRAINT partida_uid IF NOT EXISTS FOR (n:Partida) REQUIRE n.uid IS UNIQUE",
     "CREATE CONSTRAINT padrao_uid IF NOT EXISTS FOR (n:PadraoTatico) REQUIRE n.uid IS UNIQUE",
+    "CREATE CONSTRAINT est_jogador_uid IF NOT EXISTS FOR (n:EstatisticaJogador) REQUIRE n.uid IS UNIQUE",
+    "CREATE CONSTRAINT est_time_uid IF NOT EXISTS FOR (n:EstatisticaTime) REQUIRE n.uid IS UNIQUE",
 ]
 
 

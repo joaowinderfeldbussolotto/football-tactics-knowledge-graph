@@ -20,7 +20,13 @@ from pathlib import Path
 import pandas as pd
 from socceraction.data.statsbomb import StatsBombLoader
 
-from football_graphrag.ingestion import pressure_events, spadl_transform, statsbomb_loader, tactical_metrics
+from football_graphrag.ingestion import (
+    football_semantics,
+    pressure_events,
+    spadl_transform,
+    statsbomb_loader,
+    tactical_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +67,19 @@ SCHEMA_DOC: list[tuple[str, str, str, str]] = [
     ("possession_id", "id da fase de posse (sequencial na partida)", "-", "0.4b"),
     ("progressive", "ação progressiva (definição Wyscout)", "bool", "0.4c"),
     ("receiver_player_id", "recebedor do passe (NaN se não aplicável)", "-", "0.4d"),
+    # --- vocabulário de futebol (passo 0.4h): é o que vai para o grafo ---
+    ("acao", "ação em português, vocabulário fechado (desarme, drible, conducao...)", "-", "0.4h"),
+    ("grupo_acao", "categoria grossa: passe/finalizacao/defensiva/conducao/drible/...", "-", "0.4h"),
+    ("sucesso", "a ação deu certo? (result_name == success, explicitado)", "bool", "0.4h"),
+    ("minuto", "minuto de jogo como na transmissão (1-120+), já com offset de período", "min", "0.4h"),
+    ("periodo_nome", "'1º tempo', '2ª prorrogação'...", "-", "0.4h"),
+    ("gol", "esta ação foi um gol?", "bool", "0.4h"),
+    ("cartao_amarelo", "esta ação gerou cartão amarelo?", "bool", "0.4h"),
+    ("corpo", "parte do corpo em português (pe, cabeca...)", "-", "0.4h"),
+    ("terco", "terço do campo onde a ação começou: defesa/meio/ataque", "-", "0.4h"),
+    ("corredor", "corredor onde a ação começou: esquerda/centro/direita", "-", "0.4h"),
+    ("desfecho", "desfecho da finalização: gol/defendida/para_fora/bloqueada/na_trave", "-", "0.4h"),
+    ("no_gol", "finalização que exigiu o goleiro ou entrou", "bool", "0.4h"),
 ]
 
 
@@ -121,6 +140,13 @@ def run_pipeline(match_id: int, data_dir: Path) -> dict:
         for t in team_ids
     }
 
+    # Passo 0.4h: vocabulário de futebol + resgate do que o SPADL descarta.
+    # Fica por último de propósito: as linhas de cartão recuperadas do bruto
+    # não têm bola e não podem entrar em segmentação de posse, janela móvel
+    # nem PPDA — só no log de ações do grafo.
+    actions = football_semantics.add_football_semantics(actions)
+    actions = football_semantics.enrich_from_statsbomb(actions, files.events)
+
     # Passo 0.5: materialização
     actions.to_parquet(processed / f"{match_id}.parquet", index=False)
     phases.to_parquet(processed / f"{match_id}_phases.parquet", index=False)
@@ -147,6 +173,11 @@ def run_pipeline(match_id: int, data_dir: Path) -> dict:
         "n_discarded": n_events - len(actions),
         "spadl_type_counts": {k: int(v) for k, v in spadl_counts.items()},
         "n_phases": len(phases),
+        # contagens do passo 0.4h — o que o vocabulário de futebol enxerga
+        "acao_counts": {k: int(v) for k, v in actions["acao"].value_counts().items()},
+        "n_gols": int(actions["gol"].sum()),
+        "n_cartoes_amarelos": int(actions["cartao_amarelo"].sum()),
+        "n_finalizacoes_no_gol": int(actions["no_gol"].sum()),
         "n_passes_with_receiver": int(actions["receiver_player_id"].notna().sum()),
         "n_pressures": len(pressures),
         "n_pressures_with_target": int(pressures["target_player_id"].notna().sum()) if len(pressures) else 0,

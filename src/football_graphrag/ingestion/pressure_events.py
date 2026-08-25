@@ -62,6 +62,10 @@ def extract_pressures(events_file: Path) -> pd.DataFrame:
                 "time_seconds": e["minute"] * 60 + e["second"] - (45 * 60 if e["period"] == 2 else 0)
                 - (90 * 60 if e["period"] == 3 else 0) - (105 * 60 if e["period"] == 4 else 0),
                 "minute": e["minute"],
+                # escala contínua desde o apito inicial, igual à das ações
+                # (ingestion/football_semantics.py::segundo_de_jogo): é o que
+                # torna a janela temporal do insight 7.3 comparável.
+                "segundo": float(e["minute"] * 60 + e["second"]),
                 "presser_player_id": e["player"]["id"],
                 "presser_player_name": e["player"]["name"],
                 "presser_team_id": e["team"]["id"],

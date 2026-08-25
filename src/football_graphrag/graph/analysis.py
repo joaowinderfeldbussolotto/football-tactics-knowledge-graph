@@ -195,14 +195,18 @@ def gatilho_pressao(driver: Driver, match_id: int, window_seconds: float = 8.0, 
     até ``window_seconds`` antes); agrega por (faixa, corredor) da zona de
     destino do passe. Taxa de disparo = pressões disparadas / passes para a
     região.
+
+    A comparação usa ``segundo`` (segundos desde o apito inicial), NÃO
+    ``minuto``. Ver ingestion/football_semantics.py::segundo_de_jogo: minuto
+    é escala de leitura e não serve para janela temporal.
     """
     query = """
     MATCH (presser:Jogador)-[pr:PRESSIONOU {match_id: $m}]->(alvo:Jogador)
     MATCH (:Jogador)-[p:PASSOU_PARA {match_id: $m}]->(recebedor:Jogador)
     WHERE recebedor.time = alvo.time AND p.periodo = pr.periodo
-      AND p.minuto <= pr.minuto AND pr.minuto - p.minuto <= $w / 60.0
+      AND p.segundo <= pr.segundo AND pr.segundo - p.segundo <= $w
     WITH presser.time AS pressing_team, pr, p, recebedor
-    ORDER BY p.minuto DESC
+    ORDER BY p.segundo DESC
     WITH pressing_team, pr, head(collect({zona: p.zona_destino, recebedor: recebedor.nome})) AS gatilho
     RETURN pressing_team, gatilho.zona AS zona, count(*) AS n_disparos
     ORDER BY n_disparos DESC

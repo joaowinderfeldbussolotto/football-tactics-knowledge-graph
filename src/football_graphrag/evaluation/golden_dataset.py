@@ -63,8 +63,8 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="O que disparava a pressão da Argentina sobre a França?",
         resposta_referencia=(
-            "Passe para o corredor central na faixa de meio-campo: 13 pressões em até 8s "
-            "após o passe, 81% dos passes para essa região sofreram pressão."
+            "Passe para o corredor esquerdo na faixa de defesa da França: 10 pressões em "
+            "até 8s após o passe, 62% dos passes para essa região sofreram pressão."
         ),
         insight="7.3 gatilho_pressao",
         categoria="estrutural",
@@ -197,8 +197,9 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="O que disparava a pressão da França na final?",
         resposta_referencia=(
-            "Passe para o corredor esquerdo na faixa de meio-campo adversário: 8 pressões "
-            "em até 8s após o passe, 47% dos passes para essa região sofreram pressão."
+            "Passe para o corredor central na faixa de ataque do campo adversário: 5 "
+            "pressões em até 8s após o passe, 50% dos passes para essa região sofreram "
+            "pressão."
         ),
         insight="7.3 gatilho_pressao",
         categoria="estrutural",
@@ -208,9 +209,9 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="Quem fez os gols da final (tempo normal e prorrogação)?",
         resposta_referencia=(
-            "6 gols: Messi 2 (pênalti aos 22 do 1ºT e aos 3 da 2ª prorrogação), Di María "
-            "(35 do 1ºT) pela Argentina; Mbappé 3 (pênalti aos 34 e gol aos 36 do 2ºT, "
-            "pênalti aos 12 da 2ª prorrogação) pela França."
+            "6 gols, nos minutos de transmissão: Messi 2 (pênalti aos 23 e gol aos 108) e "
+            "Di María (36) pela Argentina; Mbappé 3 (pênalti aos 80, gol aos 81 e pênalti "
+            "aos 118) pela França."
         ),
         insight="factual (FINALIZOU, modo autônomo)",
         categoria="factual",
@@ -220,8 +221,8 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="Quem deu as assistências dos gols da final?",
         resposta_referencia=(
-            "Duas assistências registradas: Mac Allister para o gol de Di María e Thuram "
-            "para o gol de Mbappé aos 36 do 2ºT; os demais gols (pênaltis e rebote) não "
+            "Duas assistências registradas: Mac Allister para o gol de Di María (36) e "
+            "Thuram para o gol de Mbappé (81); os demais gols (pênaltis e rebote) não "
             "têm assistência."
         ),
         insight="factual (DEU_ASSISTENCIA, modo autônomo)",
@@ -240,10 +241,10 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="Quem deu mais passes na final?",
         resposta_referencia=(
-            "Enzo Fernandez (79 passes completos com recebedor no grafo; Otamendi 68 e "
-            "Romero 59 na sequência)."
+            "Enzo Fernandez, com 79 passes certos em 92 tentados (85,9% de acerto); "
+            "Otamendi 69 e Romero 60 na sequência."
         ),
-        insight="factual (PASSOU_PARA, modo autônomo)",
+        insight="factual (passes_certos, modo autônomo)",
         categoria="factual",
     ),
     GoldenQuestion(
@@ -251,10 +252,13 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="Quem levou cartão amarelo na final?",
         resposta_referencia=(
-            "Seis jogadores: Enzo Fernandez, Acuña, Paredes e Montiel pela Argentina; "
-            "Rabiot e Thuram pela França (Paredes e Montiel na prorrogação)."
+            "Sete jogadores: Enzo Fernandez, Acuña, Paredes e Montiel pela Argentina; "
+            "Rabiot, Thuram e Giroud pela França (Paredes e Montiel na prorrogação). "
+            "O amarelo do Giroud (95') foi por reclamação, não por falta — o SPADL o "
+            "descarta e ele é recuperado do StatsBomb bruto. O 8º amarelo da partida, "
+            "de Emiliano Martínez, foi na disputa de pênaltis, fora do escopo do grafo."
         ),
-        insight="factual (REALIZOU foul/yellow_card, modo autônomo)",
+        insight="factual (cartao_amarelo, modo autônomo)",
         categoria="factual",
     ),
     GoldenQuestion(
@@ -262,10 +266,10 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="Quem mais driblou adversários com sucesso na final?",
         resposta_referencia=(
-            "Mbappé, com 6 dribles certos (take_on com sucesso); Di María teve 5 e "
-            "Coman 4."
+            "Mbappé, com 6 dribles certos em 11 tentativas; Di María fez 5 (em 8) e "
+            "Coman 4 (em 4)."
         ),
-        insight="factual (REALIZOU take_on, modo autônomo)",
+        insight="factual (dribles_certos, modo autônomo)",
         categoria="factual",
     ),
     GoldenQuestion(
@@ -273,10 +277,11 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="Quem fez mais desarmes na final?",
         resposta_referencia=(
-            "Enzo Fernandez, com 5 desarmes certos; Camavinga e Tagliafico fizeram 4 "
-            "cada."
+            "Enzo Fernandez, com 5 desarmes certos em 9 tentativas; Camavinga e "
+            "Tagliafico fizeram 4 cada. Atenção: por TENTATIVAS o ranking é outro "
+            "(Enzo 9, Tagliafico 7, Kolo Muani 6) — 'desarme' no futebol é o certo."
         ),
-        insight="factual (REALIZOU tackle, modo autônomo)",
+        insight="factual (desarmes_certos, modo autônomo)",
         categoria="factual",
     ),
     GoldenQuestion(
@@ -284,7 +289,7 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         match_id=3869685,
         pergunta="Quantas defesas fez cada goleiro na final?",
         resposta_referencia="Lloris fez 8 defesas; Emiliano Martínez fez 2.",
-        insight="factual (REALIZOU keeper_save, modo autônomo)",
+        insight="factual (defesas_do_goleiro, modo autônomo)",
         categoria="factual",
     ),
 ]

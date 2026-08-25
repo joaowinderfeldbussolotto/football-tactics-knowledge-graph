@@ -5,13 +5,13 @@ Uso: python scripts/run_pipeline.py [match_id ...]
 Sem argumentos usa STATSBOMB_MATCH_IDS do .env.
 """
 
-import logging
 import sys
 
 from football_graphrag.config import get_settings
+from football_graphrag.observability import logging_setup
 from football_graphrag.ingestion.pipeline import run_pipeline
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
+logging_setup.setup()
 
 if __name__ == "__main__":
     settings = get_settings()
