@@ -122,6 +122,18 @@ curl -X POST localhost:8000/ask \
 Endpoints auxiliares sem LLM: `GET /health`, `GET /graph/3869685/stats`,
 `POST /ingest/{match_id}` (camadas 0+1 de uma partida nova).
 
+## 6b. Índice do Graphiti (busca híbrida)
+
+```bash
+docker compose exec api python scripts/index_graphiti.py
+```
+
+Indexa os `PadraoTatico` como fatos temporais e constrói as comunidades. Até a
+4ª rodada isso só acontecia dentro da rota `POST /analyze/{match_id}`: quem
+reproduzia pelos scripts nunca criava o índice, e a busca híbrida ficava
+dormente sem avisar (ADR-11). Custo: ~3-4 chamadas de embedding por padrão,
+espaçadas por `GRAPHITI_PACE_SECONDS`.
+
 ## 7. Avaliação
 
 ```bash
@@ -140,8 +152,15 @@ vetorial plano —, com fidelidade determinística + juízes LLM, e salva
 
 Flags: `--amostra` (uma pergunta por categoria), `--ids q01,q17` (seleção
 explícita), `--saida NOME.json` (não encostar no arquivo citado na
-documentação). Com `--amostra`/`--ids`, o índice do baseline é construído só
-com as partidas das perguntas escolhidas, para não gastar cota de embeddings.
+documentação), `--rodada RÓTULO` (nome da rodada no Langfuse), `--hibrida`
+(liga a busca híbrida do Graphiti; falha se o índice não existir). Com
+`--amostra`/`--ids`, o índice do baseline é construído só com as partidas das
+perguntas escolhidas, para não gastar cota de embeddings.
+
+Com `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` no `.env`, cada par
+(pergunta, braço) vira um trace nomeado no Langfuse, com as gerações do
+PydanticAI embaixo e metadados de rodada, categoria, braço e modelo. Sem as
+chaves, no-op silencioso.
 
 Formato da saída:
 
@@ -176,7 +195,7 @@ baseline não tem ferramenta que produza equivalente. Não misturar as duas.
 docker compose exec api pytest tests/ -q
 ```
 
-Esperado: `62 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
+Esperado: `65 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
 está disponível (rodam completos com o stack de pé e a pipeline executada).
 
 ## Troca de provedor de LLM

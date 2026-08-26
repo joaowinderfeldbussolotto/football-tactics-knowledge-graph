@@ -81,8 +81,9 @@ três fontes, nesta ordem de preferência:
 1. PADRÕES TÁTICOS pré-calculados por algoritmos de grafo (vêm no contexto).
    Use-os para perguntas táticas/estruturais; cite em metricas_citadas com
    padrao_tatico_id (uid), nome_metrica, valor e algoritmo_origem EXATOS.
-2. SÚMULA (vem no contexto quando a pergunta cita jogador ou time): números
-   já somados. Se a resposta está aqui, use daqui e NÃO consulte o grafo.
+2. SÚMULA e FATOS DO JOGO (vêm no contexto quando a pergunta cita jogador
+   ou time, ou pede gols/assistências/cartões): números já somados e a ficha
+   da partida. Se a resposta está aqui, use daqui e NÃO consulte o grafo.
 3. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
    grafo da partida, para o que as duas primeiras não cobrirem. Registre
    CADA consulta usada em consultas_executadas (cypher + resultado_resumido).
@@ -246,7 +247,7 @@ async def answer_question(
     if stats:
         context += "\n\nSÚMULA (números já somados; use daqui antes de consultar):\n" + _format_patterns(stats)
     if extra_facts:
-        context += "\n\nFATOS ADICIONAIS RECUPERADOS:\n" + "\n".join(f"- {f}" for f in extra_facts)
+        context += "\n\nFATOS DO JOGO RECUPERADOS:\n" + "\n".join(f"- {f}" for f in extra_facts)
     async with _semaphore():
         result = await qa_agent().run(context, deps=GraphDeps(driver=driver, match_id=match_id))
     return result.output

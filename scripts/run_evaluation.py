@@ -59,10 +59,10 @@ def _json(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, default=str)
 
 
-async def avaliar_grafo(driver, q, *, incluir_sumula: bool) -> dict:
+async def avaliar_grafo(driver, q, *, incluir_sumula: bool, graphiti=None) -> dict:
     """Um braço do grafo, para uma pergunta."""
     patterns, stats, extra_facts, timings = await retrieval.retrieve_context(
-        driver, q.match_id, q.pergunta, incluir_sumula=incluir_sumula
+        driver, q.match_id, q.pergunta, graphiti, incluir_sumula=incluir_sumula
     )
     resposta = await agents.answer_question(
         q.pergunta, patterns, stats, extra_facts, driver, q.match_id
@@ -73,6 +73,12 @@ async def avaliar_grafo(driver, q, *, incluir_sumula: bool) -> dict:
     contexto_previo = _json(patterns)
     if stats:
         contexto_previo += "\n\nSÚMULA RECUPERADA:\n" + _json(stats)
+    if extra_facts:
+        # A ficha do jogo (e a busca híbrida) fazem parte do que a recuperação
+        # entregou. Fora daqui, o juiz pontuaria um contexto que não é o que o
+        # agente recebeu — a métrica mentiria na direção oposta à do vazamento
+        # que a ADR-10 corrigiu.
+        contexto_previo += "\n\nFATOS RECUPERADOS:\n" + "\n".join(f"- {f}" for f in extra_facts)
     contexto_final = contexto_previo
     if resposta.consultas_executadas:
         contexto_final += "\n\nCONSULTAS EXECUTADAS NO GRAFO:\n" + "\n".join(
@@ -136,6 +142,24 @@ async def main(args) -> None:
     rodada = args.rodada or f"{pathlib.Path(args.saida).stem}-{datetime.now():%Y%m%d-%H%M}"
     modelo = agents.settings_fingerprint(settings)
     observado = setup_observability(settings)
+    # Busca híbrida do Graphiti: só entra se pedida E se o índice existir.
+    # Ligar sem índice devolveria zero fatos silenciosamente, o que é pior que
+    # não ligar — pareceria "híbrida" no rótulo da estratégia sem ser.
+    graphiti = None
+    if args.hibrida:
+        from football_graphrag.graph.communities import make_graphiti
+
+        with db.make_driver(settings).session() as sessao:
+            indexados = sessao.run(
+                "MATCH (n:Entity) WHERE n.group_id STARTS WITH 'match-' RETURN count(n)"
+            ).single()[0]
+        if not indexados:
+            raise SystemExit(
+                "--hibrida pedida mas o índice do Graphiti está vazio. "
+                "Rode scripts/index_graphiti.py antes."
+            )
+        graphiti = make_graphiti(settings)
+        logger.info("busca híbrida ligada (%d nós indexados)", indexados)
     logger.info("rodada=%s modelo=%s langfuse=%s", rodada, modelo,
                 "on" if observado else "off (sem chaves)")
     driver = db.make_driver(settings)
@@ -158,7 +182,9 @@ async def main(args) -> None:
             logger.info("%s [%s]", q.id, braco)
             with observacao(f"{q.id}/{braco}", ativo=observado, rodada=rodada,
                             categoria=q.categoria, braco=braco, modelo=modelo):
-                linha[braco] = await avaliar_grafo(driver, q, incluir_sumula=incluir)
+                linha[braco] = await avaliar_grafo(
+                    driver, q, incluir_sumula=incluir, graphiti=graphiti
+                )
         if baseline_index is not None:
             logger.info("%s [baseline]", q.id)
             with observacao(f"{q.id}/baseline", ativo=observado, rodada=rodada,
@@ -175,6 +201,8 @@ async def main(args) -> None:
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"\n-> {out}")
     driver.close()
+    if graphiti is not None:
+        await graphiti.close()
     flush(observado)
 
 
@@ -220,6 +248,8 @@ def _args():
     sel.add_argument("--ids", help="ids separados por vírgula (ex.: q01,q17)")
     p.add_argument("--saida", default="eval_results.json", help="nome do arquivo em data/processed")
     p.add_argument("--rodada", help="rótulo da rodada no Langfuse (default: derivado de --saida + data)")
+    p.add_argument("--hibrida", action="store_true",
+                   help="liga a busca híbrida do Graphiti (exige scripts/index_graphiti.py antes)")
     return p.parse_args()
 
 

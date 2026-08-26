@@ -250,7 +250,7 @@ caminho do DADO entrando. O projeto passou de 4 para 11 diagramas, e os oito
 insights de `03-insights.md` ganharam uma linha de intuição em linguagem de
 campo, mais desenho para betweenness e para ponte.
 
-Cobertura após esta leva: **62 testes**, 30/30 no `check_golden_queries.py`.
+Cobertura após esta leva: **65 testes**, 30/30 no `check_golden_queries.py`.
 
 ## Modo autônomo (ADR-8) — validação ao vivo
 
@@ -315,7 +315,7 @@ validação), o que de quebra validou ao vivo a troca de provedor só por `.env`
   2026-08-25 (ver seção de avaliação).
 - **O sistema depois da refatoração do vocabulário de futebol.** A conta
   Anthropic ficou sem crédito antes da 4ª rodada. Há verificação determinística
-  do modelo de dados (30/30 em `check_golden_queries.py`) e 62 testes, mas
+  do modelo de dados (30/30 em `check_golden_queries.py`) e 65 testes, mas
   nenhuma medição com juiz de LLM após a mudança. Qualquer afirmação de melhora
   de nota seria não medida — e por isso não é feita aqui.
 
@@ -413,3 +413,60 @@ e que o modelo cobra tokens de raciocínio como saída.
 A rodada completa das 30 perguntas nos três braços. Até ela existir, a tabela
 de avaliação citável continua sendo a da 3ª rodada, com a ressalva de que a
 nota de recuperação de lá é a `retrieval_final`.
+
+## Amostra v2: ficha do jogo, roteador de intenção e busca híbrida (2026-08-26)
+
+Mesmas 4 perguntas, mesmo modelo, com as três correções da ADR-11. Setas
+comparam com a amostra anterior.
+
+| Categoria | Braço | Prévio | Insight | Consultas |
+|---|---|---|---|---|
+| estrutural | sem súmula | 5,0 → 5,0 | 5,0 → 5,0 | 0 → 0 |
+| estrutural | com súmula | 5,0 → 5,0 | 5,0 → 5,0 | 0 → 0 |
+| estrutural | baseline | 1,0 → 1,0 | 2,0 → 2,0 | — |
+| **factual** | **sem súmula** | **1,0 → 5,0** | **3,0 → 5,0** | **2 → 0** |
+| **factual** | **com súmula** | **1,0 → 5,0** | 5,0 → 5,0 | **2 → 0** |
+| factual | baseline | 5,0 → 5,0 | 3,0 → 4,0 | — |
+| agregada | sem súmula | 5,0 → 5,0 | 5,0 → 5,0 | 0 → 2 |
+| agregada | com súmula | 5,0 → 5,0 | 5,0 → 5,0 | 0 → 1 |
+| agregada | baseline | 3,0 → 3,0 | 3,0 → 4,0 | — |
+| composta | sem súmula | 2,0 → 2,0 | 5,0 → 5,0 | 3 → 1 |
+| composta | com súmula | 5,0 → 5,0 | 5,0 → 5,0 | 1 → 2 |
+| composta | baseline | 1,0 → 1,0 | 1,0 → 2,0 | — |
+
+**A categoria factual foi consertada exatamente onde o diagnóstico apontava.**
+O prévio subiu de 1,0 para 5,0 nos DOIS braços e as consultas caíram de 2 para
+0: a ficha do jogo responde "quem fez os gols" sem gastar ida e volta de
+ferramenta. O grafo agora **empata** com o baseline nessa categoria (5,0 contra
+5,0), que é o resultado correto sob paridade de fatos — não vitória.
+
+**A categoria estrutural não se mexeu**, nem com a busca híbrida ligada. É a
+mesma checagem de isolamento da ADR-10: mudanças na recuperação factual não
+podem contaminar a afirmação estrutural, e não contaminaram.
+
+### O piso de ruído dos juízes, medido de graça
+
+O baseline **não teve uma linha de código alterada** entre as duas amostras.
+Ainda assim, o `tactical_insight` dele mudou em 3 das 4 perguntas:
+
+| Pergunta | Insight do baseline |
+|---|---|
+| q01_pivo_argentina | 2 → 2 |
+| q17_gols_final | 3 → 4 |
+| q10_ppda_agregado | 3 → 4 |
+| q25_pivo_errou_passe | 1 → 2 |
+
+Isso dá um piso de ruído empírico de **±1 ponto** para as notas dos juízes com
+n=1. Consequência direta de leitura: o salto de 1,0 para 5,0 no prévio factual
+está muito acima do ruído e é sinal real; qualquer diferença de 1 ponto em
+`insight` entre braços **não é interpretável** sem repetição. Vale para a
+tabela acima e para qualquer rodada futura — é o argumento mais forte a favor
+de rodar as 30 perguntas em vez de discutir amostras.
+
+### Custo acumulado
+
+US$ 0,171 na chave até aqui, dos quais **US$ 0,063 foram a indexação do
+Graphiti** — `add_triplet` chama o LLM por triplet, não só o embedder, e a
+partida indexada saiu a ~US$ 0,06. Foi interrompida depois da final (as quatro
+perguntas da amostra são todas da final); indexar as outras duas partidas
+custaria cerca de US$ 0,12 e é pré-requisito para rodar as 30 com `--hibrida`.

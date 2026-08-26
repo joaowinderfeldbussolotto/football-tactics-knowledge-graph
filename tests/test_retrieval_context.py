@@ -86,3 +86,38 @@ def test_braco_de_controle_mantem_os_padroes():
         "Qual jogador foi o gargalo estrutural da Argentina?", incluir_sumula=False
     )
     assert any(p["tipo"] == "pivo_estrutural" for p in pats)
+
+
+@requires_neo4j
+@requires_data
+def test_pergunta_de_gols_traz_a_ficha_sem_precisar_de_nome_proprio():
+    """A falha que a ADR-11 corrigiu: "quem fez os gols" não cita jogador nem
+    time, resolvia zero entidades e a recuperação entregava só o TOTAL de gols
+    dos dois times — enquanto o resumo do baseline já tinha a linha pronta."""
+    _, _, extra, timings = _contexto("Quem fez os gols da final?")
+    assert extra, "a ficha do jogo não veio no contexto"
+    gols = next(f for f in extra if f.startswith("Gols da partida"))
+    assert "Lionel Andrés Messi Cuccittini" in gols
+    assert "ficha(gols)" in timings["estrategia"]
+
+
+@requires_neo4j
+@requires_data
+def test_pergunta_de_gols_nao_despeja_padroes_taticos():
+    """Padrão tático é ruído numa pergunta de ficha: o fallback antigo
+    despejava os ~24 padrões da partida."""
+    pats, _, _, timings = _contexto("Quem fez os gols da final?")
+    assert pats == []
+    assert "fallback" not in timings["estrategia"]
+
+
+@requires_neo4j
+@requires_data
+def test_intencoes_reconhecidas_e_ignoradas():
+    from football_graphrag.api.retrieval import detectar_intencoes
+
+    assert detectar_intencoes("Quem marcou os gols?") == {"gols"}
+    assert detectar_intencoes("Quem levou cartão amarelo?") == {"cartoes"}
+    assert detectar_intencoes("Quem deu assistência?") == {"assistencias"}
+    # pergunta estrutural não dispara ficha nenhuma
+    assert detectar_intencoes("Qual foi o pivô estrutural da Argentina?") == set()

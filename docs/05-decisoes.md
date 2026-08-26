@@ -388,3 +388,61 @@ tokens de raciocínio como saída — anotado aqui porque estimar custo de LLM
 por contagem de prompt subestima sistematicamente.) Trinta e sete centavos são
 um preço baixo pela propriedade que o modelo grátis não tinha: existir amanhã,
 com o mesmo nome e a mesma versão.
+
+## ADR-11 — Ficha do jogo, roteador de intenção e busca híbrida ligada (2026-08-26)
+
+**Contexto.** A amostra da ADR-10 mostrou o grafo perdendo a categoria factual
+para o baseline na comparação simétrica — 5,0 contra 1,0 de `retrieval_previo`.
+O rastreamento da pergunta "Quem fez os gols da final?" achou a causa:
+
+```
+entidades resolvidas: []                        ← nenhum nome próprio na pergunta
+súmula entregue: [(Argentina, 3), (France, 3)]  ← o TOTAL de gols, não quem fez
+os gols no grafo:  Messi 23' · Di María 36' · Mbappé 80' · 81' · Messi 108' · Mbappé 118'
+```
+
+Os gols estavam a **um hop** (`FINALIZOU {gol: true}`) e a recuperação não ia
+buscar. `resolve_entities` só enxerga nome próprio: sem jogador ou time citado,
+resolvia zero entidades, caía no fallback e despejava os ~24 padrões táticos da
+partida — ruído puro para uma pergunta sobre gols.
+
+**A paridade tinha quebrado para o outro lado.** `evaluation/match_facts.py`
+foi escrito para dar ao baseline a súmula que o grafo ganhou na camada 1b. Mas
+ele dá ao baseline também uma **ficha do jogo** — linhas prontas de gols,
+assistências e cartões — que a recuperação do grafo nunca entregou. Corrigimos
+a assimetria numa direção e criamos outra, no sentido oposto. A ADR-10 exige
+que a variável isolada seja a REPRESENTAÇÃO; enquanto um lado tem o fato e o
+outro não, não é isso que está sendo medido.
+
+**Decisão 1 — ficha do jogo na recuperação.** `ficha_do_jogo()` em
+`api/retrieval.py` devolve gols, assistências e cartões em frases do mesmo
+formato que o baseline recebe. As consultas percorrem as MESMAS arestas que uma
+consulta ad-hoc percorreria — nada pré-calculado, ao contrário da súmula da
+camada 1b.
+
+**Decisão 2 — roteador de intenção determinístico.** `detectar_intencoes()`
+casa o vocabulário da pergunta (gol/marcou/placar, assistência, cartão/amarelo)
+contra gatilhos fixos, sem LLM na recuperação. É o que decide quais partes da
+ficha entram. Sem nome próprio E sem intenção, a pergunta é genérica sobre a
+partida e o fallback continua valendo.
+
+**Decisão 3 — fallback com pontaria.** `padroes_relevantes()` ordena os padrões
+por casamento lexical com a pergunta e corta em 8. Quando não há casamento
+nenhum, devolve tudo como antes — não se remove informação sem motivo. Isso
+ataca de uma vez a diluição de contexto e o custo: o despejo dos 24 padrões era
+o que fazia a estimativa a priori de custo errar por 4x.
+
+**Decisão 4 — a busca híbrida deixa de ser dormente.** `index_match_patterns`
+só era chamado dentro da rota `POST /analyze/{match_id}`. Quem reproduz o
+projeto pelos scripts nunca criava o índice do Graphiti, e `retrieve_context`
+recebia `graphiti=None` seguindo só com a recuperação estruturada — sem avisar.
+**Todos os números medidos até a 4ª rodada são de recuperação estruturada pura,
+não híbrida.** `scripts/index_graphiti.py` cria o índice e
+`run_evaluation.py --hibrida` liga a busca, recusando-se a rodar se o índice
+estiver vazio: ligar sem índice devolveria zero fatos em silêncio, o que é pior
+que não ligar, porque o rótulo da estratégia diria "híbrida" sem ser.
+
+**Consequência para a comparação.** A ficha é o mesmo tipo de movimento que a
+súmula: dado pronto no contexto. A diferença é que agora existe a máquina da
+ADR-10 para medir o efeito, e a justificativa é simetria com o baseline — que
+já tinha esses fatos — e não a nota de um juiz.

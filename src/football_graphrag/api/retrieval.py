@@ -125,6 +125,109 @@ def _limpa(props: dict) -> dict:
     return {k: v for k, v in props.items() if k not in ("uid", "player_id", "team_id")}
 
 
+# Intenção da pergunta: gatilhos determinísticos, sem LLM na recuperação.
+# Existe porque resolve_entities só enxerga NOME PRÓPRIO. "Quem fez os gols da
+# final?" não cita jogador nem time, resolvia zero entidades, e a recuperação
+# entregava só a súmula dos dois times — que tem o TOTAL de gols, não quem fez.
+# O baseline vetorial, esse, tinha a linha dos gols pronta no resumo
+# (evaluation/match_facts.py). A paridade de fatos que a ADR-10 exige estava
+# quebrada para o lado do grafo.
+INTENCOES: dict[str, set[str]] = {
+    "gols": {"gol", "gols", "marcou", "marcaram", "marcados", "placar", "artilheiro",
+             "empatou", "empate", "abriu", "virada", "virou"},
+    "assistencias": {"assistencia", "assistencias", "assistiu", "assistiram", "assistente"},
+    "cartoes": {"cartao", "cartoes", "amarelo", "amarelos", "advertido", "advertidos",
+                "advertencia"},
+}
+
+# As mesmas arestas que uma consulta ad-hoc percorreria — nada pré-calculado
+# aqui, ao contrário da súmula da camada 1b.
+_FICHA_CYPHER = {
+    "gols": """
+        MATCH (j:Jogador)-[f:FINALIZOU {match_id: $m}]->(:Partida)
+        WHERE f.gol
+        RETURN j.nome AS jogador, j.time AS time, f.minuto AS minuto,
+               f.periodo_nome AS periodo, f.acao AS acao
+        ORDER BY f.periodo, f.minuto
+    """,
+    "assistencias": """
+        MATCH (a:Jogador)-[d:DEU_ASSISTENCIA {match_id: $m}]->(g:Jogador)
+        RETURN a.nome AS jogador, a.time AS time, g.nome AS para,
+               d.minuto AS minuto, d.periodo_nome AS periodo
+        ORDER BY d.periodo, d.minuto
+    """,
+    "cartoes": """
+        MATCH (j:Jogador)-[r:REALIZOU {match_id: $m}]->(:Partida)
+        WHERE r.cartao_amarelo
+        RETURN j.nome AS jogador, j.time AS time, r.minuto AS minuto,
+               r.periodo_nome AS periodo
+        ORDER BY r.periodo, r.minuto
+    """,
+}
+
+
+def detectar_intencoes(question: str) -> set[str]:
+    """Que fatos de súmula a pergunta pede, pelo vocabulário que ela usa."""
+    tokens = set(re.findall(r"[a-z]+", _normalize(question)))
+    return {nome for nome, gatilhos in INTENCOES.items() if tokens & gatilhos}
+
+
+def ficha_do_jogo(driver: Driver, match_id: int, intencoes: set[str]) -> list[str]:
+    """Gols, assistências e cartões — só o que a pergunta pediu.
+
+    Devolve frases prontas, no mesmo formato do resumo que o baseline recebe,
+    para que a comparação seja de REPRESENTAÇÃO e não de quem tem o dado.
+    """
+    if not intencoes:
+        return []
+    fatos: list[str] = []
+    with driver.session() as session:
+        for chave in sorted(intencoes):
+            linhas = session.run(_FICHA_CYPHER[chave], m=match_id).data()
+            if not linhas:
+                continue
+            if chave == "gols":
+                itens = [
+                    f"{r['jogador']} ({r['time']}) aos {r['minuto']} min do {r['periodo']}"
+                    + (" de pênalti" if r["acao"] == "penalti" else "")
+                    for r in linhas
+                ]
+                fatos.append(f"Gols da partida ({len(itens)}): " + "; ".join(itens) + ".")
+            elif chave == "assistencias":
+                itens = [
+                    f"{r['jogador']} ({r['time']}) para {r['para']} aos {r['minuto']} min"
+                    for r in linhas
+                ]
+                fatos.append("Assistências: " + "; ".join(itens) + ".")
+            else:
+                itens = [f"{r['jogador']} ({r['time']}) aos {r['minuto']} min" for r in linhas]
+                fatos.append("Cartões amarelos: " + "; ".join(itens) + ".")
+    return fatos
+
+
+def padroes_relevantes(driver: Driver, match_id: int, question: str, limite: int = 8) -> list[dict]:
+    """Fallback com pontaria: os padrões que casam lexicalmente com a pergunta.
+
+    O fallback antigo despejava TODOS os padrões da partida (~24). Isso diluía
+    o contexto e, medido, era o que mais pesava no custo por pergunta. Quando
+    não há casamento lexical nenhum, devolve tudo como antes — não se remove
+    informação sem ter um motivo para removê-la.
+    """
+    todos = fetch_all_patterns(driver, match_id)
+    termos = {_normalize(t) for t in extract_candidate_names(question)}
+
+    def pontos(p: dict) -> int:
+        texto = _normalize(
+            " ".join(str(p.get(k, "")) for k in ("tipo", "descricao_curta", "time", "nome_metrica"))
+        )
+        return sum(1 for t in termos if t in texto)
+
+    marcados = [(pontos(p), p) for p in todos]
+    if not any(n for n, _ in marcados):
+        return todos
+    return [p for n, p in sorted(marcados, key=lambda x: -x[0]) if n][:limite]
+
+
 def structured_retrieval(driver: Driver, match_id: int, question: str) -> list[dict]:
     """Compatibilidade: só os padrões, como antes."""
     return patterns_for_entities(driver, match_id, resolve_entities(driver, question))
@@ -143,20 +246,25 @@ async def retrieve_context(
     """
     t0 = time.perf_counter()
     entities = resolve_entities(driver, question)
+    intencoes = detectar_intencoes(question)
     patterns = patterns_for_entities(driver, match_id, entities)
     stats = stats_for_entities(driver, match_id, entities) if incluir_sumula else []
+    extra_facts = ficha_do_jogo(driver, match_id, intencoes)
     used = "estruturada+sumula" if incluir_sumula else "estruturada"
-    extra_facts: list[str] = []
+    if extra_facts:
+        used += "+ficha(" + ",".join(sorted(intencoes)) + ")"
     if graphiti is not None:
         from football_graphrag.graph.communities import hybrid_search
 
         try:
-            extra_facts = await hybrid_search(graphiti, match_id, question)
+            extra_facts = extra_facts + await hybrid_search(graphiti, match_id, question)
             used += "+hibrida_graphiti"
         except Exception:
             logger.exception("busca híbrida indisponível; seguindo só com a estruturada")
-    if not patterns:
-        patterns = fetch_all_patterns(driver, match_id)
-        used += "+fallback_todos_padroes"
+    # Só cai no fallback quando nada mais foi recuperado: numa pergunta de
+    # ficha ("quem fez os gols"), padrão tático é ruído puro.
+    if not patterns and not extra_facts:
+        patterns = padroes_relevantes(driver, match_id, question)
+        used += "+fallback_padroes"
     timings = {"retrieval_seconds": round(time.perf_counter() - t0, 4), "estrategia": used}
     return patterns, stats, extra_facts, timings
