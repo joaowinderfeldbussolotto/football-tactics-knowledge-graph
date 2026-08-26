@@ -83,6 +83,8 @@ async def index_match_patterns(
             "MATCH (n:Community {group_id: $g}) DETACH DELETE n", g=group_id
         ).consume()
     patterns = _fetch_patterns(driver, match_id)
+    indexados = 0
+    falhas: list[str] = []
     for p in patterns:
         team_node = EntityNode(name=p["time"], group_id=group_id, labels=["Entity"], summary=f"Seleção {p['time']}")
         pattern_name = f"{p['tipo']}:{p['uid'][:8]}"
@@ -104,11 +106,25 @@ async def index_match_patterns(
             valid_at=valid_at,
             invalid_at=invalid_at,
         )
-        await graphiti.add_triplet(team_node, edge, pattern_node)
+        try:
+            await graphiti.add_triplet(team_node, edge, pattern_node)
+        except Exception:
+            # Um triplet que falha não pode derrubar a indexação inteira: são
+            # dezenas por partida, cada uma custa dinheiro, e perder as 20 já
+            # feitas por causa da 21ª é caro. Falha real observada: o cliente
+            # genérico do Graphiti faz response.choices[0] sem checar, e um
+            # provedor que devolva choices vazio levanta TypeError ali dentro.
+            logger.exception("padrão %s falhou ao indexar; seguindo", pattern_name)
+            falhas.append(pattern_name)
+            continue
+        indexados += 1
         if pace_seconds:
             await asyncio.sleep(pace_seconds)
-    logger.info("indexados %d padrões da partida %s no Graphiti", len(patterns), match_id)
-    return len(patterns)
+    if falhas:
+        logger.warning("%d padrões não indexados na partida %s: %s", len(falhas), match_id, falhas)
+    logger.info("indexados %d de %d padrões da partida %s no Graphiti",
+                indexados, len(patterns), match_id)
+    return indexados
 
 
 async def build_pattern_communities(graphiti: Graphiti, match_id: int):

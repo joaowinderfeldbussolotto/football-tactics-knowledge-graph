@@ -171,6 +171,45 @@ def pydantic_ai_model(settings: Settings):
 # Graphiti (camada 3: indexação, comunidades, busca híbrida)
 # ---------------------------------------------------------------------------
 
+def _classe_cliente_resiliente():
+    """Cliente do Graphiti que aguenta resposta sem ``choices``.
+
+    Defeito real, observado ao indexar com OpenRouter: o cliente genérico do
+    Graphiti faz ``response.choices[0]`` sem checar nada. Quando o provedor
+    devolve resposta sem ``choices`` — acontece com agregadores, em resposta
+    vazia ou filtrada —, estoura ``TypeError: 'NoneType' object is not
+    subscriptable`` lá dentro. O retry do tenacity não reconhece isso como
+    erro retentável, e a indexação inteira morre no meio (aconteceu, com 22
+    de 73 padrões indexados).
+
+    A resposta vazia é intermitente: repetir a chamada resolve. A subclasse é
+    montada dentro da função, e não no topo do módulo, porque ``graphiti_core``
+    é dependência pesada que o projeto só importa onde precisa.
+    """
+    from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
+
+    class ClienteResiliente(OpenAIGenericClient):
+        TENTATIVAS = 3
+
+        async def _generate_response(self, *args, **kwargs):
+            ultimo = None
+            for tentativa in range(1, self.TENTATIVAS + 1):
+                try:
+                    return await super()._generate_response(*args, **kwargs)
+                except TypeError as exc:
+                    # a assinatura exata do defeito: choices ausente/None
+                    if "subscriptable" not in str(exc):
+                        raise
+                    ultimo = exc
+                    logger.warning(
+                        "resposta sem choices (tentativa %d/%d); repetindo",
+                        tentativa, self.TENTATIVAS,
+                    )
+            raise ultimo
+
+    return ClienteResiliente
+
+
 def graphiti_llm_client(settings: Settings) -> LLMClient:
     """Cliente de LLM do Graphiti com o cliente SDK (e seu retry) injetado."""
     config = LLMConfig(
@@ -183,10 +222,8 @@ def graphiti_llm_client(settings: Settings) -> LLMClient:
         # Endpoint compatível com OpenAI (Mistral, OpenRouter). Ver
         # docs/05-decisoes.md sobre structured_output_mode caso o json_schema
         # falhe num modelo específico — botão exposto em LLM_STRUCTURED_OUTPUT_MODE.
-        from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
-
         config.base_url = base_url
-        return OpenAIGenericClient(
+        return _classe_cliente_resiliente()(
             config=config,
             client=_openai_compat_sdk_client(settings.llm_api_key, base_url, settings),
             structured_output_mode=settings.llm_structured_output_mode,
