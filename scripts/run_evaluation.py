@@ -117,6 +117,28 @@ async def avaliar_baseline(index, q) -> dict:
     return {"resposta": resposta, "retrieval_previo": r.score, "tactical_insight": i.score}
 
 
+def _caminho_parcial(settings, saida: str) -> pathlib.Path:
+    return settings.processed_dir / f"{pathlib.Path(saida).stem}.parcial.json"
+
+
+def carregar_parcial(settings, args) -> list[dict]:
+    """Perguntas já respondidas numa execução anterior que caiu.
+
+    Uma rodada completa leva ~2h e custa dinheiro real. Sem checkpoint, um
+    daemon do Docker morrendo de ocioso na pergunta 25 joga fora as 24
+    anteriores — as pagas e as demoradas.
+    """
+    if not args.retomar:
+        return []
+    caminho = _caminho_parcial(settings, args.saida)
+    if not caminho.exists():
+        logger.warning("--retomar pedido mas %s não existe; começando do zero", caminho.name)
+        return []
+    feitas = json.loads(caminho.read_text())
+    logger.info("retomando: %d perguntas já respondidas em %s", len(feitas), caminho.name)
+    return feitas
+
+
 def selecionar(args) -> list:
     if args.ids:
         pedidos = [i.strip() for i in args.ids.split(",") if i.strip()]
@@ -175,8 +197,13 @@ async def main(args) -> None:
         logger.warning("baseline indisponível (%s); avaliando só o sistema de grafo", exc)
         baseline_index = None
 
-    results = []
+    results = carregar_parcial(settings, args)
+    ja_feitas = {r["id"] for r in results}
+    parcial = _caminho_parcial(settings, args.saida)
     for q in perguntas:
+        if q.id in ja_feitas:
+            logger.info("%s: já respondida, pulando", q.id)
+            continue
         linha = {"id": q.id, "categoria": q.categoria, "insight": q.insight, "pergunta": q.pergunta}
         for braco, incluir in BRACOS_GRAFO.items():
             logger.info("%s [%s]", q.id, braco)
@@ -193,13 +220,20 @@ async def main(args) -> None:
         else:
             linha["baseline"] = None
         results.append(linha)
+        # grava DEPOIS de cada pergunta: o parcial é o seguro da rodada
+        parcial.write_text(json.dumps(results, ensure_ascii=False, indent=2))
 
+    # a ordem do golden dataset é a ordem de leitura das tabelas; uma retomada
+    # não pode embaralhar isso
+    ordem = {q.id: i for i, q in enumerate(GOLDEN_QUESTIONS)}
+    results.sort(key=lambda r: ordem.get(r["id"], 0))
     summary = _summarize(results, settings)
     summary["rodada"] = rodada
     out = settings.processed_dir / args.saida
     out.write_text(json.dumps({"summary": summary, "results": results}, ensure_ascii=False, indent=2))
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"\n-> {out}")
+    parcial.unlink(missing_ok=True)
     driver.close()
     if graphiti is not None:
         await graphiti.close()
@@ -248,6 +282,8 @@ def _args():
     sel.add_argument("--ids", help="ids separados por vírgula (ex.: q01,q17)")
     p.add_argument("--saida", default="eval_results.json", help="nome do arquivo em data/processed")
     p.add_argument("--rodada", help="rótulo da rodada no Langfuse (default: derivado de --saida + data)")
+    p.add_argument("--retomar", action="store_true",
+                   help="continua de onde a execução anterior parou (lê o .parcial.json)")
     p.add_argument("--hibrida", action="store_true",
                    help="liga a busca híbrida do Graphiti (exige scripts/index_graphiti.py antes)")
     return p.parse_args()

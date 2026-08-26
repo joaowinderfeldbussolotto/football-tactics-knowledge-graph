@@ -26,7 +26,10 @@ diferença é a REPRESENTAÇÃO (grafo consultável versus texto embeddado), que
 é exatamente a variável que a pesquisa quer isolar.
 """
 
+import gzip
+import hashlib
 import json
+import logging
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -37,6 +40,8 @@ from pydantic_ai import Agent
 from football_graphrag.config import get_settings
 from football_graphrag.evaluation import match_facts
 from football_graphrag.llm.provider import pydantic_ai_model
+
+logger = logging.getLogger(__name__)
 
 # Rankings precomputados. Sem eles, "quem mais desarmou?" exigiria do baseline
 # uma agregação que texto plano não faz — e a pergunta viraria um teste de
@@ -168,9 +173,41 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
     return [await embedder.create(input_data=[t]) for t in texts]
 
 
-async def build_index(match_ids: list[int], data_dir: Path) -> BaselineIndex:
+def _caminho_cache(match_ids: list[int], data_dir: Path) -> Path:
+    """Chave do cache: partidas + modelo de embedding.
+
+    O modelo entra na chave de propósito. Trocar de embedder e reaproveitar
+    vetores antigos degradaria a busca em silêncio — o pior tipo de defeito
+    numa comparação, porque não quebra nada, só piora o resultado de um lado.
+    """
+    s = get_settings()
+    chave = hashlib.sha1(
+        f"{sorted(match_ids)}|{s.embedder_provider}|{s.embedder_model}".encode()
+    ).hexdigest()[:12]
+    return data_dir / "processed" / f"baseline_index_{chave}.json.gz"
+
+
+async def build_index(match_ids: list[int], data_dir: Path, usar_cache: bool = True) -> BaselineIndex:
+    """Índice do baseline, com cache em disco dos embeddings.
+
+    São ~120 chunks embeddados pelo Gemini free tier — o mesmo provedor (e a
+    mesma cota) que a indexação do Graphiti consome. Sem cache, um 429 aqui
+    derruba o baseline e a rodada inteira perde metade da comparação; e uma
+    retomada pagaria de novo por vetores que já existem.
+    """
+    cache = _caminho_cache(match_ids, data_dir)
+    if usar_cache and cache.exists():
+        with gzip.open(cache, "rt", encoding="utf-8") as fh:
+            d = json.load(fh)
+        logger.info("índice do baseline lido do cache: %s (%d chunks)", cache.name, len(d["chunks"]))
+        return BaselineIndex(chunks=d["chunks"], vectors=d["vectors"])
+
     chunks = [c for m in match_ids for c in build_match_summary(m, data_dir)]
     vectors = await embed_texts(chunks)
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(cache, "wt", encoding="utf-8") as fh:
+        json.dump({"chunks": chunks, "vectors": vectors}, fh)
+    logger.info("índice do baseline embeddado e cacheado em %s (%d chunks)", cache.name, len(chunks))
     return BaselineIndex(chunks=chunks, vectors=vectors)
 
 
