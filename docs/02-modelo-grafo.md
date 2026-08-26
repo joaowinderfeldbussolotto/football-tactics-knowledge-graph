@@ -18,8 +18,8 @@ chave natural; arestas fazem `MERGE` por chave (`match_id` + `action_id`/índice
 
 ```mermaid
 graph LR
-    J1[Jogador] -- "PASSOU_PARA {minuto, segundo, acao, xt_gerado,\nvaep, progressivo, zona_origem/destino}" --> J2[Jogador]
-    J1 -- "REALIZOU {acao, sucesso, minuto, segundo,\ngol, cartao_amarelo, terco, corredor}" --> M[Partida]
+    J1[Jogador] -- "PASSOU_PARA {minuto, segundo, acao, xt_gerado,<br/>vaep, progressivo, zona_origem/destino}" --> J2[Jogador]
+    J1 -- "REALIZOU {acao, sucesso, minuto, segundo,<br/>gol, cartao_amarelo, terco, corredor}" --> M[Partida]
     J1 -- "FINALIZOU {acao, gol, desfecho, no_gol, minuto}" --> M
     J1 -- "DEU_ASSISTENCIA {minuto}" --> J2
     J1 -- "PRESSIONOU {minuto, segundo, zona}" --> J2
@@ -104,7 +104,7 @@ acréscimos os minutos se sobrepõem entre períodos, então ele **não serve pa
 ordenar nem para janela temporal** — para isso existe `segundo` (contínuo
 desde o apito) e `action_id` (estritamente sequencial). Ignorar essa
 distinção já causou um bug real no insight 7.3, descrito em
-`00-entenda-o-projeto.md`, seção 7.
+`00-entenda-o-projeto.md`, seção 8.
 
 **`tipo_spadl`** continua em `REALIZOU` como rastro de proveniência, mas
 **não é campo de consulta** e é omitido do schema exposto ao agente — expô-lo

@@ -12,31 +12,25 @@ algoritmos de grafo (GDS) produzem insights que **não existem em nenhuma linha 
 
 ## Arquitetura
 
+```mermaid
+flowchart TD
+    SB["StatsBomb Open Data"] --> C0
+    C0["CAMADA 0 — Pipeline de dados<br/>kloppy → SPADL → xT/VAEP<br/>→ vocabulário de futebol (acao, sucesso, minuto)"] --> PQ[("Parquet")]
+    PQ --> C1["CAMADA 1 — Grafo factual<br/>Jogador, Time, Zona, FaseDePosse +<br/>REALIZOU, PASSOU_PARA, PRESSIONOU..."]
+    PQ --> C1B["CAMADA 1b — Súmula pré-agregada<br/>EstatisticaJogador / EstatisticaTime"]
+    C1 --> NEO[("Neo4j")]
+    C1B --> NEO
+    NEO --> C2["CAMADA 2 — Análise estrutural (GDS)<br/>AQUI NASCEM OS INSIGHTS<br/>betweenness, comunidades, pontes, janelas"]
+    C2 -->|"nós PadraoTatico"| NEO
+    NEO --> C3["CAMADA 3 — Interpretação e recuperação<br/>Graphiti + PydanticAI, citação obrigatória"]
+    C3 --> OUT["Relatório e Q&A"]
+
+    style C3 fill:#fdf0e3,stroke:#a86420,stroke-width:2px
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│ CAMADA 0: PIPELINE DE DADOS             (determinística, sem LLM) │
-│ StatsBomb JSON → kloppy → SPADL → xT/VAEP → métricas →            │
-│ vocabulário de futebol (acao, sucesso, minuto) → Parquet          │
-└──────────────────────────────────────────────────────────────────┘
-                              ▼
-┌──────────────────────────────────────────────────────────────────┐
-│ CAMADA 1: GRAFO FACTUAL                 (determinística, sem LLM) │
-│ Jogador, Time, Zona, FaseDePosse + PASSOU_PARA, PRESSIONOU,       │
-│ PROGREDIU_PARA... com valores EXATOS do parquet                   │
-│ + 1b: EstatisticaJogador/EstatisticaTime (súmula pré-agregada)    │
-└──────────────────────────────────────────────────────────────────┘
-                              ▼
-┌──────────────────────────────────────────────────────────────────┐
-│ CAMADA 2: ANÁLISE ESTRUTURAL            (Neo4j GDS, sem LLM)      │
-│ AQUI NASCEM OS INSIGHTS: betweenness, comunidades, caminhos       │
-│ multi-hop, co-ocorrência temporal → nós PadraoTatico              │
-└──────────────────────────────────────────────────────────────────┘
-                              ▼
-┌──────────────────────────────────────────────────────────────────┐
-│ CAMADA 3: INTERPRETAÇÃO E RECUPERAÇÃO   (Graphiti + PydanticAI)   │
-│ Relatório e Q&A com citação obrigatória; busca híbrida sem LLM    │
-└──────────────────────────────────────────────────────────────────┘
-```
+
+**Só a camada 3 usa LLM.** Todo número nasce nas camadas determinísticas; o
+modelo lê, consulta e escreve — nunca calcula.
+
 
 ## Quickstart
 
@@ -53,7 +47,7 @@ docker compose exec api python scripts/run_analysis.py   # 5. camada 2 (insights
 
 | Doc | Conteúdo |
 |---|---|
-| [docs/00-entenda-o-projeto.md](docs/00-entenda-o-projeto.md) | **comece aqui**: o projeto do zero, seguindo uma jogada real por todas as etapas |
+| [docs/00-entenda-o-projeto.md](docs/00-entenda-o-projeto.md) | **comece aqui**: o projeto do zero — uma jogada real do JSON bruto ao grafo, e uma pergunta real do enunciado à resposta conferida |
 | [docs/01-pipeline.md](docs/01-pipeline.md) | linhagem completa StatsBomb → grafo, com contagens reais |
 | [docs/02-modelo-grafo.md](docs/02-modelo-grafo.md) | schema do grafo, projeções do GDS, volumes medidos |
 | [docs/03-insights.md](docs/03-insights.md) | catálogo dos 8 insights, com exemplos reais das partidas |

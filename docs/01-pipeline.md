@@ -13,16 +13,16 @@ Contrato duro: **a partir do parquet, nada mais é calculado**. Camadas 1–3 ap
 
 ```mermaid
 flowchart LR
-    A[StatsBomb Open Data\nevents/lineups/matches/360] -->|0.1 download + cache\ndata/raw/statsbomb| B[kloppy\nEventDataset]
-    B -->|0.2 socceraction.spadl.kloppy| C[Ações SPADL\n105x68, esq->dir]
+    A[StatsBomb Open Data<br/>events/lineups/matches/360] -->|0.1 download + cache<br/>data/raw/statsbomb| B[kloppy<br/>EventDataset]
+    B -->|0.2 socceraction.spadl.kloppy| C[Ações SPADL<br/>105x68, esq->dir]
     C -->|0.3a xT 12x8| D[xt_value]
     C -->|0.3b VAEP xgboost| E[vaep_*]
-    C -->|0.4 zonas, fases, progressivo,\nrecebedor, PPDA, field tilt| F[métricas contextuais]
+    C -->|0.4 zonas, fases, progressivo,<br/>recebedor, PPDA, field tilt| F[métricas contextuais]
     A -->|0.4g pressões via related_events| G[pressures]
-    A -->|0.4h desfecho de finalização\n+ cartões descartados| I[resgate do bruto]
-    D & E & F --> J[0.4h vocabulário de futebol\nacao, sucesso, minuto, segundo]
+    A -->|0.4h desfecho de finalização<br/>+ cartões descartados| I[resgate do bruto]
+    D & E & F --> J[0.4h vocabulário de futebol<br/>acao, sucesso, minuto, segundo]
     I --> J
-    J --> H[data/processed/matchid.parquet\n+ _phases + _windows + _pressures\n+ _meta.json + _schema.json]
+    J --> H[data/processed/matchid.parquet<br/>+ _phases + _windows + _pressures<br/>+ _meta.json + _schema.json]
 ```
 
 ## Passo 0.1 — Aquisição (`ingestion/statsbomb_loader.py`)

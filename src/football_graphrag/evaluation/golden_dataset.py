@@ -7,7 +7,12 @@ reais listados em docs/03-insights.md). ``categoria``:
   projeto prevê que o baseline vetorial ERRE estas);
 - "factual": fato bruto do jogo (gols, assistências, contagens) respondido
   pelo modo autônomo (Cypher read-only gerado pelo LLM, ADR-8);
-- "agregada": métrica agregada clássica (o baseline pode empatar);
+- "agregada": métrica agregada clássica. A tese PREVÊ empate aqui, e o
+  empate é um resultado desejado: mostra que o grafo não perde no que um
+  sistema descritivo já faz bem, e que a vantagem dele está concentrada no
+  estrutural. Desde a paridade de fatos do baseline (ver evaluation/
+  match_facts.py), estas perguntas são genuinamente respondíveis pelos dois
+  lados;
 - "composta": exige CRUZAR as duas camadas — um padrão estrutural da camada 2
   com um número da súmula da camada 1b. É a categoria que melhor demonstra a
   autonomia do agente, porque nenhuma das duas fontes responde sozinha, e a
@@ -344,5 +349,40 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         ),
         insight="composta: 7.5 papel_divergente + súmula do jogador",
         categoria="composta",
+    ),
+    GoldenQuestion(
+        id="q28_posse_final",
+        match_id=3869685,
+        pergunta="Qual time teve mais posse de bola na final?",
+        resposta_referencia=(
+            "A Argentina, com 54.4% contra 45.6% da França. A posse é medida por "
+            "TEMPO de fase de posse (soma da duração das fases de cada time), não por "
+            "proporção de eventos — que superestimaria quem toca mais na bola."
+        ),
+        insight="agregada (EstatisticaTime.posse_pct)",
+        categoria="agregada",
+    ),
+    GoldenQuestion(
+        id="q29_finalizacoes_final",
+        match_id=3869685,
+        pergunta="Qual time finalizou mais na final, e quantas dessas foram no gol?",
+        resposta_referencia=(
+            "A Argentina finalizou o dobro: 20 finalizações, 10 delas no gol, contra "
+            "10 finalizações e 5 no gol da França. 'No gol' inclui as defendidas e as "
+            "que entraram; bola na trave não conta, por convenção Opta/StatsBomb."
+        ),
+        insight="agregada (EstatisticaTime.finalizacoes / finalizacoes_no_gol)",
+        categoria="agregada",
+    ),
+    GoldenQuestion(
+        id="q30_aproveitamento_passe_final",
+        match_id=3869685,
+        pergunta="Qual time teve melhor aproveitamento de passe na final?",
+        resposta_referencia=(
+            "A Argentina, com 81.5% (560 passes certos em 687 tentados), contra 76.7% "
+            "da França (434 em 566)."
+        ),
+        insight="agregada (EstatisticaTime.precisao_passe_pct)",
+        categoria="agregada",
     ),
 ]

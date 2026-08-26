@@ -184,7 +184,7 @@ ganha:
   tempo começa em 45, a prorrogação em 90 e 105). Os seis gols da final saem
   aos **23, 36, 80, 81, 108 e 118**, iguais à súmula da FIFA.
 - **`segundo`** — segundos desde o apito inicial. `minuto` é para **ler**;
-  `segundo` é para **comparar** (ver seção 7).
+  `segundo` é para **comparar** (ver seção 8, "Limites conhecidos").
 - **`gol`**, **`cartao_amarelo`**, **`terco`**, **`corredor`**.
 
 Nesta etapa também se recupera do JSON bruto **o que o SPADL joga fora**:
@@ -229,7 +229,114 @@ consulta que o produziu.
 
 ---
 
-## 3. O que cada número significa
+## 3. Uma pergunta inteira, do começo ao fim
+
+A seção anterior seguiu o **dado entrando**. Esta segue uma **pergunta saindo**.
+Tudo aqui é saída real do sistema, registrada na avaliação de 2026-08-25
+(`data/processed/eval_results.json`) — inclusive os defeitos, que são a parte
+mais instrutiva.
+
+```mermaid
+flowchart TD
+    P["Pergunta em português"] --> R["Recuperação<br/>(Cypher, SEM LLM)"]
+    R --> R1["resolve nomes citados<br/>Jogador / Time"]
+    R1 --> R2["PadraoTatico das entidades<br/>(camada 2)"]
+    R1 --> R3["Súmula das entidades<br/>(camada 1b)"]
+    R2 --> C["Contexto do agente"]
+    R3 --> C
+    C --> A{"A resposta<br/>está no contexto?"}
+    A -->|sim| W["Redige e cita"]
+    A -->|não| T["consultar_grafo(cypher)<br/>read-only, gerado pelo LLM"]
+    T --> W
+    W --> V["Verificação determinística<br/>check_citations + check_queries"]
+```
+
+### 3.1 O caminho curto: quando a resposta já existe
+
+> *"Qual jogador foi o gargalo estrutural da progressão da Argentina na final?"*
+
+1. A recuperação extrai os candidatos a nome próprio da frase e resolve
+   **"Argentina"** contra os nós `Time`. Sem LLM, **0,019 segundos**.
+2. Busca os `PadraoTatico` que envolvem essa entidade. O pivô já está lá — o
+   GDS calculou o betweenness na camada 2, **antes de alguém perguntar**.
+3. O agente lê o padrão e redige, citando o `uid` dele.
+
+Resultado real: **recuperação 5/5, insight 5/5, zero consultas Cypher.**
+
+> "O gargalo estrutural da progressão argentina é Nicolás Hernán Otamendi. Ele
+> apresenta a maior betweenness centrality do time (50.0, o dobro do segundo
+> colocado, com 25.0), acumulando 143 ações e pageRank de 1.622 — ou seja, é o
+> ponto por onde a maior parte dos caminhos de passe que conectam defesa e
+> ataque da Argentina passa."
+
+É o caminho que justifica o projeto inteiro: a resposta **não foi calculada na
+hora**, ela já existia como nó no grafo, e o LLM só a verbalizou.
+
+### 3.2 O caminho longo: quando é preciso consultar
+
+> *"Quem fez os gols da final?"*
+
+Aqui nenhum padrão ajuda — algoritmo de rede não calcula gol. O agente escreve
+o próprio Cypher (`consultar_grafo`), que roda em transação somente-leitura e
+fica registrado na resposta. Foi **1 consulta**, e a resposta saiu correta:
+
+> "1º tempo: Lionel Messi (Argentina), pênalti, aos 22min; Ángel Di María
+> (Argentina), aos 35min. 2º tempo: Kylian Mbappé (France), pênalti, aos 34min;
+> Kylian Mbappé (France), aos 36min. Prorrogação: Lionel Messi (Argentina), aos
+> ~3min do período 4; Kylian Mbappé (France), pênalti, aos ~12min do período 4."
+
+**Duas coisas para notar — e as duas já foram corrigidas.**
+
+**Os minutos estavam na convenção errada.** "Aos 22min", "aos 34min do 2º
+tempo", "aos ~3min do período 4" — o relógio reiniciava a cada período, então
+ninguém reconhece o próprio jogo que assistiu. Hoje o grafo devolve **23', 36',
+80', 81', 108' e 118'**, batendo com a súmula da FIFA (seção 2.6).
+
+**A nota 1/5 em recuperação não é erro de resposta.** O juiz da avaliação
+pontua o **contexto recuperado**, não o texto final. E o contexto, nesta
+pergunta, tinha caído no `fallback_todos_padroes`: padrões de pressão e de
+comunidade, nada sobre gols. A resposta estava certa; o contexto que a
+sustentava é que estava vazio de fato relevante. Hoje a súmula entra no
+contexto (`api/retrieval.py`), e uma pergunta que cite um jogador recebe os
+números dele antes de qualquer consulta.
+
+### 3.3 O que o baseline respondeu à mesma pergunta
+
+> "Não é possível responder com os dados disponíveis. O contexto fornecido
+> contém apenas estatísticas táticas agregadas (passes, PPDA, field tilt, xT,
+> VAEP) das partidas, mas não menciona quem marcou os gols em nenhuma delas."
+
+Leia com atenção, porque é fácil ler errado. O baseline **não errou de
+raciocínio** — ele foi honesto sobre não ter o dado. Vencer essa pergunta não
+prova nada sobre grafos: prova que um lado tinha a informação e o outro não.
+
+Era um desequilíbrio do experimento, e foi corrigido: o resumo do baseline
+agora carrega os mesmos fatos que o grafo (gols, cartões, desarmes, dribles,
+defesas — `evaluation/match_facts.py`). O que sobra de diferença entre os dois
+sistemas passa a ser a **representação**, que é a variável que a pesquisa quer
+isolar. Nas perguntas estruturais o baseline continua sem ter como responder —
+mas aí por um motivo real, e não por falta de dado.
+
+### 3.4 Depois da resposta: o que é conferido
+
+Duas checagens determinísticas, sem LLM:
+
+- **`check_citations`** — toda métrica citada aponta para um `PadraoTatico` que
+  existe, com o mesmo valor, nome e algoritmo de origem?
+- **`check_queries`** — toda consulta registrada roda de novo e devolve linhas?
+
+E uma ressalva que precisa vir junto: **as duas passando não significa que a
+resposta está certa.** A pergunta dos desarmes tirou fidelidade 1.0 respondendo
+"Enzo 9" quando são 5 — o número veio mesmo da consulta, e era a consulta que
+perguntava outra coisa. Verificação automática não pega erro semântico de
+consulta. Quem pega é o dado não ser ambíguo (`desarmes_certos` separado de
+`desarmes_tentados`) e o `scripts/check_golden_queries.py`, que compara com
+resposta conferida à mão.
+
+
+---
+
+## 4. O que cada número significa
 
 Resumo em português direto das métricas que aparecem nas respostas.
 
@@ -249,7 +356,31 @@ pressão alta**. PPDA 5.2 é um time sufocando; PPDA 30 é um time esperando.
 
 ---
 
-## 4. O que tem dentro do grafo
+## 5. O que tem dentro do grafo
+
+```mermaid
+graph LR
+    J["Jogador"] -->|REALIZOU<br/>toda ação com bola| M["Partida"]
+    J -->|FINALIZOU| M
+    J -->|PASSOU_PARA<br/>a rede de passes| J2["Jogador"]
+    J -->|DEU_ASSISTENCIA| J2
+    J -->|PRESSIONOU| J2
+    J -->|ATUOU_EM| Z["Zona<br/>96 células do campo"]
+    Z -->|PROGREDIU_PARA| Z2["Zona"]
+    J -->|PARTICIPOU_DE| F["FaseDePosse"]
+    J -.->|TEM_ESTATISTICA| EJ["EstatisticaJogador<br/>súmula pronta"]
+    T["Time"] -.->|TEM_ESTATISTICA| ET["EstatisticaTime"]
+    PT["PadraoTatico<br/>achado pelos algoritmos"] -->|OBSERVADO_EM| M
+
+    style EJ fill:#e8f4ea,stroke:#2d6a4f
+    style ET fill:#e8f4ea,stroke:#2d6a4f
+    style PT fill:#fdf0e3,stroke:#a86420
+```
+
+As caixas verdes são as **súmulas** (camada 1b, contagens já somadas) e a
+laranja é o **padrão tático** (camada 2, achado por algoritmo de rede). O
+resto é o registro literal do que aconteceu em campo. Propriedades completas
+em `02-modelo-grafo.md`.
 
 **Nós**
 
@@ -297,7 +428,30 @@ respostas certas e incompatíveis, que é pior que nenhuma.
 
 ---
 
-## 5. As quatro camadas
+## 6. As quatro camadas
+
+```mermaid
+flowchart TD
+    SB["StatsBomb Open Data<br/>JSON de eventos"] --> C0
+    C0["CAMADA 0 — Ingestão<br/>kloppy → SPADL → xT/VAEP<br/>→ vocabulário de futebol"] --> PQ[("Parquet<br/>1 linha por ação")]
+    PQ --> C1["CAMADA 1 — Grafo factual<br/>cópia exata, nó a nó"]
+    C1 --> NEO[("Neo4j")]
+    PQ --> C1B["CAMADA 1b — Súmula<br/>contagens por jogador e time"]
+    C1B --> NEO
+    NEO --> C2["CAMADA 2 — Análise estrutural<br/>betweenness, Louvain, pontes,<br/>caminhos, janelas temporais"]
+    C2 -->|"nós PadraoTatico"| NEO
+    NEO --> C3["CAMADA 3 — Relatório e perguntas<br/>lê padrões, consulta o grafo, redige"]
+    C3 --> OUT["Resposta com citação"]
+
+    style C3 fill:#fdf0e3,stroke:#a86420,stroke-width:2px
+    style C0 fill:#eef2f7,stroke:#3b5b7d
+    style C1 fill:#eef2f7,stroke:#3b5b7d
+    style C1B fill:#eef2f7,stroke:#3b5b7d
+    style C2 fill:#eef2f7,stroke:#3b5b7d
+```
+
+**A caixa laranja é a única que usa LLM.** Tudo que é número nasce nas caixas
+azuis, por código determinístico.
 
 | Camada | O que faz | Usa LLM? |
 |---|---|---|
@@ -315,13 +469,13 @@ reexecutada e conferida.
 
 ---
 
-## 6. Como conferir tudo isso sem gastar nada
+## 7. Como conferir tudo isso sem gastar nada
 
 ```bash
 python scripts/check_golden_queries.py
 ```
 
-Roda a consulta de referência das 27 perguntas do golden dataset contra o
+Roda a consulta de referência das 30 perguntas do golden dataset contra o
 grafo e imprime, lado a lado, a resposta esperada e o que o grafo devolve.
 Não usa LLM e não consome API. Se uma pergunta ficar sem linhas, o defeito é
 do modelo de dados.
@@ -337,7 +491,7 @@ print(schema.describe_graph(db.make_driver(get_settings())))
 
 ---
 
-## 7. Limites conhecidos (leia antes de confiar num número)
+## 8. Limites conhecidos (leia antes de confiar num número)
 
 - **A disputa de pênaltis não está no grafo.** O período 5 é excluído: não há
   tática de posse ou pressão a modelar. Por isso o grafo diz 3x3 na final, e
@@ -362,7 +516,7 @@ print(schema.describe_graph(db.make_driver(get_settings())))
 
 ---
 
-## 8. Para onde ir depois
+## 9. Para onde ir depois
 
 | Documento | Assunto |
 |---|---|

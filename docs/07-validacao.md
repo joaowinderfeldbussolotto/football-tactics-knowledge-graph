@@ -145,12 +145,12 @@ O que foi possível verificar sem API está na seção seguinte.
 ## Verificação do modelo de dados (sem LLM, sem custo)
 
 `scripts/check_golden_queries.py` roda a consulta de referência de cada uma
-das 27 perguntas (`evaluation/reference_queries.py`) contra o grafo e imprime
+das 30 perguntas (`evaluation/reference_queries.py`) contra o grafo e imprime
 a resposta esperada ao lado do que o grafo devolve. Separa o que a avaliação
 completa mistura: **a qualidade do modelo de dados** e a qualidade do modelo
 de linguagem.
 
-Resultado em 2026-08-25: **27/27 perguntas com resposta no grafo.** As oito
+Resultado em 2026-08-25: **30/30 perguntas com resposta no grafo.** As oito
 factuais são consulta de um hop sobre `EstatisticaJogador`, sem agregação
 escrita na hora — inclusive `q23`, que agora devolve Enzo 5 / Camavinga 4 /
 Tagliafico 4 por construção. As três compostas (`q25`-`q27`) casam um
@@ -234,7 +234,23 @@ dicionário de dados gerado saía incompleto — agora coberto por teste);
 dependia de precedência de `and`/`or` sem parênteses e tinha um ramo morto
 (comportamento conferido idêntico antes e depois).
 
-Cobertura após esta leva: **55 testes**, 27/27 no `check_golden_queries.py`.
+**Categoria agregada de n=1 para n=4.** A linha "agregada" da tabela de
+resultados tinha uma pergunta só, o que não sustenta afirmação nenhuma — ainda
+mais sendo a categoria em que a tese PREVÊ empate, e cujo empate é justamente o
+que mostra que o grafo não perde no que um sistema descritivo já faz bem. Foram
+acrescentadas posse de bola, volume de finalizações e aproveitamento de passe
+(`q28`-`q30`), todas respondidas por `EstatisticaTime` e todas ao alcance do
+baseline agora que ele tem paridade de fatos.
+
+**Explicação.** `00-entenda-o-projeto.md` ganhou a seção 3, que segue uma
+PERGUNTA de ponta a ponta com saída real da 3ª rodada — o caminho curto (q01,
+respondida direto do padrão pré-calculado, zero Cypher) e o caminho longo (q17,
+com os dois defeitos que a refatoração corrigiu). O documento cobria só o
+caminho do DADO entrando. O projeto passou de 4 para 11 diagramas, e os oito
+insights de `03-insights.md` ganharam uma linha de intuição em linguagem de
+campo, mais desenho para betweenness e para ponte.
+
+Cobertura após esta leva: **55 testes**, 30/30 no `check_golden_queries.py`.
 
 ## Modo autônomo (ADR-8) — validação ao vivo
 
@@ -299,6 +315,6 @@ validação), o que de quebra validou ao vivo a troca de provedor só por `.env`
   2026-08-25 (ver seção de avaliação).
 - **O sistema depois da refatoração do vocabulário de futebol.** A conta
   Anthropic ficou sem crédito antes da 4ª rodada. Há verificação determinística
-  do modelo de dados (27/27 em `check_golden_queries.py`) e 55 testes, mas
+  do modelo de dados (30/30 em `check_golden_queries.py`) e 55 testes, mas
   nenhuma medição com juiz de LLM após a mudança. Qualquer afirmação de melhora
   de nota seria não medida — e por isso não é feita aqui.

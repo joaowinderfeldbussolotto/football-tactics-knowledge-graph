@@ -48,13 +48,13 @@ calcula") sobrevive por três invariantes:
 
 ```mermaid
 flowchart LR
-    P[pergunta ou pedido de relatório] --> A[agente PydanticAI\nschema do grafo no prompt]
-    A -->|"consultar_grafo(cypher)"| G[guarda sintática\nsem escrita, sem CALL]
-    G --> R[transação READ\n50 linhas, 15s]
-    R --> N[(Neo4j\ngrafo factual)]
+    P[pergunta ou pedido de relatório] --> A[agente PydanticAI<br/>schema do grafo no prompt]
+    A -->|"consultar_grafo(cypher)"| G[guarda sintática<br/>sem escrita, sem CALL]
+    G --> R[transação READ<br/>50 linhas, 15s]
+    R --> N[(Neo4j<br/>grafo factual)]
     N --> A
-    A --> S[saída estruturada\n+ consultas_executadas]
-    S --> F[check_queries\nre-executa cada consulta]
+    A --> S[saída estruturada<br/>+ consultas_executadas]
+    S --> F[check_queries<br/>re-executa cada consulta]
 ```
 
 ## 4. O que o grafo precisou ganhar

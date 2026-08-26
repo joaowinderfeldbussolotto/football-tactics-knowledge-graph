@@ -43,12 +43,12 @@ termos do dia a dia, sem jargão, para quem assiste futebol mas não estuda tát
 
 ```mermaid
 flowchart LR
-    Q[pergunta] --> E[extração de nomes candidatos\nregex + stopwords, sem LLM]
-    E --> S[filtro ESTRUTURADO\nCypher: Jogador/Time CONTAINS nome\n-> padrões que os envolvem]
-    Q --> H[busca híbrida Graphiti\nsemântica + BM25 + travessia\nse credenciais configuradas]
+    Q[pergunta] --> E[extração de nomes candidatos<br/>regex + stopwords, sem LLM]
+    E --> S[filtro ESTRUTURADO<br/>Cypher: Jogador/Time CONTAINS nome<br/>-> padrões que os envolvem]
+    Q --> H[busca híbrida Graphiti<br/>semântica + BM25 + travessia<br/>se credenciais configuradas]
     S & H --> CTX[contexto]
-    CTX --> A[agente PydanticAI\noutput_type=RespostaTatica]
-    A <-->|"consultar_grafo(cypher)\nread-only, até 4x"| N[(Neo4j\ngrafo factual)]
+    CTX --> A[agente PydanticAI<br/>output_type=RespostaTatica]
+    A <-->|"consultar_grafo(cypher)<br/>read-only, até 4x"| N[(Neo4j<br/>grafo factual)]
 ```
 
 **Modo autônomo (ADR-8):** além dos padrões pré-calculados, o agente tem a ferramenta

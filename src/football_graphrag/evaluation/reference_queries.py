@@ -136,4 +136,24 @@ RETURN jogador, p.descricao_curta AS padrao, e.toques AS toques,
        e.finalizacoes AS finalizacoes, e.cruzamentos_tentados AS cruzamentos,
        e.passes_progressivos AS progressivos, e.precisao_passe_pct AS precisao
 """.strip(),
+    # ---------------- agregadas (súmula de time) ----------------
+    # A tese prevê EMPATE aqui: com paridade de fatos, o baseline também tem
+    # estes números. O empate é o resultado desejado, não uma perda.
+    "q28_posse_final": """
+MATCH (e:EstatisticaTime {match_id: $m})
+RETURN e.nome AS time, e.posse_pct AS posse_pct
+ORDER BY posse_pct DESC
+""".strip(),
+    "q29_finalizacoes_final": """
+MATCH (e:EstatisticaTime {match_id: $m})
+RETURN e.nome AS time, e.finalizacoes AS finalizacoes,
+       e.finalizacoes_no_gol AS no_gol, e.gols AS gols
+ORDER BY finalizacoes DESC
+""".strip(),
+    "q30_aproveitamento_passe_final": """
+MATCH (e:EstatisticaTime {match_id: $m})
+RETURN e.nome AS time, e.precisao_passe_pct AS precisao,
+       e.passes_certos AS certos, e.passes_tentados AS tentados
+ORDER BY precisao DESC
+""".strip(),
 }

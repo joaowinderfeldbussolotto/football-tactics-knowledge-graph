@@ -12,6 +12,9 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 ### 7.1 O pivô invisível
 - **Pergunta que responde:** qual jogador é o gargalo estrutural da progressão do time,
   mesmo sem aparecer nas estatísticas?
+- **Em campo:** é o jogador por quem a bola PRECISA passar para o time sair jogando.
+  Não é quem toca mais na bola — é por quem passam os caminhos. Se o adversário
+  colar um marcador nele, o time perde a ligação entre defesa e ataque.
 - **Por que não é visível nos dados brutos:** a tabela mostra passes por jogador; volume
   e betweenness não são correlacionados. Um zagueiro pode ter 90 passes estéreis e um meia
   com 30 concentrar a passagem obrigatória da rede.
@@ -27,6 +30,26 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
   ```
 - **Saída (PadraoTatico):** `tipo="pivo_estrutural"`, `nome_metrica="betweenness_centrality"`,
   `algoritmo_origem="gds.betweenness.stream"`.
+- **A diferença entre tocar muito e ser o gargalo:**
+
+  ```mermaid
+  graph LR
+      Z1["Zagueiro A"] --- Z2["Zagueiro B"]
+      Z1 --- P["Pivô"]
+      Z2 --- P
+      P --- M1["Meia"]
+      P --- M2["Ala"]
+      M1 --- AT["Atacante"]
+      M2 --- AT
+
+      style P fill:#fdf0e3,stroke:#a86420,stroke-width:3px
+  ```
+
+  Os dois zagueiros podem trocar 40 passes entre si e liderar o volume. Mas
+  **todo caminho** da defesa até o atacante passa pelo pivô: é ele que tem
+  betweenness alto. Anular os zagueiros custa pouco ao adversário; anular o
+  pivô parte o time em dois.
+
 - **Exemplo real observado na final:** *"Nicolás Otamendi é o gargalo estrutural da
   progressão de Argentina: betweenness 50.0 (2º colocado: 25.0), com 143 ações e pageRank
   1.622"* — betweenness 2x o segundo colocado; pelo pageRank (volume/prestígio) ele não se
@@ -37,6 +60,9 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 
 ### 7.2 Padrão do terceiro homem
 - **Pergunta que responde:** quais combinações de três jogadores se repetem para quebrar linhas?
+- **Em campo:** o "tabelinha e vai" ensaiado. A quebra de linha raramente é um passe
+  só: é A toca em B, B devolve ou desvia para C, e C já está do outro lado da
+  marcação. O padrão procura esses trios que se repetem.
 - **Por que não é visível:** no parquet são linhas separadas sem coluna que as ligue; o
   padrão só existe navegando A→B→C dentro da mesma fase de posse com progressão de faixa.
 - **Estrutura:** caminhos de 2 arestas `PASSOU_PARA` com `fase_posse_id` igual, quase
@@ -60,6 +86,9 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 
 ### 7.3 Gatilho de pressão
 - **Pergunta que responde:** o que exatamente dispara a pressão do adversário?
+- **Em campo:** o time não pressiona o tempo todo — ele espera um gatilho. Passe
+  para trás? Bola no lateral? Bola no meio? Saber qual região dispara a pressão é
+  saber por onde NÃO sair jogando.
 - **Por que não é visível:** pressões são centenas de linhas com timestamp; a regra só
   aparece cruzando a ação imediatamente anterior a cada pressão numa janela temporal.
 - **Estrutura:** para cada `PRESSIONOU`, o `PASSOU_PARA` mais recente para o time
@@ -84,10 +113,34 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 ---
 
 ### 7.4 Ligação estrutural frágil
+- **Em campo:** é a dupla que sustenta a saída de bola sozinha. Se a ligação entre
+  elas for cortada, o time fica partido em dois blocos que não se falam — a defesa
+  não acha o meio e o meio não acha o ataque.
 - **Pergunta que responde:** qual conexão única, se cortada, desconecta a defesa do
   ataque — onde o adversário deveria ter pressionado?
 - **Por que não é visível:** é propriedade da topologia; nenhuma métrica por jogador
   captura "esta aresta é a única ponte entre dois blocos".
+- **O que é uma ponte, em desenho:**
+
+  ```mermaid
+  graph LR
+      D1["Zagueiro"] --- D2["Zagueiro"]
+      D2 --- D3["Lateral"]
+      O1["Meia"] --- O2["Ala"]
+      O2 --- AT["Atacante"]
+      D3 --- O1
+
+      style D3 fill:#fdf0e3,stroke:#a86420,stroke-width:3px
+      style O1 fill:#fdf0e3,stroke:#a86420,stroke-width:3px
+      linkStyle 4 stroke:#a86420,stroke-width:4px
+  ```
+
+  Enquanto a ligação destacada existir, o time sai jogando. Cortada ela, os dois
+  blocos ficam sem comunicação: a defesa toca entre si e não acha o ataque. Numa
+  rede densa a ponte clássica pode não existir — aí o padrão cai para o par que
+  concentra a maior fatia do fluxo entre os dois blocos, que é o caso da final
+  (Tagliafico ↔ Otamendi, com 47% de todo o fluxo entre os blocos da Argentina).
+
 - **Estrutura:** rede de passes não-direcionada. Primeiro `gds.bridges.stream` (ponte
   clássica). Redes de elite são densas e raramente têm ponte literal — nesse caso o
   fallback mede a concentração do fluxo entre as duas comunidades Louvain num único par
@@ -104,6 +157,9 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 
 ### 7.5 Papel real versus posição nominal
 - **Pergunta que responde:** algum jogador funciona taticamente numa função diferente da escalação?
+- **Em campo:** a escalação diz "lateral esquerdo", mas com quem ele troca passes o
+  jogo inteiro? Se ele troca com os atacantes e não com os zagueiros, ele é ala, não
+  lateral — independentemente do que está no papel.
 - **Por que não é visível:** a escalação diz "lateral"; só a vizinhança no grafo revela
   que ele se agrupa com os meias/atacantes.
 - **Estrutura:** comunidades Louvain na rede de passes não-direcionada; comunidade de cada
@@ -121,6 +177,9 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 
 ### 7.6 Assimetria entre construção e finalização
 - **Pergunta que responde:** o time constrói por um lado e finaliza pelo outro? Onde a bola atravessa?
+- **Em campo:** o time sai jogando pela direita mas o perigo aparece pela esquerda.
+  Alguém está invertendo o jogo — e saber onde essa inversão acontece é saber onde
+  fechar.
 - **Por que não é visível:** "percentual de ataque por lado" mostra volume, não mostra que
   o volume de um corredor VIRA chegada por outro.
 - **Estrutura:** agregação sobre `PROGREDIU_PARA`: share de cada corredor na construção
@@ -137,6 +196,9 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 
 ### 7.7 Estado tático que mudou no meio do jogo (bitemporal)
 - **Pergunta que responde:** o time mudou de comportamento? Quando e o quê?
+- **Em campo:** o time que começou esperando e depois do intervalo subiu a marcação.
+  A média da partida inteira esconde isso: dá um número morno que não descreve nem
+  o primeiro tempo nem o segundo.
 - **Por que não é visível:** o PPDA da partida inteira é uma média que não descreve nenhum
   dos dois regimes.
 - **Estrutura:** série de PPDA/field tilt em janelas móveis (10 min, passo 5 — calculada
@@ -158,6 +220,9 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 
 ### 7.8 O alvo real da pressão adversária
 - **Pergunta que responde:** o adversário está caçando um jogador específico?
+- **Em campo:** marcação combinada em cima de um jogador só. Precisa ser medida por
+  toque, senão quem toca mais na bola "ganha" sempre — sofrer 20 pressões em 100
+  toques é normal; sofrer 20 em 40 é perseguição.
 - **Por que não é visível:** as pressões estão espalhadas; só a concentração do grau de
   entrada sobre um nó, **normalizada por toques**, revela a intenção (sem normalizar, o
   jogador que mais toca sempre "vence").
@@ -248,7 +313,15 @@ foi também o que mais errou passe?"* A resposta é não, e prová-lo exige o be
 alcança nem com paridade de fatos: metade da resposta é topologia de rede, que não cabe
 em resumo textual.
 
+**Categoria `agregada` (onde o empate é o resultado desejado):** subiu de 1 para 4
+perguntas — PPDA no fim do jogo, posse de bola, volume de finalizações e
+aproveitamento de passe. São métricas clássicas, que um sistema descritivo já
+sabe entregar, e agora o baseline tem os números para respondê-las. Se empatar,
+é o resultado previsto e ele reforça a leitura das outras linhas: a vantagem do
+grafo não é geral, é concentrada onde a resposta depende da topologia. Uma
+categoria com n=1, como estava antes, não sustentava nem essa afirmação.
+
 **Verificação sem LLM:** `scripts/check_golden_queries.py` roda a consulta de referência
-das **27 perguntas** contra o grafo e imprime o esperado ao lado do obtido — 27/27
+das **30 perguntas** contra o grafo e imprime o esperado ao lado do obtido — 30/30
 respondidas, sem gastar API. Separa a qualidade do MODELO DE DADOS da qualidade do
 modelo de linguagem, que a avaliação com juiz mistura.
