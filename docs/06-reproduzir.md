@@ -161,13 +161,30 @@ está disponível (rodam completos com o stack de pé e a pipeline executada).
 Editar apenas o `.env` (nenhum código):
 
 ```bash
-LLM_PROVIDER=anthropic   # ou mistral, gemini
+LLM_PROVIDER=anthropic   # ou mistral, gemini, openrouter
 LLM_API_KEY=...
 LLM_MODEL=claude-sonnet-5
 LLM_SMALL_MODEL=claude-haiku-4-5
-EMBEDDER_PROVIDER=mistral        # anthropic não tem API de embeddings
+EMBEDDER_PROVIDER=mistral        # anthropic e openrouter não têm API de embeddings
 EMBEDDER_API_KEY=...
 EMBEDDER_MODEL=mistral-embed
+```
+
+Com `LLM_PROVIDER=openrouter` (ver ADR-9 em `05-decisoes.md` — inclui a ressalva
+de modelo stealth): `LLM_MODEL` precisa do formato `vendor/modelo`
+(ex. `stealth/ox-alpha`, `anthropic/claude-sonnet-5`) — é o próprio SDK do
+PydanticAI que exige, não uma regra do projeto. Antes de rodar a avaliação
+completa, `python scripts/smoke_llm.py` testa ferramenta + saída estruturada
+com uma pergunta só, em segundos:
+
+```bash
+$ python scripts/smoke_llm.py
+provedor=openrouter  modelo=stealth/ox-alpha
+pergunta: Quantos desarmes certos o Enzo Fernandez fez na final?
+
+saída validou no schema RespostaTatica: sim
+...
+re-execução das consultas: 100% (1/1)
 ```
 
 e reiniciar a api: `docker compose restart api`.

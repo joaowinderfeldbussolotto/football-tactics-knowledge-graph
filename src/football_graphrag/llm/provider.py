@@ -27,9 +27,25 @@ from graphiti_core.llm_client import LLMClient, LLMConfig
 from football_graphrag.config import Settings
 
 MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 # Prefixo de modelo do PydanticAI por provedor (docs do PydanticAI).
-_PYDANTIC_AI_PREFIX = {"mistral": "mistral", "anthropic": "anthropic", "gemini": "google-gla"}
+_PYDANTIC_AI_PREFIX = {
+    "mistral": "mistral",
+    "anthropic": "anthropic",
+    "gemini": "google-gla",
+    "openrouter": "openrouter",
+}
+
+# Provedores servidos por um endpoint compatível com OpenAI (Mistral e
+# OpenRouter caem no mesmo caminho no Graphiti: OpenAIGenericClient/
+# OpenAIEmbedder/OpenAIRerankerClient, só muda a base URL).
+_OPENAI_COMPAT_BASE_URL = {"mistral": MISTRAL_BASE_URL, "openrouter": OPENROUTER_BASE_URL}
+
+
+def _openai_compat_base_url(provider: str) -> str | None:
+    """Base URL do endpoint compatível com OpenAI, ou None (endpoint OpenAI real)."""
+    return _OPENAI_COMPAT_BASE_URL.get(provider)
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +144,18 @@ def pydantic_ai_model(settings: Settings):
             settings.llm_model,
             provider=MistralProvider(mistral_client=_mistral_sdk_client(settings)),
         )
+    if settings.llm_provider == "openrouter":
+        from pydantic_ai.models.openai import OpenAIChatModel
+        from pydantic_ai.providers.openrouter import OpenRouterProvider
+
+        openai_client = _openai_compat_sdk_client(settings.llm_api_key, OPENROUTER_BASE_URL, settings)
+        return OpenAIChatModel(
+            settings.llm_model,
+            provider=OpenRouterProvider(
+                openai_client=openai_client,
+                app_title="football-tactics-knowledge-graph",
+            ),
+        )
     from pydantic_ai.models.google import GoogleModel
     from pydantic_ai.providers.google import GoogleProvider
 
@@ -150,15 +178,18 @@ def graphiti_llm_client(settings: Settings) -> LLMClient:
         model=settings.llm_model,
         small_model=settings.llm_small_model or settings.llm_model,
     )
-    if settings.llm_provider == "mistral":
-        # Endpoint compatível com OpenAI; ver docs/05-decisoes.md sobre
-        # structured_output_mode caso o json_schema falhe.
+    base_url = _openai_compat_base_url(settings.llm_provider)
+    if base_url is not None:
+        # Endpoint compatível com OpenAI (Mistral, OpenRouter). Ver
+        # docs/05-decisoes.md sobre structured_output_mode caso o json_schema
+        # falhe num modelo específico — botão exposto em LLM_STRUCTURED_OUTPUT_MODE.
         from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
 
-        config.base_url = MISTRAL_BASE_URL
+        config.base_url = base_url
         return OpenAIGenericClient(
             config=config,
-            client=_openai_compat_sdk_client(settings.llm_api_key, MISTRAL_BASE_URL, settings),
+            client=_openai_compat_sdk_client(settings.llm_api_key, base_url, settings),
+            structured_output_mode=settings.llm_structured_output_mode,
         )
     if settings.llm_provider == "anthropic":
         from graphiti_core.llm_client.anthropic_client import AnthropicClient
@@ -201,7 +232,7 @@ def graphiti_cross_encoder(settings: Settings) -> CrossEncoderClient:
     fallback "sem reranker". Então:
     - provedor gemini, ou embedder gemini: GeminiRerankerClient (usa a chave
       Gemini disponível; modelo default do próprio cliente);
-    - mistral: OpenAIRerankerClient apontado para o endpoint compatível.
+    - mistral/openrouter: OpenAIRerankerClient apontado para o endpoint compatível.
     """
     if settings.llm_provider == "gemini" or settings.embedder_provider == "gemini":
         from graphiti_core.cross_encoder.gemini_reranker_client import GeminiRerankerClient
@@ -212,7 +243,7 @@ def graphiti_cross_encoder(settings: Settings) -> CrossEncoderClient:
         )
     from graphiti_core.cross_encoder.openai_reranker_client import OpenAIRerankerClient
 
-    base_url = MISTRAL_BASE_URL if settings.llm_provider == "mistral" else None
+    base_url = _openai_compat_base_url(settings.llm_provider)
     return OpenAIRerankerClient(
         config=LLMConfig(
             api_key=settings.llm_api_key,

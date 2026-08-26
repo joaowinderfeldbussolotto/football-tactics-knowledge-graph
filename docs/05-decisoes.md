@@ -242,3 +242,53 @@ desarmes, cartões, duplas, zonas...) e tática nos DOIS caminhos de consumo (`/
 `/report`), sempre com auditoria por consulta. A comparação com o baseline segue
 válida: as perguntas estruturais continuam decididas pelos algoritmos da camada 2 —
 o text-to-Cypher recupera fatos, não substitui os insights.
+
+## ADR-9 — OpenRouter como provedor opcional de LLM (2026-08-25)
+
+**Contexto.** A conta Anthropic ficou sem crédito com a 4ª rodada de avaliação
+pendente. O OpenRouter (agregador compatível com OpenAI) tem `stealth/ox-alpha`
+com preço zero na sua própria API pública (`prompt: 0`, `completion: 0`,
+consultado em `https://openrouter.ai/api/v1/models`), 1.048.576 tokens de
+contexto, e declara `supported_parameters` incluindo `tools` e
+`response_format` — os dois mecanismos que a camada 3 usa (`consultar_grafo` e
+saída estruturada via PydanticAI).
+
+**Decisão.** Adicionar `openrouter` como quarto valor de `LLM_PROVIDER`,
+reaproveitando o caminho "compatível com OpenAI" que já existia para a Mistral
+(`OpenAIGenericClient` no Graphiti, `_openai_compat_sdk_client` com
+`LLM_MAX_RETRIES`). A única generalização de código foi extrair
+`_openai_compat_base_url()` para os três lugares que faziam
+`if provider == "mistral"` (`graphiti_llm_client`, `graphiti_cross_encoder`,
+`graphiti_embedder` continua fora — OpenRouter não serve embeddings). No lado
+do PydanticAI, `OpenAIChatModel` + `OpenRouterProvider` (nativo do SDK desde a
+versão instalada, 2.34.0).
+
+**Achado do próprio SDK durante a integração.** `OpenRouterProvider` valida em
+tempo de construção que o nome do modelo tenha o formato `vendor/modelo`
+(`stealth/ox-alpha` já serve; um nome sem `/` levanta `UserError` antes de
+qualquer chamada de rede). Não é uma regra do projeto — é o SDK protegendo
+contra o erro comum de usar nome de modelo de outro provedor.
+
+**Duas ressalvas que pesam para o uso em pesquisa, não só em produção:**
+
+1. **"Stealth" significa que os prompts alimentam o laboratório por trás do
+   modelo.** É o preço de ser grátis. Os dados aqui são StatsBomb Open Data
+   (público) mais perguntas táticas — sem informação sensível —, mas a troca é
+   real e deve ser dita explicitamente a quem for revisar o trabalho.
+2. **Um modelo stealth pode ser retirado ou renomeado sem aviso.** Isso o torna
+   inadequado como base do número OFICIAL da pesquisa sem duas salvaguardas: registrar
+   a data exata da rodada (modelos stealth mudam de versão silenciosamente) e manter
+   pelo menos uma rodada em modelo estável e versionado para o resultado citável.
+   Comparar duas rodadas feitas em modelos diferentes (ex.: esta rodada em
+   `ox-alpha` contra a 3ª rodada em `claude-sonnet-5`) mede o modelo, não o
+   sistema — a comparação que continua válida é grafo-vs-baseline DENTRO da
+   mesma rodada, porque os dois lados usam o mesmo modelo.
+
+**Consequências.** `LLM_MAX_RETRIES`, o semáforo de aplicação e o mecanismo de
+faithfulness são agnósticos de provedor por construção (ADR-5/ADR-7) — nenhum
+deles precisou mudar. `LLM_STRUCTURED_OUTPUT_MODE` (novo, default
+`json_schema`) é o botão exposto no `.env` para o caso de um modelo agregado
+não suportar o modo estrito do Graphiti; não foi necessário até agora, porque
+ninguém rodou contra a API ainda (integração feita e revisada antes de haver
+chave configurada). `scripts/smoke_llm.py` existe para checar ferramenta + saída
+estruturada com uma pergunta só, antes de comprometer a rodada de 30 perguntas.

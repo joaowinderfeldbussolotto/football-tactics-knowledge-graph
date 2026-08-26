@@ -16,12 +16,22 @@ def make_settings(**overrides) -> Settings:
         "embedder_model": "e",
         "_env_file": None,
     }
-    return Settings(**{**base, **overrides})
+    settings = {**base, **overrides}
+    # OpenRouterProvider valida "vendor/model"; "m" sozinho não é um nome válido
+    # de modelo do OpenRouter (é o SDK, não regra do projeto).
+    if settings["llm_provider"] == "openrouter" and "llm_model" not in overrides:
+        settings["llm_model"] = "stealth/m"
+    return Settings(**settings)
 
 
 @pytest.mark.parametrize(
     ("llm_provider", "expected"),
-    [("mistral", "mistral:m"), ("anthropic", "anthropic:m"), ("gemini", "google-gla:m")],
+    [
+        ("mistral", "mistral:m"),
+        ("anthropic", "anthropic:m"),
+        ("gemini", "google-gla:m"),
+        ("openrouter", "openrouter:stealth/m"),
+    ],
 )
 def test_pydantic_ai_model_name_string(llm_provider, expected):
     assert provider.pydantic_ai_model_name(make_settings(llm_provider=llm_provider)) == expected
@@ -35,11 +45,46 @@ def test_pydantic_ai_model_carries_explicit_credentials(llm_provider):
     assert model.model_name == "m"
 
 
+def test_pydantic_ai_model_carries_explicit_credentials_openrouter():
+    # OpenRouter exige nome "vendor/model" (validado pelo próprio SDK) — testado
+    # à parte dos demais provedores, que aceitam qualquer string de modelo.
+    model = provider.pydantic_ai_model(make_settings(llm_provider="openrouter"))
+    assert model.model_name == "stealth/m"
+
+
 def test_graphiti_client_mistral_uses_openai_generic_with_base_url():
     client = provider.graphiti_llm_client(make_settings(llm_provider="mistral"))
     from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
 
     assert isinstance(client, OpenAIGenericClient)
+    assert client.config.base_url == provider.MISTRAL_BASE_URL
+
+
+def test_graphiti_client_openrouter_uses_openai_generic_with_base_url():
+    client = provider.graphiti_llm_client(make_settings(llm_provider="openrouter"))
+    from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
+
+    assert isinstance(client, OpenAIGenericClient)
+    assert client.config.base_url == provider.OPENROUTER_BASE_URL
+
+
+def test_pydantic_ai_model_openrouter_is_openai_chat_model_with_base_url():
+    from pydantic_ai.models.openai import OpenAIChatModel
+
+    model = provider.pydantic_ai_model(make_settings(llm_provider="openrouter"))
+    assert isinstance(model, OpenAIChatModel)
+    assert str(model.client.base_url).rstrip("/") == provider.OPENROUTER_BASE_URL
+
+
+def test_cross_encoder_openrouter_falls_back_to_openai_reranker_with_base_url():
+    """Sem embedder gemini, o reranker do OpenRouter usa o endpoint compatível
+    (não o endpoint OpenAI real, que é o bug que este teste evita reintroduzir)."""
+    from graphiti_core.cross_encoder.openai_reranker_client import OpenAIRerankerClient
+
+    settings = make_settings(llm_provider="openrouter", embedder_provider="")
+    ce = provider.graphiti_cross_encoder(settings)
+    assert isinstance(ce, OpenAIRerankerClient)
+    assert ce.config.base_url == provider.OPENROUTER_BASE_URL
 
 
 def test_graphiti_client_anthropic():

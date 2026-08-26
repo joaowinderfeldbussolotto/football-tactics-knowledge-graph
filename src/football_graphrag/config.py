@@ -16,11 +16,19 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # --- LLM ---
-    llm_provider: Literal["mistral", "anthropic", "gemini"] = "mistral"
+    # "openrouter" é um agregador compatível com OpenAI: dá acesso a modelos de
+    # vários laboratórios por uma chave só. Não serve embeddings — EMBEDDER_PROVIDER
+    # continua sendo configurado à parte.
+    llm_provider: Literal["mistral", "anthropic", "gemini", "openrouter"] = "mistral"
     llm_api_key: str = ""
     llm_model: str = ""
     llm_small_model: str = ""
     llm_max_retries: int = 5  # repassado ao construtor do SDK; não é camada nossa
+    # Como o Graphiti pede saída estruturada em endpoints compatíveis com OpenAI.
+    # "json_schema" é o modo estrito e o default; nem todo modelo servido por
+    # agregador o implementa, e "json_object" é o degrau de compatibilidade —
+    # o primeiro botão a girar se a camada 3 falhar em validação de saída.
+    llm_structured_output_mode: Literal["json_schema", "json_object"] = "json_schema"
 
     # --- Embeddings ---
     embedder_provider: str = ""
