@@ -53,7 +53,8 @@ flowchart LR
 
 **Modo autônomo (ADR-8):** além dos padrões pré-calculados, o agente tem a ferramenta
 `consultar_grafo` — Cypher **somente-leitura** gerado pelo próprio LLM contra o grafo
-factual, com o schema completo no prompt de sistema. É isso que responde perguntas
+factual, com o schema do grafo LIDO DO BANCO e injetado como system prompt
+dinâmico (`graph/schema.py`). É isso que responde perguntas
 factuais que nenhum padrão cobre: gols, assistências, finalizações, contagens de passes,
 dribles, desarmes, cartões, duplas, zonas, fases de posse — a aresta `REALIZOU` (log
 completo de ações SPADL) garante que **qualquer** ação do jogo tem dado consultável.

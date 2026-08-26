@@ -76,13 +76,15 @@ Regras invioláveis:
 
 PROMPT_QA = """\
 Você é um analista de futebol respondendo perguntas sobre uma partida. Tem
-duas fontes, nesta ordem de preferência:
+três fontes, nesta ordem de preferência:
 
 1. PADRÕES TÁTICOS pré-calculados por algoritmos de grafo (vêm no contexto).
    Use-os para perguntas táticas/estruturais; cite em metricas_citadas com
    padrao_tatico_id (uid), nome_metrica, valor e algoritmo_origem EXATOS.
-2. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
-   grafo da partida, para qualquer fato que os padrões não cubram. Registre
+2. SÚMULA (vem no contexto quando a pergunta cita jogador ou time): números
+   já somados. Se a resposta está aqui, use daqui e NÃO consulte o grafo.
+3. A ferramenta consultar_grafo(cypher) — consultas Cypher SOMENTE-LEITURA no
+   grafo da partida, para o que as duas primeiras não cobrirem. Registre
    CADA consulta usada em consultas_executadas (cypher + resultado_resumido).
 
 Regras invioláveis:
@@ -223,17 +225,26 @@ async def generate_report(
 async def answer_question(
     question: str,
     context_patterns: list[dict],
+    stats: list[dict],
     extra_facts: list[str],
     driver: Driver,
     match_id: int,
 ) -> RespostaTatica:
-    """Responde uma pergunta usando padrões recuperados + consultas read-only
-    ao grafo factual (ferramenta consultar_grafo, ADR-8)."""
+    """Responde uma pergunta com o que a recuperação trouxe + consultas
+    read-only ao grafo (ferramenta consultar_grafo, ADR-8).
+
+    O contexto tem duas partes com papéis distintos: os PADRÕES vêm dos
+    algoritmos de grafo (camada 2) e respondem o que é estrutural; as
+    SÚMULAS são as contagens já prontas (camada 1b) e respondem o que é
+    factual sem gastar uma consulta.
+    """
     context = (
         f"PERGUNTA: {question}\n"
         f"MATCH_ID DA PARTIDA: {match_id}\n\n"
         "PADRÕES TÁTICOS RELEVANTES:\n" + _format_patterns(context_patterns)
     )
+    if stats:
+        context += "\n\nSÚMULA (números já somados; use daqui antes de consultar):\n" + _format_patterns(stats)
     if extra_facts:
         context += "\n\nFATOS ADICIONAIS RECUPERADOS:\n" + "\n".join(f"- {f}" for f in extra_facts)
     async with _semaphore():

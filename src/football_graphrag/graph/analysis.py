@@ -36,14 +36,21 @@ POSITION_LINES = {
 
 
 def nominal_line(position: str | None) -> str | None:
-    """Linha (defesa/meio/ataque) a partir do nome da posição StatsBomb."""
+    """Linha (defesa/meio/ataque) a partir do nome da posição StatsBomb.
+
+    A ordem dos testes importa e não é acidental:
+    - "Center Attacking Midfield" é ataque, não meio;
+    - "Left Wing" é ataque, mas "Left Wing Back" é defesa — daí o parêntese
+      explícito (sem ele a leitura depende de `and` ligar mais forte que `or`);
+    - "Back" cobre lateral e zagueiro, inclusive "Wing Back".
+    """
     if not position or position == "Substitute":
         return None
     if "Goalkeeper" in position:
         return "gol"
-    if "Attacking Midfield" in position or "Wing" in position and "Back" not in position:
+    if "Attacking Midfield" in position or ("Wing" in position and "Back" not in position):
         return "ataque"
-    if "Back" in position or "Wing Back" in position:
+    if "Back" in position:
         return "defesa"
     if "Midfield" in position:
         return "meio"

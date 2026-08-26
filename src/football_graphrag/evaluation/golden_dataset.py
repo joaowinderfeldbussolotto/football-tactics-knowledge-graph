@@ -7,7 +7,12 @@ reais listados em docs/03-insights.md). ``categoria``:
   projeto prevê que o baseline vetorial ERRE estas);
 - "factual": fato bruto do jogo (gols, assistências, contagens) respondido
   pelo modo autônomo (Cypher read-only gerado pelo LLM, ADR-8);
-- "agregada": métrica agregada clássica (o baseline pode empatar).
+- "agregada": métrica agregada clássica (o baseline pode empatar);
+- "composta": exige CRUZAR as duas camadas — um padrão estrutural da camada 2
+  com um número da súmula da camada 1b. É a categoria que melhor demonstra a
+  autonomia do agente, porque nenhuma das duas fontes responde sozinha, e a
+  que o baseline não alcança nem com paridade de fatos: metade da resposta é
+  topologia de rede, que não cabe em resumo textual.
 """
 
 from dataclasses import dataclass
@@ -20,7 +25,7 @@ class GoldenQuestion:
     pergunta: str
     resposta_referencia: str
     insight: str
-    categoria: str  # estrutural | agregada
+    categoria: str  # estrutural | factual | agregada | composta
 
 
 GOLDEN_QUESTIONS: list[GoldenQuestion] = [
@@ -291,5 +296,53 @@ GOLDEN_QUESTIONS: list[GoldenQuestion] = [
         resposta_referencia="Lloris fez 8 defesas; Emiliano Martínez fez 2.",
         insight="factual (defesas_do_goleiro, modo autônomo)",
         categoria="factual",
+    ),
+    # ---------------- compostas: camada 2 x camada 1b ----------------
+    GoldenQuestion(
+        id="q25_pivo_errou_passe",
+        match_id=3869685,
+        pergunta=(
+            "O jogador por quem passavam os caminhos de progressão da Argentina "
+            "na final foi também o que mais errou passe?"
+        ),
+        resposta_referencia=(
+            "Não. O gargalo é Otamendi (betweenness 50.0, o maior da rede argentina), "
+            "mas ele foi dos mais seguros: 69 passes certos em 75 (92.0% de acerto), "
+            "só 6 errados. Quem mais errou passe na Argentina foi Molina (17), seguido "
+            "de Enzo Fernandez (13) e Tagliafico (12). Ser o eixo da circulação e ser "
+            "impreciso são coisas diferentes."
+        ),
+        insight="composta: 7.1 pivo_estrutural + súmula de passes",
+        categoria="composta",
+    ),
+    GoldenQuestion(
+        id="q26_pressao_no_mbappe_funcionou",
+        match_id=3869354,
+        pergunta="A pressão da Inglaterra em cima do Mbappé nas quartas funcionou?",
+        resposta_referencia=(
+            "Só em parte. A caça existiu e foi dirigida: 22 pressões em 77 toques, "
+            "0.29 por toque, 1.6x a média dos companheiros. Mas ela não degradou o "
+            "jogo dele: manteve 89.7% de acerto de passe (26 de 29) e ainda passou "
+            "pelo marcador 4 vezes. Conteve o volume, não a qualidade."
+        ),
+        insight="composta: 7.8 alvo_de_pressao + súmula do jogador",
+        categoria="composta",
+    ),
+    GoldenQuestion(
+        id="q27_theo_atacante_de_fato",
+        match_id=3869685,
+        pergunta=(
+            "A rede de passes agrupa Theo Hernández com a linha de ataque na final. "
+            "Os números ofensivos dele confirmam isso?"
+        ),
+        resposta_referencia=(
+            "Parcialmente, e a diferença é o ponto. Ele de fato operou adiantado: 92 "
+            "ações e 6 passes progressivos, e o Louvain o agrupa com o ataque. Mas o "
+            "volume ofensivo não apareceu: 0 finalizações e apenas 2 cruzamentos, com "
+            "79.2% de acerto de passe. Ele estava posicionado como atacante na "
+            "circulação, sem se tornar um finalizador."
+        ),
+        insight="composta: 7.5 papel_divergente + súmula do jogador",
+        categoria="composta",
     ),
 ]

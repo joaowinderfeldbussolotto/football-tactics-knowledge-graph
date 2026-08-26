@@ -103,4 +103,37 @@ WHERE e.defesas_do_goleiro > 0
 RETURN e.nome AS goleiro, e.time AS time, e.defesas_do_goleiro AS defesas
 ORDER BY defesas DESC
 """.strip(),
+    # ---------------- compostas (camada 2 cruzada com camada 1b) ----------------
+    # Cada uma casa um PadraoTatico com a súmula do jogador que ele aponta.
+    # Nenhuma das duas fontes responde sozinha — é isso que define a categoria.
+    "q25_pivo_errou_passe": """
+MATCH (p:PadraoTatico {match_id: $m, tipo: 'pivo_estrutural', time: 'Argentina'})
+UNWIND p.jogadores_envolvidos AS pivo
+MATCH (e:EstatisticaJogador {match_id: $m, nome: pivo})
+MATCH (o:EstatisticaJogador {match_id: $m, time: 'Argentina'})
+WITH pivo, p.valor_metrica AS betweenness, e, o
+ORDER BY o.passes_tentados - o.passes_certos DESC
+WITH pivo, betweenness, e,
+     collect(o.nome + ': ' + toString(o.passes_tentados - o.passes_certos))[0..3] AS mais_erraram
+RETURN pivo, betweenness, e.passes_certos AS certos, e.passes_tentados AS tentados,
+       e.passes_tentados - e.passes_certos AS erros_do_pivo,
+       e.precisao_passe_pct AS precisao, mais_erraram
+""".strip(),
+    "q26_pressao_no_mbappe_funcionou": """
+MATCH (p:PadraoTatico {match_id: $m, tipo: 'alvo_de_pressao'})
+UNWIND p.jogadores_envolvidos AS alvo
+MATCH (e:EstatisticaJogador {match_id: $m, nome: alvo})
+RETURN alvo, p.valor_metrica AS pressoes_por_toque, e.pressoes_sofridas AS pressoes_sofridas,
+       e.toques AS toques, e.passes_certos AS certos, e.passes_tentados AS tentados,
+       e.precisao_passe_pct AS precisao, e.dribles_certos AS dribles_certos
+""".strip(),
+    "q27_theo_atacante_de_fato": """
+MATCH (p:PadraoTatico {match_id: $m, tipo: 'papel_divergente'})
+WHERE any(x IN p.jogadores_envolvidos WHERE x CONTAINS 'Theo')
+UNWIND p.jogadores_envolvidos AS jogador
+MATCH (e:EstatisticaJogador {match_id: $m, nome: jogador})
+RETURN jogador, p.descricao_curta AS padrao, e.toques AS toques,
+       e.finalizacoes AS finalizacoes, e.cruzamentos_tentados AS cruzamentos,
+       e.passes_progressivos AS progressivos, e.precisao_passe_pct AS precisao
+""".strip(),
 }

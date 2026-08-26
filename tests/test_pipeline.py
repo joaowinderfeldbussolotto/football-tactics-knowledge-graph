@@ -98,3 +98,25 @@ def test_pass_receiver_requires_same_team_next_action():
     assert out["receiver_player_id"].iloc[0] == 11
     assert out["receiver_player_id"].iloc[1] == 12
     assert pd.isna(out["receiver_player_id"].iloc[2])  # próxima ação é do adversário
+
+
+def test_dicionario_de_dados_cobre_todas_as_colunas():
+    """SCHEMA_DOC tem que descrever exatamente as colunas do parquet.
+
+    O dicionário de dados (scripts/gen_data_dictionary.py) nasce do
+    SCHEMA_DOC. Uma coluna nova sem entrada lá sai do dicionário em silêncio
+    — foi o que aconteceu com ``segundo`` quando ela foi criada.
+    """
+    import pandas as pd
+
+    from football_graphrag.config import get_settings
+    from football_graphrag.ingestion.pipeline import SCHEMA_DOC
+    from tests.conftest import match_data_available
+
+    if not match_data_available():
+        pytest.skip("parquet da partida não gerado")
+
+    documentadas = {nome for nome, _, _, _ in SCHEMA_DOC}
+    reais = set(pd.read_parquet(get_settings().processed_dir / "3869685.parquet").columns)
+    assert reais - documentadas == set(), f"colunas sem entrada no SCHEMA_DOC: {sorted(reais - documentadas)}"
+    assert documentadas - reais == set(), f"SCHEMA_DOC descreve colunas inexistentes: {sorted(documentadas - reais)}"

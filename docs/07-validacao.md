@@ -102,6 +102,17 @@ golden de 24 perguntas, 24/24 sem erro de autenticação.
 
 Reexecução de consultas 100% em 23 das 24 perguntas (0,75 em `q12_papel_sosa`).
 
+> **O que "fidelidade 100%" significa — e o que não significa.** A métrica
+> verifica duas coisas: que toda métrica citada aponta para um `PadraoTatico`
+> existente com o mesmo valor, e que toda consulta registrada roda e devolve
+> linhas. Ela **não** verifica que a resposta está certa. A prova está na
+> própria tabela: `q23_desarmes_final` pontuou fidelidade 1.0 dando a resposta
+> errada — o número saiu mesmo da consulta, mas a consulta perguntava outra
+> coisa (tentativas de desarme em vez de desarmes certos). Erro semântico de
+> consulta é invisível para qualquer verificação que não conheça a resposta de
+> antemão; a defesa contra ele é o dado não ser ambíguo, mais
+> `scripts/check_golden_queries.py`.
+
 **Duas ressalvas importantes sobre essa tabela**, ambas descobertas na análise
 posterior:
 
@@ -134,15 +145,16 @@ O que foi possível verificar sem API está na seção seguinte.
 ## Verificação do modelo de dados (sem LLM, sem custo)
 
 `scripts/check_golden_queries.py` roda a consulta de referência de cada uma
-das 24 perguntas (`evaluation/reference_queries.py`) contra o grafo e imprime
+das 27 perguntas (`evaluation/reference_queries.py`) contra o grafo e imprime
 a resposta esperada ao lado do que o grafo devolve. Separa o que a avaliação
 completa mistura: **a qualidade do modelo de dados** e a qualidade do modelo
 de linguagem.
 
-Resultado em 2026-08-25: **24/24 perguntas com resposta no grafo.** As oito
+Resultado em 2026-08-25: **27/27 perguntas com resposta no grafo.** As oito
 factuais são consulta de um hop sobre `EstatisticaJogador`, sem agregação
 escrita na hora — inclusive `q23`, que agora devolve Enzo 5 / Camavinga 4 /
-Tagliafico 4 por construção.
+Tagliafico 4 por construção. As três compostas (`q25`-`q27`) casam um
+`PadraoTatico` com a súmula do jogador que ele aponta, numa consulta só.
 
 Isto **não** substitui a avaliação com juiz: não mede se o LLM escolhe a
 consulta certa, nem a qualidade do texto. Mede que o dado está lá, correto e
@@ -167,10 +179,62 @@ Ambas foram recalculadas. Este é o argumento prático a favor de
 `check_golden_queries.py`: um golden dataset conferido contra o sistema, e não
 contra a realidade, valida o sistema contra si mesmo.
 
-Cobertura de teste após as correções: **47 testes**, incluindo uma trava que
+Cobertura de teste ao fim desta primeira leva: **47 testes**, incluindo uma trava que
 falha se jargão SPADL (`take_on`, `tackle`, `tipo_spadl`) reaparecer no schema
 exposto ao agente, e uma que verifica que a súmula pré-agregada bate com a
 contagem ad-hoc sobre as mesmas arestas.
+
+## Correções de integridade da comparação (2026-08-25, 2ª leva)
+
+Uma auditoria do que ficou de fora da refatoração encontrou um desequilíbrio
+que afeta a leitura de H₁, e ele foi corrigido.
+
+**O baseline não tinha os mesmos fatos que o grafo.** A camada 1b deu ao lado
+do grafo um `EstatisticaJogador` com ~30 contagens por jogador; o resumo do
+baseline tinha passes, PPDA, field tilt, xT/VAEP e os 5 maiores passadores, e
+mais nada — sem gols, cartões, desarmes, dribles ou defesas. Nas perguntas
+factuais o baseline perdia por **ausência de dado**, não por ser vetorial, o
+que não é evidência sobre grafos e é exatamente o tipo de assimetria que uma
+banca aponta.
+
+Correção em `evaluation/baseline_rag.py`: o resumo passa a incluir a ficha do
+jogo (gols, assistências, cartões), a súmula individual dos jogadores com
+volume e leaderboards por estatística — que é o que um RAG descritivo bem
+construído precomputaria. Os números vêm de `evaluation/match_facts.py`, em
+pandas, espelhando `graph/statistics.py`.
+
+A duplicação de definição entre Cypher e pandas é deliberada (o baseline não
+pode depender do grafo, senão deixa de ser independente) e é mantida honesta
+por `tests/test_baseline_parity.py`, que compara jogador a jogador e falha em
+qualquer divergência. Outros dois testes garantem que o baseline **não**
+recebeu resultado da camada 2 — se betweenness ou comunidade vazassem para o
+resumo, a comparação perderia o sentido pelo outro lado.
+
+**Efeito esperado, ainda não medido:** as factuais devem empatar; as
+estruturais o grafo continua ganhando. Isso FORTALECE a tese, porque isola a
+vantagem no que é estrutural em vez de em volume de dado. Sem crédito de API,
+a medição fica pendente — e nenhuma melhora é afirmada aqui sem ela.
+
+**A recuperação passou a entregar as súmulas.** `api/retrieval.py` só buscava
+`PadraoTatico`; agora, quando a pergunta cita jogador ou time, traz também o
+`EstatisticaJogador`/`EstatisticaTime` correspondente (e as duas súmulas de
+time quando nenhuma entidade é citada). Duas consequências: a maioria das
+perguntas factuais deixa de precisar de uma ida e volta de ferramenta, e o
+`judge_retrieval` — que pontua o CONTEXTO — passa a ver um contexto que
+contém a resposta, o que corrige a nota de 2,62 sem maquiar nada.
+
+**Categoria `composta`.** O projeto de pesquisa descrevia 4 categorias e o
+código tinha 3. Foram acrescentadas `q25`-`q27`, que exigem cruzar um padrão
+da camada 2 com um número da camada 1b — a categoria que melhor separa os
+dois sistemas, porque metade da resposta é topologia de rede.
+
+**Inconsistências menores corrigidas:** `segundo` faltava no `SCHEMA_DOC` (o
+dicionário de dados gerado saía incompleto — agora coberto por teste);
+`MOVE_TYPES` tinha `"carry"`, tipo que não existe no SPADL; `nominal_line`
+dependia de precedência de `and`/`or` sem parênteses e tinha um ramo morto
+(comportamento conferido idêntico antes e depois).
+
+Cobertura após esta leva: **55 testes**, 27/27 no `check_golden_queries.py`.
 
 ## Modo autônomo (ADR-8) — validação ao vivo
 
@@ -235,6 +299,6 @@ validação), o que de quebra validou ao vivo a troca de provedor só por `.env`
   2026-08-25 (ver seção de avaliação).
 - **O sistema depois da refatoração do vocabulário de futebol.** A conta
   Anthropic ficou sem crédito antes da 4ª rodada. Há verificação determinística
-  do modelo de dados (24/24 em `check_golden_queries.py`) e 47 testes, mas
+  do modelo de dados (27/27 em `check_golden_queries.py`) e 55 testes, mas
   nenhuma medição com juiz de LLM após a mudança. Qualquer afirmação de melhora
   de nota seria não medida — e por isso não é feita aqui.

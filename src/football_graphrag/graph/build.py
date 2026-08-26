@@ -29,7 +29,8 @@ from football_graphrag.ingestion.tactical_metrics import GRID_COLS, GRID_ROWS, z
 logger = logging.getLogger(__name__)
 
 PASS_TYPES = ["pass", "cross", "freekick_short", "corner_short", "throw_in", "goalkick", "freekick_crossed", "corner_crossed"]
-MOVE_TYPES = ["pass", "cross", "dribble", "carry"]
+# "dribble" é a CONDUÇÃO no SPADL (o drible sobre o marcador é "take_on").
+MOVE_TYPES = ["pass", "cross", "dribble"]
 SHOT_TYPES = ["shot", "shot_penalty", "shot_freekick"]
 
 

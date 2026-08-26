@@ -97,12 +97,12 @@ Saída esperada:
 docker compose exec api python scripts/check_golden_queries.py
 ```
 
-Roda a consulta de referência das 24 perguntas do golden dataset contra o grafo
+Roda a consulta de referência das 27 perguntas do golden dataset contra o grafo
 e imprime, lado a lado, a resposta esperada e o que o grafo devolve. **Não usa
 LLM e não consome API.** Saída esperada na última linha:
 
 ```
-RESUMO: 24/24 perguntas com resposta no grafo
+RESUMO: 27/27 perguntas com resposta no grafo
 ```
 
 Se alguma pergunta ficar sem linhas, o defeito é do modelo de dados — e o
@@ -128,8 +128,7 @@ Endpoints auxiliares sem LLM: `GET /health`, `GET /graph/3869685/stats`,
 docker compose exec api python scripts/run_evaluation.py
 ```
 
-Roda o golden dataset (24 perguntas: estruturais, agregada e factuais do modo
-autônomo) no sistema de grafo E no baseline vetorial plano,
+Roda o golden dataset (27 perguntas: estruturais, factuais, agregada e compostas) no sistema de grafo E no baseline vetorial plano,
 com fidelidade determinística + 2 juízes LLM, e salva
 `data/processed/eval_results.json`. Saída esperada (execução real com
 `claude-haiku-4-5`, ~12 min):
@@ -154,7 +153,7 @@ Análise da tabela em `docs/03-insights.md` (seção "Avaliação").
 docker compose exec api pytest tests/ -q
 ```
 
-Esperado: `47 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
+Esperado: `55 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
 está disponível (rodam completos com o stack de pé e a pipeline executada).
 
 ## Troca de provedor de LLM

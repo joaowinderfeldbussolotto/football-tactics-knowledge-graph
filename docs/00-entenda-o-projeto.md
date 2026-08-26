@@ -321,7 +321,7 @@ reexecutada e conferida.
 python scripts/check_golden_queries.py
 ```
 
-Roda a consulta de referência das 24 perguntas do golden dataset contra o
+Roda a consulta de referência das 27 perguntas do golden dataset contra o
 grafo e imprime, lado a lado, a resposta esperada e o que o grafo devolve.
 Não usa LLM e não consome API. Se uma pergunta ficar sem linhas, o defeito é
 do modelo de dados.

@@ -43,12 +43,16 @@ async def main() -> None:
     for q in GOLDEN_QUESTIONS:
         logger.info("pergunta %s", q.id)
         # --- sistema de grafo ---
-        patterns, extra_facts, timings = await retrieval.retrieve_context(driver, q.match_id, q.pergunta)
-        graph_answer = await agents.answer_question(q.pergunta, patterns, extra_facts, driver, q.match_id)
+        patterns, stats, extra_facts, timings = await retrieval.retrieve_context(driver, q.match_id, q.pergunta)
+        graph_answer = await agents.answer_question(q.pergunta, patterns, stats, extra_facts, driver, q.match_id)
         fid = faithfulness.check_citations(driver, graph_answer.metricas_citadas)
         qfid = faithfulness.check_queries(driver, graph_answer.consultas_executadas)
-        # o "contexto" do modo autônomo inclui as consultas executadas e seus resumos
+        # O "contexto" julgado tem que ser o que a recuperação realmente
+        # entregou: padrões + súmula + consultas. Julgar só os padrões
+        # subestimava as perguntas factuais, cujo contexto é a súmula.
         contexto_str = json.dumps(patterns, ensure_ascii=False, default=str)
+        if stats:
+            contexto_str += "\n\nSÚMULA RECUPERADA:\n" + json.dumps(stats, ensure_ascii=False, default=str)
         if graph_answer.consultas_executadas:
             contexto_str += "\n\nCONSULTAS EXECUTADAS NO GRAFO:\n" + "\n".join(
                 f"- {c.cypher} => {c.resultado_resumido}" for c in graph_answer.consultas_executadas
@@ -100,7 +104,7 @@ def _summarize(results: list[dict]) -> dict:
         return round(sum(vals) / len(vals), 2) if vals else None
 
     by_cat = {}
-    for cat in ("estrutural", "factual", "agregada"):
+    for cat in ("estrutural", "factual", "agregada", "composta"):
         rows = [r for r in results if r["categoria"] == cat]
         by_cat[cat] = {
             "n": len(rows),

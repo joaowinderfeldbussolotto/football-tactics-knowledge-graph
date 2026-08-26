@@ -72,6 +72,7 @@ SCHEMA_DOC: list[tuple[str, str, str, str]] = [
     ("grupo_acao", "categoria grossa: passe/finalizacao/defensiva/conducao/drible/...", "-", "0.4h"),
     ("sucesso", "a ação deu certo? (result_name == success, explicitado)", "bool", "0.4h"),
     ("minuto", "minuto de jogo como na transmissão (1-120+), já com offset de período", "min", "0.4h"),
+    ("segundo", "segundos desde o apito inicial; escala contínua para COMPARAR tempo", "s", "0.4h"),
     ("periodo_nome", "'1º tempo', '2ª prorrogação'...", "-", "0.4h"),
     ("gol", "esta ação foi um gol?", "bool", "0.4h"),
     ("cartao_amarelo", "esta ação gerou cartão amarelo?", "bool", "0.4h"),

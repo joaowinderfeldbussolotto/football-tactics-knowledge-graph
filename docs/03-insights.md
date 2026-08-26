@@ -197,8 +197,26 @@ só se aplica ao sistema de grafo:
 
 | Categoria (n) | Grafo: retrieval | Grafo: insight | Grafo: fidelidade | Baseline: retrieval | Baseline: insight |
 |---|---|---|---|---|---|
-| **estrutural** (15) | **5.0** | **5.0** | **100%** | 1.0 | 1.13 |
-| **agregada** (1) | 5.0 | 5.0 | 100% | 2.0 | 1.0 |
+| **estrutural** (15) | **4.93** | **4.73** | **100%** | 1.13 | 1.13 |
+| **factual** (8) | 2.62 | 3.38 | 100% | 1.25 | 1.12 |
+| **agregada** (1) | 5.0 | 5.0 | 100% | 2.0 | 2.0 |
+
+Números da 3ª rodada (2026-08-25, `claude-sonnet-5`), a primeira com as 24
+perguntas. Três ressalvas que precisam ser lidas junto com a tabela:
+
+1. **"Fidelidade 100%" não quer dizer "respostas corretas".** A métrica verifica
+   que as citações apontam para padrões existentes e que as consultas
+   re-executam. `q23_desarmes_final` tirou fidelidade 1.0 respondendo errado —
+   contou tentativas de desarme como desarmes. Detalhe em `07-validacao.md`.
+2. **A nota 2.62 em recuperação factual é artefato de medição.** O juiz pontua o
+   CONTEXTO recuperado, e na época o contexto factual era o dump bruto do
+   Cypher; perguntas com resposta final correta tiravam 1/5 em recuperação e
+   4/5 em insight. Desde então a súmula entrou na recuperação
+   (`api/retrieval.py`), o que deve corrigir isso — **sem medição ainda**.
+3. **O baseline desta rodada não tinha paridade de fatos.** O resumo dele não
+   continha gols, cartões, desarmes nem dribles, então a coluna factual compara
+   um sistema com dado contra um sem dado. Corrigido em
+   `evaluation/baseline_rag.py`; também sem medição nova.
 
 A tese da seção 0.2 do plano se confirmou pelo mecanismo previsto: nas perguntas
 estruturais o baseline respondeu literalmente *"não é possível responder a essa pergunta
@@ -221,10 +239,16 @@ grafo subiu de 4.33 para 5.0 em relação à rodada anterior de 10 perguntas —
 com a rubrica do juiz, que pune resposta que "só repete o número" sem explicar o
 mecanismo. Histórico das duas rodadas em `07-validacao.md`.
 
-**Categoria `factual` (modo autônomo, ADR-8):** o golden dataset foi expandido para
-**24 perguntas** — 8 factuais novas (gols, assistências, dupla com mais passes, top
-passador, cartões, dribles, desarmes, defesas de goleiro), todas com referência
-conferida à mão contra o parquet. As 8 já foram validadas ao vivo individualmente
-(acerto 8/8, re-execução de consultas 100% — tabelas em `07-validacao.md`); a rodada
-formal do `run_evaluation.py` com as 24 fica pendente de chave de LLM ativa (a chave
-Anthropic foi rotacionada durante a validação; ver `07-validacao.md`).
+**Categoria `composta` (a que melhor separa os dois sistemas):** 3 perguntas que só
+se respondem CRUZANDO as camadas — um padrão estrutural com um número da súmula.
+Exemplo (`q25`): *"o jogador por quem passavam os caminhos de progressão da Argentina
+foi também o que mais errou passe?"* A resposta é não, e prová-lo exige o betweenness
+(camada 2, 50.0 para Otamendi) **e** a contagem de passes errados (camada 1b: Otamendi
+6, contra 17 de Molina). Nenhuma das duas fontes responde sozinha, e o baseline não
+alcança nem com paridade de fatos: metade da resposta é topologia de rede, que não cabe
+em resumo textual.
+
+**Verificação sem LLM:** `scripts/check_golden_queries.py` roda a consulta de referência
+das **27 perguntas** contra o grafo e imprime o esperado ao lado do obtido — 27/27
+respondidas, sem gastar API. Separa a qualidade do MODELO DE DADOS da qualidade do
+modelo de linguagem, que a avaliação com juiz mistura.

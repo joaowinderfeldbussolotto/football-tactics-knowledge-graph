@@ -7,6 +7,29 @@ que batem. Meta: 100%. Qualquer valor abaixo é bug, não ruído.
 Para o modo autônomo (ADR-8): cada ConsultaCypher registrada na resposta é
 RE-EXECUTADA em transação read-only — a auditabilidade do text-to-Cypher é
 "a consulta citada roda e retorna dados", verificável por qualquer revisor.
+
+O QUE ESTA MÉTRICA NÃO MEDE
+---------------------------
+Fidelidade 1.0 **não** quer dizer que a resposta está correta. Ela diz duas
+coisas mais estreitas:
+
+- toda métrica citada aponta para um PadraoTatico que existe, com o mesmo
+  valor, nome e algoritmo de origem;
+- toda consulta registrada roda e devolve linhas.
+
+Uma consulta pode rodar, devolver linhas, ter o número transcrito
+corretamente para o texto — e ainda assim responder a pergunta errada. Foi
+o que aconteceu em ``q23_desarmes_final`` na 3ª rodada de avaliação: o
+agente contou tentativas de desarme em vez de desarmes certos, respondeu
+"Enzo 9" (a resposta é 5), e a fidelidade deu 1.0. O número veio mesmo da
+consulta; a consulta é que perguntava outra coisa.
+
+Erro semântico de consulta é invisível para qualquer verificação que não
+saiba a resposta certa de antemão. Por isso a defesa contra ele não está
+aqui: está em não deixar a consulta ser ambígua (campo ``desarmes_certos``
+separado de ``desarmes_tentados``, em graph/statistics.py) e em
+``scripts/check_golden_queries.py``, que compara com resposta conferida
+à mão.
 """
 
 import math
