@@ -36,10 +36,13 @@ import argparse
 import asyncio
 import json
 import logging
+import pathlib
+from datetime import datetime
 
 from football_graphrag.api import agents, retrieval
 from football_graphrag.config import get_settings
 from football_graphrag.observability import logging_setup
+from football_graphrag.observability.langfuse_setup import flush, observacao, setup_observability
 from football_graphrag.evaluation import baseline_rag, faithfulness, judges
 from football_graphrag.evaluation.golden_dataset import GOLDEN_QUESTIONS
 from football_graphrag.graph import db
@@ -128,6 +131,13 @@ async def main(args) -> None:
     if not settings.llm_api_key:
         raise SystemExit("LLM_API_KEY ausente no .env: a avaliação usa o agente e os juízes")
     perguntas = selecionar(args)
+    # Uma rodada = um rótulo. É por ele que se acha, no Langfuse, tudo que uma
+    # execução gerou — e é o que permite comparar duas rodadas depois.
+    rodada = args.rodada or f"{pathlib.Path(args.saida).stem}-{datetime.now():%Y%m%d-%H%M}"
+    modelo = agents.settings_fingerprint(settings)
+    observado = setup_observability(settings)
+    logger.info("rodada=%s modelo=%s langfuse=%s", rodada, modelo,
+                "on" if observado else "off (sem chaves)")
     driver = db.make_driver(settings)
     # Só as partidas das perguntas escolhidas: indexar as três com um
     # subconjunto de 4 perguntas gastaria cota de embeddings à toa.
@@ -146,20 +156,26 @@ async def main(args) -> None:
         linha = {"id": q.id, "categoria": q.categoria, "insight": q.insight, "pergunta": q.pergunta}
         for braco, incluir in BRACOS_GRAFO.items():
             logger.info("%s [%s]", q.id, braco)
-            linha[braco] = await avaliar_grafo(driver, q, incluir_sumula=incluir)
+            with observacao(f"{q.id}/{braco}", ativo=observado, rodada=rodada,
+                            categoria=q.categoria, braco=braco, modelo=modelo):
+                linha[braco] = await avaliar_grafo(driver, q, incluir_sumula=incluir)
         if baseline_index is not None:
             logger.info("%s [baseline]", q.id)
-            linha["baseline"] = await avaliar_baseline(baseline_index, q)
+            with observacao(f"{q.id}/baseline", ativo=observado, rodada=rodada,
+                            categoria=q.categoria, braco="baseline", modelo=modelo):
+                linha["baseline"] = await avaliar_baseline(baseline_index, q)
         else:
             linha["baseline"] = None
         results.append(linha)
 
     summary = _summarize(results, settings)
+    summary["rodada"] = rodada
     out = settings.processed_dir / args.saida
     out.write_text(json.dumps({"summary": summary, "results": results}, ensure_ascii=False, indent=2))
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"\n-> {out}")
     driver.close()
+    flush(observado)
 
 
 def _summarize(results: list[dict], settings) -> dict:
@@ -203,6 +219,7 @@ def _args():
     sel.add_argument("--amostra", action="store_true", help="uma pergunta de cada categoria")
     sel.add_argument("--ids", help="ids separados por vírgula (ex.: q01,q17)")
     p.add_argument("--saida", default="eval_results.json", help="nome do arquivo em data/processed")
+    p.add_argument("--rodada", help="rótulo da rodada no Langfuse (default: derivado de --saida + data)")
     return p.parse_args()
 
 
