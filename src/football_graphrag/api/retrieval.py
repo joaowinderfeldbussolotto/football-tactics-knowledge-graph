@@ -13,18 +13,18 @@ nomeia uma entidade (jogador, time), filtro estruturado bate busca semântica
 3. FALLBACK: se nada foi recuperado, todos os padrões da partida (são
    dezenas, cabem no contexto) e as súmulas dos dois times.
 
-Por que a súmula entra na recuperação
--------------------------------------
-Antes, o contexto recuperado era só PadraoTatico. Numa pergunta factual
-("quem fez mais desarmes?") isso devolvia padrões que não têm nada a ver, e
-o agente precisava escrever Cypher para tudo. Duas consequências ruins:
+A súmula no contexto é CONDIÇÃO EXPERIMENTAL, não decisão fechada
+----------------------------------------------------------------
+Entregar a súmula pronta faz a pergunta factual ser respondida sem nenhuma
+consulta — o que economiza uma ida e volta de ferramenta, mas cala
+exatamente o mecanismo que o ADR-8 (text-to-Cypher autônomo) existe para
+demonstrar. Ou seja: ganha em eficiência e perde em evidência.
 
-- gasto de uma ida e volta de ferramenta para um dado que já está calculado;
-- o juiz de recuperação da avaliação pontua o CONTEXTO, e um contexto sem a
-  resposta tirava nota baixa mesmo quando a resposta final saía correta.
-
-Com a súmula no contexto, a pergunta factual costuma ser respondida sem
-nenhuma consulta, e a nota de recuperação passa a medir o que deveria.
+Como não dá para decidir isso no olho, ``incluir_sumula`` existe para que a
+avaliação rode os DOIS braços na mesma rodada e com o mesmo modelo — ver
+ADR-10 em ``docs/05-decisoes.md`` e a seção de ablação em
+``docs/07-validacao.md``. O default é ``True`` (o comportamento da API);
+o braço de controle é quem passa ``False``.
 """
 
 import logging
@@ -131,17 +131,21 @@ def structured_retrieval(driver: Driver, match_id: int, question: str) -> list[d
 
 
 async def retrieve_context(
-    driver: Driver, match_id: int, question: str, graphiti=None
+    driver: Driver, match_id: int, question: str, graphiti=None, incluir_sumula: bool = True
 ) -> tuple[list[dict], list[dict], list[str], dict]:
     """Recuperação completa para o Q&A.
 
     Retorna (padrões, súmulas, fatos_extra, timings).
+
+    ``incluir_sumula=False`` devolve a lista de súmulas vazia — o braço de
+    controle da ablação, em que o agente só chega aos números factuais
+    escrevendo Cypher. Ver a docstring do módulo.
     """
     t0 = time.perf_counter()
     entities = resolve_entities(driver, question)
     patterns = patterns_for_entities(driver, match_id, entities)
-    stats = stats_for_entities(driver, match_id, entities)
-    used = "estruturada+sumula"
+    stats = stats_for_entities(driver, match_id, entities) if incluir_sumula else []
+    used = "estruturada+sumula" if incluir_sumula else "estruturada"
     extra_facts: list[str] = []
     if graphiti is not None:
         from football_graphrag.graph.communities import hybrid_search

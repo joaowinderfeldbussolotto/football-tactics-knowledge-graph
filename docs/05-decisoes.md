@@ -292,3 +292,95 @@ não suportar o modo estrito do Graphiti; não foi necessário até agora, porqu
 ninguém rodou contra a API ainda (integração feita e revisada antes de haver
 chave configurada). `scripts/smoke_llm.py` existe para checar ferramenta + saída
 estruturada com uma pergunta só, antes de comprometer a rodada de 30 perguntas.
+
+## ADR-10 — A súmula no contexto é condição experimental, não decisão fechada (2026-08-26)
+
+**Contexto.** Depois que a camada 1b passou a entrar no contexto do Q&A
+(`api/retrieval.py`), levantou-se a dúvida certa: entregar a súmula pronta não
+quebra parte do que o trabalho quer validar? O diagnóstico separa três
+afirmações que estavam sendo tratadas como uma só:
+
+| Afirmação | A súmula afeta? |
+|---|---|
+| Insights estruturais não existem em linha de tabela nenhuma | **Não.** Nenhum campo de `EstatisticaJogador` contém betweenness, comunidade, ponte ou janela temporal. As 15 perguntas `estrutural` são indiferentes a ela. |
+| O agente alcança fatos sozinho escrevendo Cypher (ADR-8) | **Sim, e muito.** `PROMPT_QA` manda usar a súmula e NÃO consultar quando o número já está lá. Na 3ª rodada as 8 perguntas factuais rodaram 1–2 consultas cada; com a súmula isso tende a zero, e o mecanismo deixa de ser exercido justamente onde era. |
+| Grafo consultável supera texto embeddado | **Muda de sentido** em `factual`/`agregada`. Com a paridade de fatos (`evaluation/match_facts.py`), os dois lados têm os mesmos números da mesma fonte; a variável isolada vira serialização + mecanismo de recuperação, e o resultado ESPERADO ali é empate, não vitória. |
+
+Agrava a dúvida que a justificativa registrada na docstring de
+`api/retrieval.py` citava, entre os motivos, o `judge_retrieval` dar nota
+baixa. A sequência "métrica baixa → mudei o sistema → métrica alta" precisa de
+outro apoio, mesmo quando a mudança é defensável em arquitetura — e é: resolver
+entidade e puxar atributos para o contexto é o *local search* do GraphRAG
+canônico, não uma invenção deste projeto.
+
+**Decisão.** Não escolher entre ter e não ter súmula: medir. `retrieve_context`
+ganhou `incluir_sumula: bool = True`, e a avaliação passou a rodar **três
+braços** sobre as mesmas perguntas, no mesmo modelo e na mesma rodada:
+
+1. `grafo_sem_sumula` — controle; mede a autonomia do ADR-8.
+2. `grafo_com_sumula` — o comportamento da API.
+3. `baseline` — RAG vetorial plano com paridade de fatos.
+
+A diferença 1→2 é o custo-benefício da pré-agregação medido, em vez de
+assumido. `n_consultas` por braço é o indicador direto da dúvida original: se
+o braço 2 zera as consultas, a súmula calou a ferramenta.
+
+**Decisão acoplada: duas notas de recuperação.** `run_evaluation.py`
+concatenava `consultas_executadas` no contexto entregue ao `judge_retrieval`.
+A nota de *recuperação* do grafo incluía o que o agente foi buscar **durante a
+geração** — que não é recuperação —, e o baseline, sem ferramenta, nunca
+recebia acréscimo equivalente. A assimetria favorecia o grafo numa métrica que
+leva o nome do que não estava medindo. Agora são duas:
+
+- `retrieval_previo` — só o que a recuperação entregou antes de o agente rodar.
+  **É a comparável com o baseline**, por ser a simétrica.
+- `retrieval_final` — aquilo mais o resultado das consultas. Mede o sistema
+  inteiro; não tem contrapartida no baseline.
+
+Quando o agente não consulta nada, os dois contextos são o mesmo texto e a nota
+é reaproveitada, para não transformar ruído de amostragem de um juiz estocástico
+em diferença aparente entre as métricas.
+
+**Consequências.** Os números da 3ª rodada foram medidos com uma nota só, e
+essa nota é a `retrieval_final` — comparada, na época, contra a `previo` do
+baseline. Ao confrontar rodadas, é `retrieval_final` que continua no lugar
+dela; `retrieval_previo` não tem equivalente anterior. O arquivo da 3ª rodada
+foi preservado em `data/processed/eval_results_r3_sonnet.json` porque o formato
+de `eval_results.json` mudou e a documentação cita números dele.
+
+**Braços considerados e descartados**, que ficam como trabalho futuro:
+"súmula sem ferramenta" (isolaria quanto a ferramenta ainda contribui depois de
+a súmula chegar) e "só ferramenta, sem camada 2" (separaria *ter grafo
+consultável* de *ter GDS pré-calculado* — hoje a vitória em `estrutural`
+confunde as duas). Ambos são desejáveis; nenhum dos dois cabia numa rodada só.
+
+### Adendo à ADR-9 — a ressalva 2 se cumpriu em um dia (2026-08-26)
+
+`stealth/ox-alpha` foi **retirado no meio de uma execução**. A API passou a
+devolver 404 com a mensagem de que o modelo era o GLM-5.3 Flash da ZAI e que o
+período de teste acabara. Entre o smoke test que validou a integração (25/08) e
+a primeira tentativa de rodar a avaliação (26/08) houve menos de 24 horas.
+
+Não é anedota: é a razão de a ressalva existir. Um número de dissertação
+apoiado nesse modelo teria virado irreproduzível de um dia para o outro, sem
+aviso e sem como voltar atrás — o modelo não existe mais sob aquele nome.
+
+**Achado adicional, ao procurar substituto gratuito.** As vias `:free` do
+OpenRouter não servem à camada 3. `z-ai/glm-5.2:free` recusou a chamada com
+`grammar_not_supported`: a lane gratuita (provedor Decart) roda **sem backend
+de gramática**, então não aceita `response_format: json_schema` nem
+`tool_choice` forçado — que são exatamente os dois mecanismos de que a camada
+3 depende (saída estruturada do PydanticAI e a ferramenta `consultar_grafo`).
+O catálogo em `/api/v1/models` declara `tools` e `response_format` para esse
+modelo, mas isso descreve a via paga; **o catálogo não distingue as lanes**.
+Sondando os 9 gratuitos que declaravam os dois parâmetros, só 2 honraram o
+schema de fato e 4 devolveram 429 na primeira tentativa. Um deles,
+`openrouter/free`, é um roteador que escolhe outro modelo a cada chamada —
+inutilizável para pesquisa, por construção.
+
+**Decisão.** A rodada de avaliação passa a usar `z-ai/glm-5.3-flash`, pago e
+versionado (US$ 0,075/M entrada, US$ 0,25/M saída). A rodada completa das 30
+perguntas nos três braços da ADR-10 custa cerca de **US$ 0,09** — estimativa
+feita a partir dos prompts do fonte e das respostas medidas na 3ª rodada. Nove
+centavos são um preço baixo pela propriedade que o modelo grátis não tinha:
+existir amanhã, com o mesmo nome e a mesma versão.

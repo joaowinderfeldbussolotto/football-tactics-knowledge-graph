@@ -80,7 +80,7 @@ descontinuado; cota free-tier quebrava a indexação.
 ## Avaliação comparativa (grafo vs baseline vetorial)
 
 Resultado central da tese — tabela e análise em `03-insights.md` (seção "Avaliação");
-JSON completo por pergunta em `data/processed/eval_results.json` (gerado por
+JSON completo por pergunta em `data/processed/eval_results_r3_sonnet.json` (gerado por
 `scripts/run_evaluation.py`, não versionado). Duas rodadas executadas:
 
 | Rodada | Golden | Formato de resposta | Estrutural: grafo (retr/insight) | Estrutural: baseline | Fidelidade |
@@ -250,7 +250,7 @@ caminho do DADO entrando. O projeto passou de 4 para 11 diagramas, e os oito
 insights de `03-insights.md` ganharam uma linha de intuição em linguagem de
 campo, mais desenho para betweenness e para ponte.
 
-Cobertura após esta leva: **55 testes**, 30/30 no `check_golden_queries.py`.
+Cobertura após esta leva: **62 testes**, 30/30 no `check_golden_queries.py`.
 
 ## Modo autônomo (ADR-8) — validação ao vivo
 
@@ -315,6 +315,53 @@ validação), o que de quebra validou ao vivo a troca de provedor só por `.env`
   2026-08-25 (ver seção de avaliação).
 - **O sistema depois da refatoração do vocabulário de futebol.** A conta
   Anthropic ficou sem crédito antes da 4ª rodada. Há verificação determinística
-  do modelo de dados (30/30 em `check_golden_queries.py`) e 55 testes, mas
+  do modelo de dados (30/30 em `check_golden_queries.py`) e 62 testes, mas
   nenhuma medição com juiz de LLM após a mudança. Qualquer afirmação de melhora
   de nota seria não medida — e por isso não é feita aqui.
+
+## Desenho da 4ª rodada: ablação da súmula (2026-08-26)
+
+A 4ª rodada não roda mais dois sistemas, e sim **três braços** sobre as mesmas
+30 perguntas, no mesmo modelo e na mesma execução (`scripts/run_evaluation.py`):
+
+| Braço | Contexto do agente | O que mede |
+|---|---|---|
+| `grafo_sem_sumula` | padrões da camada 2 + ferramenta `consultar_grafo` | a autonomia do ADR-8: o número factual só chega se o agente escrever Cypher |
+| `grafo_com_sumula` | o anterior + súmula da camada 1b | o comportamento da API |
+| `baseline` | chunks do resumo textual, com paridade de fatos | representação em texto embeddado |
+
+O motivo está na ADR-10: a súmula pronta economiza uma ida e volta de
+ferramenta e cala o text-to-Cypher no mesmo gesto, e não dá para decidir isso
+no olho. A diferença entre os dois primeiros braços é essa troca medida.
+`n_consultas` por braço é o indicador direto — se o braço com súmula zera as
+consultas, ela calou a ferramenta.
+
+**Sinal que valida o desenho, antes de qualquer conclusão:** na categoria
+`estrutural` os dois braços do grafo devem ficar praticamente iguais, porque
+nenhum campo da súmula contém betweenness, comunidade ou ponte. Se divergirem
+muito, o braço está mal isolado e o resto da rodada não vale.
+
+### Duas notas de recuperação, e por que a comparação com o baseline usa a primeira
+
+Até a 3ª rodada, `judge_retrieval` recebia os padrões **mais o resultado das
+consultas que o agente executou durante a geração**. Isso não é recuperação: é
+o sistema inteiro. E o baseline, que não tem ferramenta, nunca recebia
+acréscimo equivalente — a assimetria empurrava a métrica a favor do grafo.
+
+| Métrica | Contexto julgado | Compara com o baseline? |
+|---|---|---|
+| `retrieval_previo` | padrões (+ súmula, no braço que a tem) | **sim** — é a simétrica |
+| `retrieval_final` | o anterior + `consultas_executadas` | não — o baseline não tem equivalente |
+
+Consequência para ler a tabela da 3ª rodada: a nota única de lá é a
+`retrieval_final`. Os 4,93 de `estrutural`, por exemplo, incluem perguntas que
+rodaram até 4 consultas. `retrieval_previo` é métrica nova e não tem
+equivalente anterior para confrontar.
+
+### O que ainda NÃO foi medido
+
+A rodada completa das 30 perguntas nos três braços não foi executada. O que há
+até aqui é a conferência do pipeline num subconjunto (`--amostra`: uma pergunta
+de cada categoria), suficiente para validar o mecanismo dos três braços e
+nada além disso. Nenhuma afirmação sobre o efeito da súmula é feita neste
+documento antes dessa rodada existir.

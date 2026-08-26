@@ -125,27 +125,50 @@ Endpoints auxiliares sem LLM: `GET /health`, `GET /graph/3869685/stats`,
 ## 7. Avaliação
 
 ```bash
+# confere o pipeline antes de comprometer as 30: uma pergunta de cada categoria
+docker compose exec api python scripts/run_evaluation.py --amostra --saida eval_amostra.json
+
+# a rodada de verdade
 docker compose exec api python scripts/run_evaluation.py
 ```
 
-Roda o golden dataset (30 perguntas: 15 estruturais, 8 factuais, 4 agregadas e 3 compostas) no sistema de grafo E no baseline vetorial plano,
-com fidelidade determinística + 2 juízes LLM, e salva
-`data/processed/eval_results.json`. Saída esperada (execução real com
-`claude-haiku-4-5`, ~12 min):
+Roda o golden dataset (30 perguntas: 15 estruturais, 8 factuais, 4 agregadas e
+3 compostas) em **três braços** — grafo sem súmula, grafo com súmula e baseline
+vetorial plano —, com fidelidade determinística + juízes LLM, e salva
+`data/processed/eval_results.json`. O porquê dos três braços está na ADR-10
+(`docs/05-decisoes.md`) e na seção de ablação de `docs/07-validacao.md`.
+
+Flags: `--amostra` (uma pergunta por categoria), `--ids q01,q17` (seleção
+explícita), `--saida NOME.json` (não encostar no arquivo citado na
+documentação). Com `--amostra`/`--ids`, o índice do baseline é construído só
+com as partidas das perguntas escolhidas, para não gastar cota de embeddings.
+
+Formato da saída:
 
 ```json
 {
-  "faithfulness_media": 1.0,
+  "modelo": "openrouter:stealth/ox-alpha",
+  "n_perguntas": 30,
+  "faithfulness_media": {"grafo_sem_sumula": 1.0, "grafo_com_sumula": 1.0},
   "por_categoria": {
-    "estrutural": {"n": 9, "grafo_retrieval": 5.0, "grafo_insight": 4.33,
-                    "baseline_retrieval": 1.0, "baseline_insight": 1.0},
-    "agregada":   {"n": 1, "grafo_retrieval": 5.0, "grafo_insight": 5.0,
-                    "baseline_retrieval": 1.0, "baseline_insight": 1.0}
+    "estrutural": {
+      "n": 15,
+      "grafo_sem_sumula": {"retrieval_previo": 0.0, "retrieval_final": 0.0,
+                            "insight": 0.0, "consultas_media": 0.0},
+      "grafo_com_sumula": {"retrieval_previo": 0.0, "retrieval_final": 0.0,
+                            "insight": 0.0, "consultas_media": 0.0},
+      "baseline":         {"retrieval_previo": 0.0, "insight": 0.0}
+    }
   }
 }
 ```
 
-Análise da tabela em `docs/03-insights.md` (seção "Avaliação").
+(Zeros são o formato, não medições — os números da 3ª rodada, em outro
+desenho de avaliação, estão em `docs/03-insights.md`, seção "Avaliação".)
+
+**`retrieval_previo` é a nota comparável com o baseline**; `retrieval_final`
+inclui o resultado das consultas que o agente fez durante a geração, e o
+baseline não tem ferramenta que produza equivalente. Não misturar as duas.
 
 ## 8. Testes
 
@@ -153,7 +176,7 @@ Análise da tabela em `docs/03-insights.md` (seção "Avaliação").
 docker compose exec api pytest tests/ -q
 ```
 
-Esperado: `55 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
+Esperado: `62 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
 está disponível (rodam completos com o stack de pé e a pipeline executada).
 
 ## Troca de provedor de LLM

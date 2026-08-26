@@ -233,7 +233,7 @@ consulta que o produziu.
 
 A seção anterior seguiu o **dado entrando**. Esta segue uma **pergunta saindo**.
 Tudo aqui é saída real do sistema, registrada na avaliação de 2026-08-25
-(`data/processed/eval_results.json`) — inclusive os defeitos, que são a parte
+(`data/processed/eval_results_r3_sonnet.json`) — inclusive os defeitos, que são a parte
 mais instrutiva.
 
 ```mermaid

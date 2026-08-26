@@ -257,7 +257,7 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 Golden dataset de 16 perguntas (`evaluation/golden_dataset.py`, cobrindo os 8 insights
 nas 3 partidas) rodado ao vivo nos dois sistemas com `claude-haiku-4-5` como gerador e
 juiz, embeddings Gemini no baseline (`scripts/run_evaluation.py`; saída completa em
-`data/processed/eval_results.json`). Scores 1–5 dos juízes; fidelidade determinística
+`data/processed/eval_results_r3_sonnet.json`). Scores 1–5 dos juízes; fidelidade determinística
 só se aplica ao sistema de grafo:
 
 | Categoria (n) | Grafo: retrieval | Grafo: insight | Grafo: fidelidade | Baseline: retrieval | Baseline: insight |

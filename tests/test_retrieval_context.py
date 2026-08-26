@@ -1,10 +1,12 @@
-"""O contexto recuperado precisa CONTER a resposta quando ela já existe.
+"""O contexto recuperado, nos dois braços da ablação.
 
-Antes, a recuperação devolvia só PadraoTatico. Numa pergunta factual isso
-significava um contexto sem a resposta: o agente tinha que gastar uma ida e
-volta de ferramenta, e o juiz de recuperação da avaliação — que pontua o
-CONTEXTO, não a resposta final — dava nota baixa mesmo quando a resposta
-saía correta. Com a súmula no contexto, os dois problemas somem.
+No default (``incluir_sumula=True``, o comportamento da API) a súmula da
+camada 1b entra no contexto e a pergunta factual é respondida sem consulta.
+No braço de controle (``False``) ela não entra, e o agente só chega aos
+números escrevendo Cypher — que é o mecanismo do ADR-8 sendo medido.
+
+Os dois precisam continuar trazendo os padrões da camada 2: a súmula é sobre
+o que é factual, e não pode roubar o lugar do que é estrutural.
 """
 
 import asyncio
@@ -17,10 +19,14 @@ from tests.conftest import requires_data, requires_neo4j
 MATCH_ID = 3869685
 
 
-def _contexto(pergunta: str):
+def _contexto(pergunta: str, incluir_sumula: bool = True):
     driver = db.make_driver(get_settings())
     try:
-        return asyncio.run(retrieval.retrieve_context(driver, MATCH_ID, pergunta))
+        return asyncio.run(
+            retrieval.retrieve_context(
+                driver, MATCH_ID, pergunta, incluir_sumula=incluir_sumula
+            )
+        )
     finally:
         driver.close()
 
@@ -58,4 +64,25 @@ def test_sumula_nao_expoe_chaves_internas():
 def test_pergunta_estrutural_continua_trazendo_padroes():
     """A súmula não pode ter roubado o lugar dos padrões da camada 2."""
     pats, _, _, _ = _contexto("Qual jogador foi o gargalo estrutural da Argentina?")
+    assert any(p["tipo"] == "pivo_estrutural" for p in pats)
+
+
+@requires_neo4j
+@requires_data
+def test_braco_de_controle_nao_traz_sumula():
+    """incluir_sumula=False: o agente tem que ir buscar o número no grafo."""
+    pergunta = "Quantos desarmes certos o Enzo Fernandez fez na final?"
+    _, stats, _, timings = _contexto(pergunta, incluir_sumula=False)
+    assert stats == []
+    assert "sumula" not in timings["estrategia"]
+
+
+@requires_neo4j
+@requires_data
+def test_braco_de_controle_mantem_os_padroes():
+    """Desligar a súmula não pode desligar a camada 2 junto: a ablação isola
+    UMA variável, senão a diferença entre os braços não quer dizer nada."""
+    pats, _, _, _ = _contexto(
+        "Qual jogador foi o gargalo estrutural da Argentina?", incluir_sumula=False
+    )
     assert any(p["tipo"] == "pivo_estrutural" for p in pats)
