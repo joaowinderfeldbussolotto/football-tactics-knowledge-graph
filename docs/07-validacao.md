@@ -358,10 +358,58 @@ Consequência para ler a tabela da 3ª rodada: a nota única de lá é a
 rodaram até 4 consultas. `retrieval_previo` é métrica nova e não tem
 equivalente anterior para confrontar.
 
+### Conferência do pipeline: amostra de 4 perguntas (2026-08-26)
+
+`run_evaluation.py --amostra`, uma pergunta de cada categoria, em
+`openrouter:z-ai/glm-5.3-flash`. Fidelidade 100% nos dois braços do grafo.
+**n=1 por categoria: isto confere o mecanismo, não mede o sistema.** Nenhuma
+conclusão sobre o efeito da súmula sai daqui.
+
+| Categoria | Braço | Prévio | Final | Insight | Consultas |
+|---|---|---:|---:|---:|---:|
+| estrutural | grafo sem súmula | 5,0 | 5,0 | 5,0 | 0 |
+| estrutural | grafo com súmula | 5,0 | 5,0 | 5,0 | 0 |
+| estrutural | baseline | 1,0 | — | 2,0 | — |
+| factual | grafo sem súmula | 1,0 | 1,0 | 3,0 | 2 |
+| factual | grafo com súmula | 1,0 | 5,0 | 5,0 | 2 |
+| factual | baseline | **5,0** | — | 3,0 | — |
+| agregada | grafo sem súmula | 5,0 | 5,0 | 5,0 | 0 |
+| agregada | grafo com súmula | 5,0 | 5,0 | 5,0 | 0 |
+| agregada | baseline | 3,0 | — | 3,0 | — |
+| composta | grafo sem súmula | 2,0 | 2,0 | 5,0 | 3 |
+| composta | grafo com súmula | 5,0 | 5,0 | 5,0 | 1 |
+| composta | baseline | 1,0 | — | 1,0 | — |
+
+**O desenho passou no teste que o valida.** Em `estrutural`, os dois braços do
+grafo saíram idênticos e sem nenhuma consulta — que é o previsto, já que
+nenhum campo da súmula contém betweenness. Se tivessem divergido, o braço
+estaria mal isolado e o resto não valeria.
+
+Três coisas que a métrica antiga escondia, visíveis já com n=1:
+
+1. **Na factual, o baseline ganha a comparação simétrica** (5,0 contra 1,0 de
+   prévio). A pergunta era "quem fez os gols da final": não cita jogador nem
+   time, então `resolve_entities` não resolve nada e a súmula que chega é só a
+   dos dois times — que tem o TOTAL de gols, não quem fez. O resumo textual do
+   baseline tem a linha dos gols pronta. A recuperação do grafo é pior aqui, e
+   a nota única antiga registrava 5,0 porque o agente ia buscar depois.
+2. **A súmula não ajudou onde se esperava e ajudou onde não se esperava.** Na
+   factual não mudou o prévio (1,0 nos dois braços); na `composta` levou o
+   prévio de 2,0 a 5,0 e cortou as consultas de 3 para 1.
+3. **Prévio e final divergem exatamente onde há consulta** — factual e
+   composta. Onde o agente não consulta, são o mesmo número por construção.
+
+### Custo medido
+
+US$ 0,061 na chave para as 5 perguntas executadas (1 avulsa + as 4 da
+amostra), ou **US$ 0,012 por pergunta** somando os três braços. A rodada
+completa de 30 perguntas fica em torno de **US$ 0,37**. Uma estimativa
+anterior de US$ 0,09 subestimou em ~4x, por não contar que
+`fallback_todos_padroes` injeta os ~24 padrões da partida inteira no contexto
+e que o modelo cobra tokens de raciocínio como saída.
+
 ### O que ainda NÃO foi medido
 
-A rodada completa das 30 perguntas nos três braços não foi executada. O que há
-até aqui é a conferência do pipeline num subconjunto (`--amostra`: uma pergunta
-de cada categoria), suficiente para validar o mecanismo dos três braços e
-nada além disso. Nenhuma afirmação sobre o efeito da súmula é feita neste
-documento antes dessa rodada existir.
+A rodada completa das 30 perguntas nos três braços. Até ela existir, a tabela
+de avaliação citável continua sendo a da 3ª rodada, com a ressalva de que a
+nota de recuperação de lá é a `retrieval_final`.

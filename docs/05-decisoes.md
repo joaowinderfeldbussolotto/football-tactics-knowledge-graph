@@ -379,8 +379,12 @@ schema de fato e 4 devolveram 429 na primeira tentativa. Um deles,
 inutilizável para pesquisa, por construção.
 
 **Decisão.** A rodada de avaliação passa a usar `z-ai/glm-5.3-flash`, pago e
-versionado (US$ 0,075/M entrada, US$ 0,25/M saída). A rodada completa das 30
-perguntas nos três braços da ADR-10 custa cerca de **US$ 0,09** — estimativa
-feita a partir dos prompts do fonte e das respostas medidas na 3ª rodada. Nove
-centavos são um preço baixo pela propriedade que o modelo grátis não tinha:
-existir amanhã, com o mesmo nome e a mesma versão.
+versionado (US$ 0,075/M entrada, US$ 0,25/M saída). Medido na chave depois de
+5 perguntas reais: **US$ 0,012 por pergunta** somando os três braços da
+ADR-10, o que põe a rodada completa das 30 em torno de **US$ 0,37**. (Uma
+estimativa a priori de US$ 0,09 errou por ~4x, por não contar que o fallback
+injeta os ~24 padrões da partida inteira no contexto e que o modelo cobra
+tokens de raciocínio como saída — anotado aqui porque estimar custo de LLM
+por contagem de prompt subestima sistematicamente.) Trinta e sete centavos são
+um preço baixo pela propriedade que o modelo grátis não tinha: existir amanhã,
+com o mesmo nome e a mesma versão.
