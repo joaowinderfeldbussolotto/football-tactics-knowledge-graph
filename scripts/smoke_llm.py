@@ -24,6 +24,7 @@ from football_graphrag.config import get_settings
 from football_graphrag.evaluation import faithfulness
 from football_graphrag.graph import db
 from football_graphrag.observability import logging_setup
+from football_graphrag.observability.langfuse_setup import setup_observability
 
 logging_setup.setup()
 
@@ -41,6 +42,8 @@ async def main(pergunta: str) -> int:
         return 1
 
     print(f"provedor={settings.llm_provider}  modelo={settings.llm_model}")
+    observado = setup_observability(settings)
+    print(f"Langfuse: {'instrumentado' if observado else 'sem chaves, desligado'}")
     print(f"pergunta: {pergunta}\n")
 
     driver = db.make_driver(settings)
@@ -75,6 +78,13 @@ async def main(pergunta: str) -> int:
         return 0
     finally:
         driver.close()
+        if observado:
+            # Script de vida curta: sem isso os spans do OTel ficam no buffer
+            # e o processo termina antes do exporter mandar para o Langfuse.
+            from langfuse import get_client
+
+            get_client().flush()
+            print("Langfuse: spans enviados (flush)")
 
 
 if __name__ == "__main__":
