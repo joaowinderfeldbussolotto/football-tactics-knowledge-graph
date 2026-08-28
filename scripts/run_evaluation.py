@@ -141,6 +141,14 @@ async def avaliar_grafo(driver, q, *, incluir_sumula: bool, graphiti=None) -> di
         "retrieval_final": j_final.score,
         "tactical_insight": insight.score,
         "timings": timings,
+        # Sem isto, diagnosticar uma fidelidade baixa exige reproduzir a
+        # pergunta ao vivo (custa dinheiro e tempo de novo) — foi o que
+        # aconteceu na 4ª rodada, para achar que o modelo às vezes ecoa a
+        # description do campo Pydantic como se fosse o valor.
+        "metricas_citadas": [c.model_dump() for c in resposta.metricas_citadas],
+        "consultas_executadas": [c.model_dump() for c in resposta.consultas_executadas],
+        "mismatches_faithfulness": fid.mismatches,
+        "mismatches_query_reexec": qfid.mismatches,
     }
 
 
