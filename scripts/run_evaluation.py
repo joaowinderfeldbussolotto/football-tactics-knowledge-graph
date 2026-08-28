@@ -39,6 +39,8 @@ import logging
 import pathlib
 from datetime import datetime
 
+from pydantic_ai.exceptions import UnexpectedModelBehavior
+
 from football_graphrag.api import agents, retrieval
 from football_graphrag.config import get_settings
 from football_graphrag.observability import logging_setup
@@ -55,6 +57,34 @@ CATEGORIAS = ("estrutural", "factual", "agregada", "composta")
 BRACOS_GRAFO = {"grafo_sem_sumula": False, "grafo_com_sumula": True}
 
 
+async def _retentar(chamada, *, tentativas: int = 3, espera: float = 5.0):
+    """Repete uma chamada ao modelo quando o provedor devolve resposta inválida.
+
+    Falha real observada com OpenRouter/z-ai/glm-5.3-flash na rodada de 30
+    perguntas: a resposta HTTP vem 200, mas com ``finish_reason: "error"``
+    dentro do corpo — valor fora do enum que o PydanticAI aceita
+    ('stop'/'length'/'tool_calls'/'content_filter'/'function_call'), e vira
+    ``UnexpectedModelBehavior``. Não é erro de validação de SAÍDA estruturada
+    (isso o ``retries=2`` do Agent já cobre) — é a resposta bruta do provedor
+    sendo inválida, uma camada abaixo, e sem isto derrubava o processo
+    inteiro na pergunta 12 de 30, depois de ~20 minutos pagos. É intermitente:
+    repetir resolve.
+    """
+    ultimo = None
+    for tentativa in range(1, tentativas + 1):
+        try:
+            return await chamada()
+        except UnexpectedModelBehavior as exc:
+            ultimo = exc
+            logger.warning(
+                "resposta inválida do provedor (tentativa %d/%d): %s",
+                tentativa, tentativas, exc,
+            )
+            if tentativa < tentativas:
+                await asyncio.sleep(espera)
+    raise ultimo
+
+
 def _json(obj) -> str:
     return json.dumps(obj, ensure_ascii=False, default=str)
 
@@ -64,8 +94,8 @@ async def avaliar_grafo(driver, q, *, incluir_sumula: bool, graphiti=None) -> di
     patterns, stats, extra_facts, timings = await retrieval.retrieve_context(
         driver, q.match_id, q.pergunta, graphiti, incluir_sumula=incluir_sumula
     )
-    resposta = await agents.answer_question(
-        q.pergunta, patterns, stats, extra_facts, driver, q.match_id
+    resposta = await _retentar(
+        lambda: agents.answer_question(q.pergunta, patterns, stats, extra_facts, driver, q.match_id)
     )
     fid = faithfulness.check_citations(driver, resposta.metricas_citadas)
     qfid = faithfulness.check_queries(driver, resposta.consultas_executadas)
@@ -85,16 +115,22 @@ async def avaliar_grafo(driver, q, *, incluir_sumula: bool, graphiti=None) -> di
             f"- {c.cypher} => {c.resultado_resumido}" for c in resposta.consultas_executadas
         )
 
-    j_previo = await judges.judge_retrieval(q.pergunta, q.resposta_referencia, contexto_previo)
+    j_previo = await _retentar(
+        lambda: judges.judge_retrieval(q.pergunta, q.resposta_referencia, contexto_previo)
+    )
     # Sem consulta nenhuma os dois contextos são o MESMO texto. Reaproveitar a
     # nota (em vez de chamar o juiz de novo) evita que ruído de amostragem de
     # um juiz estocástico vire uma diferença aparente entre as duas métricas.
     j_final = (
         j_previo
         if contexto_final == contexto_previo
-        else await judges.judge_retrieval(q.pergunta, q.resposta_referencia, contexto_final)
+        else await _retentar(
+            lambda: judges.judge_retrieval(q.pergunta, q.resposta_referencia, contexto_final)
+        )
     )
-    insight = await judges.judge_insight(q.pergunta, q.resposta_referencia, resposta.resposta)
+    insight = await _retentar(
+        lambda: judges.judge_insight(q.pergunta, q.resposta_referencia, resposta.resposta)
+    )
 
     return {
         "resposta": resposta.resposta,
@@ -109,9 +145,11 @@ async def avaliar_grafo(driver, q, *, incluir_sumula: bool, graphiti=None) -> di
 
 
 async def avaliar_baseline(index, q) -> dict:
-    resposta, contexto = await baseline_rag.answer_with_baseline(index, q.pergunta)
-    r = await judges.judge_retrieval(q.pergunta, q.resposta_referencia, "\n".join(contexto))
-    i = await judges.judge_insight(q.pergunta, q.resposta_referencia, resposta)
+    resposta, contexto = await _retentar(lambda: baseline_rag.answer_with_baseline(index, q.pergunta))
+    r = await _retentar(
+        lambda: judges.judge_retrieval(q.pergunta, q.resposta_referencia, "\n".join(contexto))
+    )
+    i = await _retentar(lambda: judges.judge_insight(q.pergunta, q.resposta_referencia, resposta))
     # O baseline não tem ferramenta: só existe contexto prévio. O nome do
     # campo diz isso, para ninguém comparar com o retrieval_final do grafo.
     return {"resposta": resposta, "retrieval_previo": r.score, "tactical_insight": i.score}
