@@ -39,6 +39,7 @@ import logging
 import pathlib
 from datetime import datetime
 
+from google.genai.errors import APIError as GeminiAPIError
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from football_graphrag.api import agents, retrieval
@@ -57,31 +58,46 @@ CATEGORIAS = ("estrutural", "factual", "agregada", "composta")
 BRACOS_GRAFO = {"grafo_sem_sumula": False, "grafo_com_sumula": True}
 
 
-async def _retentar(chamada, *, tentativas: int = 3, espera: float = 5.0):
-    """Repete uma chamada ao modelo quando o provedor devolve resposta inválida.
+# Duas famílias de falha transitória, observadas nas duas primeiras tentativas
+# desta rodada, cada uma exigindo backoff diferente: resposta bruta inválida
+# do provedor de LLM (segundos bastam) e cota do Gemini estourada por minuto
+# (só refaz sentido depois de um minuto — 5s não ajuda em nada).
+_ERROS_TRANSITORIOS = (UnexpectedModelBehavior, GeminiAPIError)
 
-    Falha real observada com OpenRouter/z-ai/glm-5.3-flash na rodada de 30
-    perguntas: a resposta HTTP vem 200, mas com ``finish_reason: "error"``
-    dentro do corpo — valor fora do enum que o PydanticAI aceita
-    ('stop'/'length'/'tool_calls'/'content_filter'/'function_call'), e vira
-    ``UnexpectedModelBehavior``. Não é erro de validação de SAÍDA estruturada
-    (isso o ``retries=2`` do Agent já cobre) — é a resposta bruta do provedor
-    sendo inválida, uma camada abaixo, e sem isto derrubava o processo
-    inteiro na pergunta 12 de 30, depois de ~20 minutos pagos. É intermitente:
-    repetir resolve.
+
+async def _retentar(chamada, *, tentativas: int = 4, espera: float = 15.0):
+    """Repete uma chamada ao modelo/embedder quando o provedor falha de forma
+    transitória, em vez de deixar a exceção derrubar a rodada inteira.
+
+    Falha 1, OpenRouter/z-ai/glm-5.3-flash: a resposta HTTP vem 200, mas com
+    ``finish_reason: "error"`` dentro do corpo — valor fora do enum que o
+    PydanticAI aceita — e vira ``UnexpectedModelBehavior``. Não é erro de
+    validação de SAÍDA estruturada (isso o ``retries=2`` do Agent já cobre);
+    é a resposta bruta do provedor sendo inválida, uma camada abaixo.
+
+    Falha 2, embeddings do Gemini free tier (busca híbrida e baseline
+    vetorial): a cota por minuto (100 req/min) estoura sob a carga de 30
+    perguntas × 3 braços, o SDK esgota os retries internos dele e propaga
+    ``google.genai.errors.APIError`` (ClientError 429 ou ServerError 503) sem
+    ninguém tratar — derrubou esta rodada em 18 de 30 perguntas.
+
+    Ambas são intermitentes; repetir resolve. ``espera`` é dobrada a cada
+    tentativa (backoff exponencial) porque a cota por minuto só libera depois
+    de um minuto — retentar com o mesmo intervalo curto reproduziria o
+    mesmo 429 até esgotar as tentativas.
     """
     ultimo = None
     for tentativa in range(1, tentativas + 1):
         try:
             return await chamada()
-        except UnexpectedModelBehavior as exc:
+        except _ERROS_TRANSITORIOS as exc:
             ultimo = exc
             logger.warning(
-                "resposta inválida do provedor (tentativa %d/%d): %s",
+                "falha transitória do provedor (tentativa %d/%d): %s",
                 tentativa, tentativas, exc,
             )
             if tentativa < tentativas:
-                await asyncio.sleep(espera)
+                await asyncio.sleep(espera * tentativa)
     raise ultimo
 
 
