@@ -446,3 +446,68 @@ que não ligar, porque o rótulo da estratégia diria "híbrida" sem ser.
 súmula: dado pronto no contexto. A diferença é que agora existe a máquina da
 ADR-10 para medir o efeito, e a justificativa é simetria com o baseline — que
 já tinha esses fatos — e não a nota de um juiz.
+
+## ADR-12 — A 4ª rodada completa: quatro quedas, três bugs reais, um achado de modelo (2026-08-26 a 2026-08-31)
+
+**Contexto.** Rodar as 30 perguntas × 3 braços (ADR-10) com busca híbrida
+(ADR-11) foi pedido três vezes ao longo de 5 dias corridos, com o processo
+caindo repetidamente. Vale o registro da causa de cada queda — todas
+diagnosticadas ao vivo, nenhuma escondida — porque juntas formam um retrato
+mais honesto de "rodar avaliação de LLM contra API de terceiros" do que uma
+tabela de números sozinha.
+
+**Queda 1 e 2 — indexação do Graphiti.** Um defeito do cliente do Graphiti
+(`response.choices[0]` sem checar) derrubava a indexação inteira num triplet
+que devolvesse resposta vazia do OpenRouter; e a cota diária de embeddings do
+Gemini free tier (1000/dia) esgotou no meio de tentativas repetidas. Corrigido
+com um cliente que repete a chamada e tolera falha por triplet
+(`c1dc411`) — a indexação final rodou 73/73 padrões nas três partidas.
+
+**Queda 3 — resposta inválida do OpenRouter.** `finish_reason: "error"` dentro
+de um HTTP 200, fora do enum que o PydanticAI aceita — `UnexpectedModelBehavior`
+sem tratamento. Corrigido com `_retentar()` (`b4ae74c`), depois ampliado para
+cobrir também `google.genai.errors.APIError` quando a mesma falha apareceu do
+lado do embedder (`de3e0d5`).
+
+**Queda 4 — cota diária do Gemini de novo**, agora consumida pela própria
+avaliação (busca híbrida + baseline vetorial, mesmo free tier). Sem chave
+alternativa de embedder configurada, e trocar de provedor no meio teria
+misturado vetores de espaços diferentes no cache do baseline — a mesma
+armadilha que `restore_graphiti.py` já guarda contra na restauração do índice.
+Sem solução de código: esperada a virada do dia (a cota reseta à meia-noite
+Pacífico). O checkpoint (`--retomar`, seção do plano original) foi o que
+tornou essa espera barata — 18 das 30 perguntas continuaram seguras.
+
+**O achado que não é bug: alucinação sob citação obrigatória.** Entre as
+quedas 3 e 4 apareceu um problema de qualidade, não de infraestrutura: o
+modelo às vezes ecoava o TEXTO da `description` de um campo Pydantic como se
+fosse o valor (`padrao_tatico_id` virou a string `"uid"`) — corrigido com
+validadores que rejeitam esse eco especificamente, forçando o retry nativo do
+Agent a corrigir sozinho (`d9d4eec`). Depois desse conserto, a rodada limpa
+ainda fechou com fidelidade de 86–93%, não ~100%. Investigado sem gastar mais
+nada (os dados brutos passaram a ser persistidos por pergunta), a causa
+restante foi mais séria: em 14 de 82 citações (17%), o modelo **inventou
+dados inteiros** — consultas Cypher sintaticamente válidas para uma partida
+(`match_id: 'FB-MCI-LIV-2023-11-25'`, Manchester City × Liverpool) e um
+jogador (`Alessandro Florenzi`, `match_id: 3918315`) que não existem neste
+projeto. A fidelidade determinística (ADR-8) capturou as 14 corretamente como
+`padrao_inexistente` — a métrica funcionou; o modelo que falhou.
+
+**Decisão.** Manter a citação obrigatória como está: ela não impede um modelo
+fraco de alucinar, mas torna a alucinação detectável e mensurável, que é
+exatamente o que se espera de um mecanismo de verificação — e a ressalva já
+registrada em `evaluation/faithfulness.py` ("100% não é correção") ganha aqui
+seu par simétrico: **fidelidade abaixo de 100% pode ser a métrica funcionando
+contra um modelo fraco, não um defeito do pipeline.** Não implementar detecção
+automática de alucinação nesta rodada — seria um projeto à parte, e o
+mecanismo determinístico já cobre o caso que importa (a resposta cita algo que
+não existe, e isso é sinalizado).
+
+**Consequência para leitura dos números.** A 4ª rodada é a fonte legítima da
+tabela de três braços (a ablação da súmula e a checagem de isolamento não
+dependem da força do modelo — mediram exatamente o que deviam, ver
+`03-insights.md`). Ela NÃO deve ser lida como "o sistema piorou" frente à 3ª
+rodada: o que mudou foi o modelo, de Claude para um agregador gratuito/barato,
+confirmando ao vivo a ressalva 2 da ADR-9. Para uma citação que dependa de
+fidelidade ~100%, a 3ª rodada (estrutural, Claude) continua sendo a referência
+— preservada em `eval_results_r3_sonnet.json` exatamente para isso.

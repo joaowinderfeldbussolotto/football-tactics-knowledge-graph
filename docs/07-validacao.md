@@ -470,3 +470,102 @@ Graphiti** — `add_triplet` chama o LLM por triplet, não só o embedder, e a
 partida indexada saiu a ~US$ 0,06. Foi interrompida depois da final (as quatro
 perguntas da amostra são todas da final); indexar as outras duas partidas
 custaria cerca de US$ 0,12 e é pré-requisito para rodar as 30 com `--hibrida`.
+
+## 4ª rodada completa: 30 perguntas × 3 braços (2026-08-31)
+
+`z-ai/glm-5.3-flash` via OpenRouter, busca híbrida ligada, checkpoint por
+pergunta. Levou 5 dias corridos de relógio por causa de 4 quedas — a linha do
+tempo completa (o quê caiu, o diagnóstico, o commit da correção) está na
+ADR-12; aqui ficam só os números finais e a leitura deles.
+
+| Categoria | n | Grafo: prévia / insight | Baseline: prévia / insight | Diferença (prévia) |
+|---|---:|---|---|---:|
+| estrutural | 15 | 5,0 / 2,53 | 1,2 / 2,0 | +3,8 |
+| factual | 8 | 2,5 / 3,38 | 3,75 / 4,25 | −1,25 |
+| agregada | 4 | 4,75 / 4,75 | 2,0 / 2,5 | +2,75 |
+| composta | 3 | 5,0 / 3,33 | 2,67 / 3,33 | +2,33 |
+
+Tabela completa dos três braços (`grafo_sem_sumula`, `grafo_com_sumula`,
+`baseline`), com as duas notas de recuperação e `consultas_media`:
+
+| Categoria | n | Braço | Prévia | Final | Insight | Consultas |
+|---|---:|---|---:|---:|---:|---:|
+| estrutural | 15 | sem súmula | 4,73 | 5,0 | 3,6 | 1,27 |
+| estrutural | 15 | com súmula | 5,0 | 5,0 | 2,53 | 0,47 |
+| estrutural | 15 | baseline | 1,2 | — | 2,0 | — |
+| factual | 8 | sem súmula | 2,5 | 3,88 | 2,38 | 1,5 |
+| factual | 8 | com súmula | 2,5 | 4,12 | 3,38 | 0,88 |
+| factual | 8 | baseline | 3,75 | — | 4,25 | — |
+| agregada | 4 | sem súmula | 2,0 | 5,0 | 4,0 | 2,5 |
+| agregada | 4 | com súmula | 4,75 | 4,75 | 4,75 | 0,75 |
+| agregada | 4 | baseline | 2,0 | — | 2,5 | — |
+| composta | 3 | sem súmula | 2,67 | 3,0 | 4,33 | 1,67 |
+| composta | 3 | com súmula | 5,0 | 5,0 | 3,33 | 1,33 |
+| composta | 3 | baseline | 2,67 | — | 3,33 | — |
+
+**Fidelidade determinística: 86,3% (sem súmula) / 93,3% (com súmula).** Abaixo
+do ~100% histórico — analisado em detalhe em `03-insights.md` ("O preço do
+modelo barato"). Resumo: 14 de 82 citações (17%) referenciavam padrões,
+partidas ou jogadores que não existem neste projeto — o modelo, sob um
+provedor gratuito/barato, às vezes preencheu a lacuna com conteúdo plausível
+do próprio treino em vez de consultar o grafo ou admitir que não sabia. A
+métrica capturou corretamente todas as 14; não é falha do mecanismo.
+
+**Checagem de isolamento (ADR-10): passou.** Os dois braços do grafo ficam a
+0,27 pontos um do outro em `estrutural` (4,73 vs 5,0) — a súmula não contém
+betweenness e não deveria mudar essa categoria; não mudou.
+
+**`n_consultas` responde a pergunta original da ablação:** a súmula reduz
+consultas em toda categoria onde ela se aplica (estrutural 1,27→0,47; factual
+1,5→0,88; agregada 2,5→0,75; composta 1,67→1,33) — ela cala parte do
+text-to-Cypher, na proporção esperada, sem zerá-lo por completo (o agente
+ainda consulta quando a súmula não cobre o que foi perguntado).
+
+**A categoria factual inverteu** frente à amostra de 4 perguntas (que só tinha
+`q17`, já corrigida pela ficha do jogo): com as 8 perguntas completas, o
+baseline ganha a comparação simétrica (3,75 contra 2,5). Causa, encontrada nos
+mismatches persistidos: a ficha da ADR-11 cobre gols/assistências/cartões, mas
+a categoria tem perguntas fora desse escopo (PPDA, passador com mais passes,
+cruzamentos de um jogador específico), e nessas a recuperação volta a
+depender de o agente escrever Cypher certo — o que nem sempre aconteceu (ver
+mismatches de `q10`, `q15`, `q20` abaixo). Achado honesto: a ficha resolveu
+uma fatia da categoria, não a categoria inteira.
+
+### Mismatches de fidelidade — amostra representativa
+
+Persistidos por pergunta em `eval_results.json` (`mismatches_faithfulness`,
+`mismatches_query_reexec`), o que tornou este diagnóstico possível sem gastar
+API de novo:
+
+- **Alucinação (achado principal):** `q06_papel_theo` citou 6 padrões com
+  UUIDs inventados e consultas para `match_id: 'FB-MCI-LIV-2023-11-25'`
+  (Manchester City × Liverpool — não é uma partida deste projeto);
+  `q15_papel_kounde` citou o jogador "Alessandro Florenzi" em
+  `match_id: 3918315`. Nenhum dos dois existe no grafo.
+- **Erro de sintaxe Cypher não corrigido em tempo:** `q02`, `q10`, `q15`,
+  `q20` tiveram consultas com erro de sintaxe que não re-executam
+  (`Neo.ClientError.Statement.SyntaxError`) — o agente errou a query, o erro
+  voltou para ele via `consultar_grafo`, mas a resposta final ainda citou o
+  resultado da tentativa malsucedida.
+- **Valores divergentes por arredondamento/versão do padrão:** `q01`, `q04`,
+  `q10`, `q25` — o padrão citado existe, mas o valor não bate exatamente
+  (mais provável: o agente leu de uma consulta própria em vez do padrão
+  pré-calculado, e os dois divergiram em decimais).
+
+### Custo final
+
+**US$ 0,856 na chave**, do início da integração OpenRouter (25/08) até o fim
+desta rodada (31/08) — indexação das 3 partidas (~US$ 0,19), duas execuções
+completas da rodada de 30 perguntas por causa das quedas 3 e 4 (~US$ 0,52 as
+duas juntas) e os smoke tests/amostras do caminho. A estimativa a priori
+(seção anterior) era de US$ 0,37 para uma execução sem quedas — o custo real
+mais que dobrou por causa das re-execuções, não por pergunta ficar mais cara.
+
+### O que ainda NÃO foi medido
+
+Braços adicionais discutidos e descartados na ADR-10 ("súmula sem
+ferramenta", "só ferramenta sem camada 2"); uma rodada completa em modelo
+estável (Claude ou equivalente) com os três braços e a busca híbrida — a 3ª
+rodada tem os três braços ausentes e usa recuperação sem a ficha do jogo nem
+o roteador de intenção da ADR-11, então não é diretamente comparável célula a
+célula com a 4ª.

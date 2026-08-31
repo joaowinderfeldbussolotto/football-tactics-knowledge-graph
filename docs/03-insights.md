@@ -254,11 +254,38 @@ final 3869685, semifinal 3869519, quartas 3869354), copiados da execução de
 
 ## Avaliação: grafo vs baseline vetorial (o resultado central)
 
-Golden dataset de 16 perguntas (`evaluation/golden_dataset.py`, cobrindo os 8 insights
-nas 3 partidas) rodado ao vivo nos dois sistemas com `claude-haiku-4-5` como gerador e
-juiz, embeddings Gemini no baseline (`scripts/run_evaluation.py`; saída completa em
-`data/processed/eval_results_r3_sonnet.json`). Scores 1–5 dos juízes; fidelidade determinística
-só se aplica ao sistema de grafo:
+**A tabela citável é a da 4ª rodada, completa, em três braços** (2026-08-31,
+`z-ai/glm-5.3-flash` via OpenRouter, busca híbrida ligada,
+`data/processed/eval_results.json`, gerada por `scripts/run_evaluation.py
+--hibrida` e formatada por `scripts/consolidar_resultados.py`). O desenho de
+três braços (ADR-10) resolve a dúvida "a súmula pré-agregada não quebra o que
+a pesquisa quer validar?": mede em vez de assumir.
+
+| Categoria | n | Grafo: prévia / insight | Baseline: prévia / insight | Diferença (prévia) |
+|---|---:|---|---|---:|
+| **estrutural** | 15 | **5,0 / 2,53** | 1,2 / 2,0 | **+3,8** |
+| factual | 8 | 2,5 / 3,38 | 3,75 / 4,25 | −1,25 |
+| **agregada** | 4 | **4,75 / 4,75** | 2,0 / 2,5 | **+2,75** |
+| **composta** | 3 | **5,0 / 3,33** | 2,67 / 3,33 | **+2,33** |
+
+`prévia` é `retrieval_previo` (braço `grafo_com_sumula`) — a métrica simétrica
+com o baseline, porque julga só o que a recuperação entregou ANTES do agente
+rodar, sem o acréscimo das consultas que só o grafo tem ferramenta para fazer.
+Fidelidade determinística desta rodada: 86,3% (sem súmula) / 93,3% (com
+súmula) — abaixo do ~100% de rodadas anteriores com modelo mais forte, e a
+razão é o achado mais importante desta seção (ver "O preço do modelo barato",
+abaixo). A checagem de isolamento da ADR-10 passou: os dois braços do grafo
+ficam a 0,27 pontos um do outro em `estrutural`, onde deveriam ser
+indistinguíveis — a súmula não contamina o que é estrutural.
+
+**estrutural, agregada e composta confirmam a tese com folga; factual
+inverteu** (−1,25, baseline ganhando) — analisado abaixo em "A categoria
+factual perdeu, e por quê".
+
+### Números anteriores, preservados como referência histórica
+
+A 3ª rodada (2026-08-25, `claude-sonnet-5`, 24 perguntas, sem os três braços
+nem a ficha do jogo) está em `data/processed/eval_results_r3_sonnet.json`:
 
 | Categoria (n) | Grafo: retrieval | Grafo: insight | Grafo: fidelidade | Baseline: retrieval | Baseline: insight |
 |---|---|---|---|---|---|
@@ -266,8 +293,12 @@ só se aplica ao sistema de grafo:
 | **factual** (8) | 2.62 | 3.38 | 100% | 1.25 | 1.12 |
 | **agregada** (1) | 5.0 | 5.0 | 100% | 2.0 | 2.0 |
 
-Números da 3ª rodada (2026-08-25, `claude-sonnet-5`), a primeira com as 24
-perguntas. Três ressalvas que precisam ser lidas junto com a tabela:
+Comparar as duas tabelas diretamente mede o MODELO, não o sistema (ADR-9): a
+3ª rodada usou Claude, a 4ª usou um modelo gratuito/barato via agregador. A
+comparação que continua válida entre rodadas é a estrutural, que sobreviveu
+com folga aos dois modelos.
+
+Ressalvas que precisam ser lidas junto com a tabela histórica acima:
 
 1. **"Fidelidade 100%" não quer dizer "respostas corretas".** A métrica verifica
    que as citações apontam para padrões existentes e que as consultas
@@ -320,6 +351,46 @@ sabe entregar, e agora o baseline tem os números para respondê-las. Se empatar
 é o resultado previsto e ele reforça a leitura das outras linhas: a vantagem do
 grafo não é geral, é concentrada onde a resposta depende da topologia. Uma
 categoria com n=1, como estava antes, não sustentava nem essa afirmação.
+
+### O preço do modelo barato: alucinação, não bug
+
+A fidelidade da 4ª rodada (86–93%) ficou abaixo do ~100% histórico. Investigado
+sem gastar nada — `run_evaluation.py` passou a persistir citações e consultas
+brutas por pergunta —, a causa não é falha da métrica nem do pipeline: em
+14 das 82 citações da rodada (17%), o modelo **inventou dados inteiros** em
+vez de admitir que não sabia ou de consultar o grafo.
+
+Não é imprecisão de arredondamento — é fabricação com aparência de dado real:
+`q06_papel_theo` citou consultas Cypher para `match_id: 'FB-MCI-LIV-2023-11-25'`
+— sintaticamente válidas, referenciando Manchester City × Liverpool (uma
+partida real, mas de 2023, que não existe neste projeto); `q15_papel_kounde`
+citou o jogador "Alessandro Florenzi" em `match_id: 3918315`. Nenhum dos dois
+existe no grafo (só há três partidas: 3869685, 3869519, 3869354). O modelo
+completou a lacuna com o que parecia plausível vindo do próprio treino, em vez
+de dizer "não sei" ou usar `consultar_grafo`.
+
+A fidelidade determinística fez exatamente o que deveria: sinalizou as 14
+citações como `padrao_inexistente` em vez de aceitá-las. **A métrica não
+falhou — ela mostrou que o modelo falhou.** É a diferença prática entre um
+modelo de laboratório forte (Claude, rodadas anteriores, ~100%) e um modelo
+gratuito/barato via agregador (`z-ai/glm-5.3-flash`, esta rodada): a mesma
+arquitetura de citação obrigatória (ADR-8) que garante rastreabilidade com um
+modelo capaz não impede um modelo mais fraco de inventar — só torna a invenção
+detectável. Confirma ao vivo a ressalva 2 da ADR-9: um modelo barato não é
+base para o número oficial sem uma rodada em modelo estável para citação.
+
+### A categoria factual perdeu, e por quê
+
+Diferente da 3ª rodada, aqui o baseline ganhou a comparação simétrica em
+`factual` (3,75 contra 2,5). A ficha do jogo da ADR-11 resolveu o caso que a
+motivou (`q17`, "quem fez os gols" — ver `07-validacao.md`), mas a categoria
+inteira tem 8 perguntas, e várias pedem números que não são gols, assistências
+nem cartões (a ficha só cobre esses três) — nesses casos a recuperação
+estruturada volta a depender de o agente consultar corretamente, e a rodada
+mostrou consultas com erro de sintaxe (`q10`, `q15`, `q20` — ver mismatches em
+`07-validacao.md`) que o baseline, por não ter Cypher para errar, não sofre.
+Achado honesto, não escondido: a ficha do jogo resolve uma fatia da categoria
+factual, não a categoria inteira.
 
 **Verificação sem LLM:** `scripts/check_golden_queries.py` roda a consulta de referência
 das **30 perguntas** contra o grafo e imprime o esperado ao lado do obtido — 30/30
