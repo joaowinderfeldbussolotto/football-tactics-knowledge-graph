@@ -1,0 +1,516 @@
+"""CAMADA 1: construção do grafo factual. Determinística, sem LLM.
+
+Cada linha do parquet vira nó/aresta com valores EXATOS. Zero chamada de
+LLM, zero risco de alucinação. A escrita é idempotente: os nós têm uid
+determinístico (uuid5 da chave natural) e as arestas fazem MERGE por chave
+(match_id + action_id / índice), então rodar duas vezes não duplica nada.
+
+Decisão de arquitetura (ADR em docs/05-decisoes.md): a escrita usa o driver
+Neo4j direto (Cypher em lotes UNWIND) em vez de ``graphiti.add_triplet``.
+O add_triplet dispara uma chamada de embedding por fato — ordem de milhares
+por partida — o que viola o orçamento de custo/latência da camada factual e
+acopla a camada determinística a um serviço externo. O Graphiti entra nas
+camadas 2/3 (indexação dos PadraoTatico e busca híbrida), onde o volume é
+de dezenas de fatos e a semântica importa.
+"""
+
+import json
+import logging
+import time
+from pathlib import Path
+
+import pandas as pd
+from neo4j import Driver
+
+from football_graphrag.graph import db, statistics
+from football_graphrag.graph.entities import uid_for
+from football_graphrag.ingestion.tactical_metrics import GRID_COLS, GRID_ROWS, zone_band, zone_channel
+
+logger = logging.getLogger(__name__)
+
+PASS_TYPES = ["pass", "cross", "freekick_short", "corner_short", "throw_in", "goalkick", "freekick_crossed", "corner_crossed"]
+# "dribble" é a CONDUÇÃO no SPADL (o drible sobre o marcador é "take_on").
+MOVE_TYPES = ["pass", "cross", "dribble"]
+SHOT_TYPES = ["shot", "shot_penalty", "shot_freekick"]
+
+
+def build_factual_graph(match_id: int, data_dir: Path, driver: Driver) -> dict:
+    """Constrói (idempotente) o grafo factual de uma partida a partir dos parquets.
+
+    Saída:
+        dict com contagens por tipo de nó/aresta e tempo total — os números
+        que alimentam docs/02-modelo-grafo.md e a decisão do ADR de escrita.
+    """
+    t0 = time.perf_counter()
+    processed = data_dir / "processed"
+    actions = pd.read_parquet(processed / f"{match_id}.parquet")
+    phases = pd.read_parquet(processed / f"{match_id}_phases.parquet")
+    pressures = pd.read_parquet(processed / f"{match_id}_pressures.parquet")
+    meta = json.loads((processed / f"{match_id}_meta.json").read_text())
+
+    db.ensure_constraints(driver)
+    counts: dict[str, int] = {}
+
+    # --- Nós ---
+    counts["Partida"] = _write_partida(driver, match_id, meta)
+    counts["Time"] = _write_times(driver, meta)
+    counts["Jogador"] = _write_jogadores(driver, actions, meta)
+    counts["Zona"] = _write_zonas(driver)
+    counts["FaseDePosse"] = _write_fases(driver, match_id, phases)
+
+    # --- Arestas factuais ---
+    counts["MEMBRO_DE"] = _write_membro_de(driver, match_id, actions)
+    counts["PASSOU_PARA"] = _write_passes(driver, match_id, actions)
+    counts["PRESSIONOU"] = _write_pressoes(driver, match_id, pressures)
+    counts["FINALIZOU"] = _write_finalizacoes(driver, match_id, actions)
+    counts["DEU_ASSISTENCIA"] = _write_assistencias(driver, match_id, actions)
+    counts["REALIZOU"] = _write_acoes(driver, match_id, actions)
+    counts["ATUOU_EM"] = _write_atuou_em(driver, match_id, actions)
+    counts["PARTICIPOU_DE"] = _write_participou_de(driver, match_id, actions)
+    counts["PROGREDIU_PARA"] = _write_progrediu_para(driver, match_id, actions)
+
+    # --- Camada 1b: súmula pré-agregada (contada pelo Neo4j sobre as arestas
+    # recém-escritas, para não poder divergir de uma consulta ad-hoc) ---
+    counts["EstatisticaJogador"] = statistics.build_player_stats(driver, match_id)
+    counts["EstatisticaTime"] = statistics.build_team_stats(driver, match_id, meta.get("team_metrics"))
+
+    elapsed = round(time.perf_counter() - t0, 2)
+    total = sum(counts.values())
+    logger.info("grafo factual %s: %d nós/arestas em %.2fs (%s)", match_id, total, elapsed, counts)
+    return {"match_id": match_id, "counts": counts, "total_writes": total, "elapsed_seconds": elapsed}
+
+
+def _write_partida(driver: Driver, match_id: int, meta: dict) -> int:
+    query = """
+    MERGE (p:Partida {uid: $uid})
+    SET p.match_id = $match_id, p.competicao = $competicao, p.times = $times
+    """
+    with db.session_scope(driver) as session:
+        session.run(
+            query,
+            uid=uid_for("partida", match_id),
+            match_id=match_id,
+            competicao="FIFA World Cup 2022",
+            times=list(meta["teams"].values()),
+        ).consume()
+    return 1
+
+
+def _write_times(driver: Driver, meta: dict) -> int:
+    rows = [
+        {"uid": uid_for("time", team_id), "team_id": int(team_id), "nome": nome}
+        for team_id, nome in meta["teams"].items()
+    ]
+    return db.run_batched(
+        driver,
+        "UNWIND $rows AS r MERGE (t:Time {uid: r.uid}) SET t.team_id = r.team_id, t.nome = r.nome",
+        rows,
+    )
+
+
+def _write_jogadores(driver: Driver, actions: pd.DataFrame, meta: dict) -> int:
+    players = (
+        actions.dropna(subset=["player_id"])
+        .groupby("player_id")
+        .agg(nome=("player_name", "first"), team_id=("team_id", "first"))
+        .reset_index()
+    )
+    positions = meta.get("player_positions", {})
+    rows = [
+        {
+            "uid": uid_for("jogador", int(p.player_id)),
+            "player_id": int(p.player_id),
+            "nome": p.nome,
+            "posicao_nominal": positions.get(str(int(p.player_id))),
+            "time": meta["teams"].get(str(int(p.team_id))),
+        }
+        for p in players.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r MERGE (j:Jogador {uid: r.uid})
+           SET j.player_id = r.player_id, j.nome = r.nome,
+               j.posicao_nominal = r.posicao_nominal, j.time = r.time""",
+        rows,
+    )
+
+
+def _write_zonas(driver: Driver) -> int:
+    rows = [
+        {
+            "uid": uid_for("zona", z),
+            "id_zona": z,
+            "faixa": zone_band(z),
+            "corredor": zone_channel(z),
+        }
+        for z in range(GRID_COLS * GRID_ROWS)
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r MERGE (z:Zona {uid: r.uid})
+           SET z.id_zona = r.id_zona, z.faixa = r.faixa, z.corredor = r.corredor""",
+        rows,
+    )
+
+
+def _write_fases(driver: Driver, match_id: int, phases: pd.DataFrame) -> int:
+    rows = [
+        {
+            "uid": uid_for("fase", f"{match_id}:{int(p.possession_id)}"),
+            "fase_id": f"{match_id}:{int(p.possession_id)}",
+            "match_id": match_id,
+            "team_id": int(p.team_id),
+            "minuto_inicio": float(p.minute_start),
+            "minuto_fim": float(p.minute_end),
+            "xt_total": float(p.xt_total),
+            "zona_inicio": int(p.zone_start),
+            "zona_fim": int(p.zone_end),
+            "n_acoes": int(p.n_actions),
+        }
+        for p in phases.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r MERGE (f:FaseDePosse {uid: r.uid})
+           SET f += r""",
+        rows,
+    )
+
+
+def _write_membro_de(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    players = actions.dropna(subset=["player_id"]).groupby("player_id").agg(team_id=("team_id", "first")).reset_index()
+    rows = [
+        {
+            "jogador": uid_for("jogador", int(p.player_id)),
+            "time": uid_for("time", int(p.team_id)),
+            "match_id": match_id,
+        }
+        for p in players.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (j:Jogador {uid: r.jogador}), (t:Time {uid: r.time})
+           MERGE (j)-[m:MEMBRO_DE {match_id: r.match_id}]->(t)""",
+        rows,
+    )
+
+
+def _write_passes(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    """Jogador -[PASSOU_PARA]-> Jogador: a rede de passes, base dos algoritmos
+    de grafo da camada 2.
+
+    Contém APENAS passes completos com recebedor identificado — por
+    construção, um passe só tem recebedor se deu certo. Por isso a aresta não
+    carrega ``sucesso``: seria constante ``true`` e induziria filtro inútil.
+    Passe errado é ``REALIZOU {grupo_acao: 'passe', sucesso: false}``.
+    """
+    passes = actions[actions["receiver_player_id"].notna() & actions["type_name"].isin(PASS_TYPES)]
+    rows = [
+        {
+            "origem": uid_for("jogador", int(a.player_id)),
+            "destino": uid_for("jogador", int(a.receiver_player_id)),
+            "match_id": match_id,
+            "action_id": int(a.action_id),
+            "minuto": int(a.minuto),
+            "segundo": float(a.segundo),
+            "periodo": int(a.period_id),
+            "acao": a.acao,  # passe | cruzamento | escanteio_curto | ...
+            "xt_gerado": float(a.xt_value),
+            "vaep": float(a.vaep_value),
+            "progressivo": bool(a.progressive),
+            "zona_origem": int(a.zone_start),
+            "zona_destino": int(a.zone_end),
+            "fase_posse_id": f"{match_id}:{int(a.possession_id)}",
+        }
+        for a in passes.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (a:Jogador {uid: r.origem}), (b:Jogador {uid: r.destino})
+           MERGE (a)-[p:PASSOU_PARA {match_id: r.match_id, action_id: r.action_id}]->(b)
+           SET p.minuto = r.minuto, p.segundo = r.segundo, p.periodo = r.periodo, p.acao = r.acao,
+               p.xt_gerado = r.xt_gerado, p.vaep = r.vaep, p.progressivo = r.progressivo,
+               p.zona_origem = r.zona_origem, p.zona_destino = r.zona_destino,
+               p.fase_posse_id = r.fase_posse_id""",
+        rows,
+    )
+
+
+def _write_pressoes(driver: Driver, match_id: int, pressures: pd.DataFrame) -> int:
+    valid = pressures[pressures["target_player_id"].notna()]
+    rows = [
+        {
+            "origem": uid_for("jogador", int(p.presser_player_id)),
+            "destino": uid_for("jogador", int(p.target_player_id)),
+            "match_id": match_id,
+            "pressure_idx": int(idx),
+            # +1 para casar com o minuto de transmissão das demais arestas:
+            # o campo 'minute' do StatsBomb é o minuto decorrido (0-indexado).
+            "minuto": int(p.minute) + 1,
+            "segundo": float(p.segundo),
+            "periodo": int(p.period_id),
+            "zona": int(p.zone) if pd.notna(p.zone) else None,
+        }
+        for idx, p in zip(valid.index, valid.itertuples())
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (a:Jogador {uid: r.origem}), (b:Jogador {uid: r.destino})
+           MERGE (a)-[p:PRESSIONOU {match_id: r.match_id, pressure_idx: r.pressure_idx}]->(b)
+           SET p.minuto = r.minuto, p.segundo = r.segundo, p.periodo = r.periodo,
+               p.zona = r.zona""",
+        rows,
+    )
+
+
+def _write_finalizacoes(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    """Jogador -[FINALIZOU]-> Partida: uma aresta por finalização (chute,
+    pênalti em jogo, falta direta), com ``gol`` booleano e o desfecho real
+    (defendida/para_fora/bloqueada/na_trave, recuperado do StatsBomb bruto).
+    Seleção direta de linhas do parquet — nada calculado aqui."""
+    shots = actions[actions["type_name"].isin(SHOT_TYPES)]
+    rows = [
+        {
+            "jogador": uid_for("jogador", int(s.player_id)),
+            "partida": uid_for("partida", match_id),
+            "match_id": match_id,
+            "action_id": int(s.action_id),
+            "minuto": int(s.minuto),
+            "periodo": int(s.period_id),
+            "periodo_nome": s.periodo_nome,
+            "acao": s.acao,  # finalizacao | penalti | falta_direta
+            "desfecho": s.desfecho if pd.notna(s.desfecho) else None,
+            "no_gol": bool(s.no_gol),
+            "gol": bool(s.gol),
+            "corpo": s.corpo if pd.notna(s.corpo) else None,
+            "zona": int(s.zone_start),
+        }
+        for s in shots.itertuples()
+        if pd.notna(s.player_id)
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (j:Jogador {uid: r.jogador}), (m:Partida {uid: r.partida})
+           MERGE (j)-[f:FINALIZOU {match_id: r.match_id, action_id: r.action_id}]->(m)
+           SET f.minuto = r.minuto, f.periodo = r.periodo, f.periodo_nome = r.periodo_nome,
+               f.acao = r.acao, f.desfecho = r.desfecho, f.no_gol = r.no_gol,
+               f.gol = r.gol, f.corpo = r.corpo, f.zona = r.zona""",
+        rows,
+    )
+
+
+def _write_assistencias(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    """Jogador -[DEU_ASSISTENCIA]-> Jogador (autor do gol).
+
+    Assistência = último passe bem-sucedido do mesmo time, na mesma fase de
+    posse, cujo recebedor é o autor do gol (gols de pênalti não têm
+    assistência). Seleção sobre colunas já existentes do parquet
+    (possession_id, receiver_player_id) — sem métrica nova.
+    """
+    goals = actions[
+        actions["type_name"].isin(["shot", "shot_freekick"]) & (actions["result_name"] == "success")
+    ]
+    rows = []
+    for g in goals.itertuples():
+        prev = actions[
+            (actions["possession_id"] == g.possession_id)
+            & (actions["action_id"] < g.action_id)
+            & (actions["team_id"] == g.team_id)
+            & (actions["receiver_player_id"] == g.player_id)
+        ]
+        if len(prev) == 0:
+            continue
+        p = prev.iloc[-1]
+        rows.append(
+            {
+                "assistente": uid_for("jogador", int(p.player_id)),
+                "autor": uid_for("jogador", int(g.player_id)),
+                "match_id": match_id,
+                "action_id": int(g.action_id),
+                "minuto": int(g.minuto),
+                "periodo": int(g.period_id),
+                "periodo_nome": g.periodo_nome,
+            }
+        )
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (a:Jogador {uid: r.assistente}), (b:Jogador {uid: r.autor})
+           MERGE (a)-[s:DEU_ASSISTENCIA {match_id: r.match_id, action_id: r.action_id}]->(b)
+           SET s.minuto = r.minuto, s.periodo = r.periodo, s.periodo_nome = r.periodo_nome""",
+        rows,
+    )
+
+
+def _write_acoes(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    """Jogador -[REALIZOU]-> Partida: o log COMPLETO de ações, uma aresta por
+    ação. É o que garante que QUALQUER pergunta factual sobre o jogo tenha dado
+    no grafo (dribles, desarmes, interceptações, faltas, cartões, defesas do
+    goleiro, passes errados...), não só as ações com aresta dedicada.
+
+    A aresta fala FUTEBOL, não SPADL: ``acao`` traz o nome em português
+    (vocabulário fechado, ver ingestion/football_semantics.py), ``sucesso`` é
+    um booleano explícito e ``minuto`` é o minuto de transmissão. O nome
+    SPADL original fica em ``tipo_spadl`` só como rastro de proveniência —
+    não é campo de consulta e não aparece no schema exposto ao agente.
+
+    Cópia direta das linhas do parquet — nada calculado aqui.
+    """
+    valid = actions.dropna(subset=["player_id"])
+    partida_uid = uid_for("partida", match_id)
+    rows = [
+        {
+            "jogador": uid_for("jogador", int(a.player_id)),
+            "partida": partida_uid,
+            "match_id": match_id,
+            "action_id": int(a.action_id),
+            # --- vocabulário de futebol (o que se consulta) ---
+            "acao": a.acao,
+            "grupo_acao": a.grupo_acao,
+            "sucesso": bool(a.sucesso),
+            "minuto": int(a.minuto),
+            "segundo": float(a.segundo),
+            "periodo": int(a.period_id),
+            "periodo_nome": a.periodo_nome,
+            "gol": bool(a.gol),
+            "cartao_amarelo": bool(a.cartao_amarelo),
+            "desfecho": a.desfecho if pd.notna(a.desfecho) else None,
+            "no_gol": bool(a.no_gol),
+            "progressivo": bool(a.progressive) if pd.notna(a.progressive) else False,
+            "corpo": a.corpo if pd.notna(a.corpo) else None,
+            "terco": a.terco if pd.notna(a.terco) else None,
+            "corredor": a.corredor if pd.notna(a.corredor) else None,
+            "zona": int(a.zone_start) if pd.notna(a.zone_start) else None,
+            "xt_gerado": float(a.xt_value),
+            "vaep": float(a.vaep_value),
+            "fase_posse_id": f"{match_id}:{int(a.possession_id)}" if pd.notna(a.possession_id) else None,
+            # --- proveniência (não é campo de consulta) ---
+            "tipo_spadl": a.type_name,
+        }
+        for a in valid.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (j:Jogador {uid: r.jogador}), (m:Partida {uid: r.partida})
+           MERGE (j)-[x:REALIZOU {match_id: r.match_id, action_id: r.action_id}]->(m)
+           SET x.acao = r.acao, x.grupo_acao = r.grupo_acao, x.sucesso = r.sucesso,
+               x.minuto = r.minuto, x.segundo = r.segundo, x.periodo = r.periodo,
+               x.periodo_nome = r.periodo_nome,
+               x.gol = r.gol, x.cartao_amarelo = r.cartao_amarelo,
+               x.desfecho = r.desfecho, x.no_gol = r.no_gol,
+               x.progressivo = r.progressivo, x.corpo = r.corpo,
+               x.terco = r.terco, x.corredor = r.corredor, x.zona = r.zona,
+               x.xt_gerado = r.xt_gerado, x.vaep = r.vaep,
+               x.fase_posse_id = r.fase_posse_id, x.tipo_spadl = r.tipo_spadl""",
+        rows,
+    )
+
+
+def _write_atuou_em(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    agg = (
+        actions.dropna(subset=["player_id"])
+        .groupby(["player_id", "zone_start"])
+        .agg(contagem_acoes=("type_name", "size"), xt_acumulado=("xt_value", "sum"))
+        .reset_index()
+    )
+    rows = [
+        {
+            "jogador": uid_for("jogador", int(a.player_id)),
+            "zona": uid_for("zona", int(a.zone_start)),
+            "match_id": match_id,
+            "contagem_acoes": int(a.contagem_acoes),
+            "xt_acumulado": float(a.xt_acumulado),
+        }
+        for a in agg.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (j:Jogador {uid: r.jogador}), (z:Zona {uid: r.zona})
+           MERGE (j)-[a:ATUOU_EM {match_id: r.match_id}]->(z)
+           SET a.contagem_acoes = r.contagem_acoes, a.xt_acumulado = r.xt_acumulado""",
+        rows,
+    )
+
+
+def _write_participou_de(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    agg = (
+        actions.dropna(subset=["player_id"])
+        .groupby(["player_id", "possession_id"])
+        .size()
+        .reset_index(name="numero_de_toques")
+    )
+    rows = [
+        {
+            "jogador": uid_for("jogador", int(a.player_id)),
+            "fase": uid_for("fase", f"{match_id}:{int(a.possession_id)}"),
+            "match_id": match_id,
+            "numero_de_toques": int(a.numero_de_toques),
+        }
+        for a in agg.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (j:Jogador {uid: r.jogador}), (f:FaseDePosse {uid: r.fase})
+           MERGE (j)-[p:PARTICIPOU_DE {match_id: r.match_id}]->(f)
+           SET p.numero_de_toques = r.numero_de_toques""",
+        rows,
+    )
+
+
+def _write_progrediu_para(driver: Driver, match_id: int, actions: pd.DataFrame) -> int:
+    moves = actions[
+        actions["type_name"].isin(MOVE_TYPES)
+        & (actions["result_name"] == "success")
+        & (actions["zone_start"] != actions["zone_end"])
+    ]
+    agg = (
+        moves.groupby(["zone_start", "zone_end", "team_id"])
+        .agg(contagem=("type_name", "size"), xt_medio=("xt_value", "mean"))
+        .reset_index()
+    )
+    rows = [
+        {
+            "origem": uid_for("zona", int(a.zone_start)),
+            "destino": uid_for("zona", int(a.zone_end)),
+            "match_id": match_id,
+            "team_id": int(a.team_id),
+            "contagem": int(a.contagem),
+            "xt_medio": float(a.xt_medio),
+        }
+        for a in agg.itertuples()
+    ]
+    return db.run_batched(
+        driver,
+        """UNWIND $rows AS r
+           MATCH (a:Zona {uid: r.origem}), (b:Zona {uid: r.destino})
+           MERGE (a)-[p:PROGREDIU_PARA {match_id: r.match_id, team_id: r.team_id}]->(b)
+           SET p.contagem = r.contagem, p.xt_medio = r.xt_medio""",
+        rows,
+    )
+
+
+def graph_stats(driver: Driver, match_id: int) -> dict:
+    """Contagem de nós e arestas por tipo (endpoint /graph/{match_id}/stats)."""
+    with db.session_scope(driver) as session:
+        nodes = session.run(
+            """MATCH (n) WHERE n.match_id = $m OR n:Jogador OR n:Time OR n:Zona
+               RETURN labels(n)[0] AS label, count(*) AS n ORDER BY label""",
+            m=match_id,
+        ).data()
+        edges = session.run(
+            """MATCH ()-[r]->() WHERE r.match_id = $m
+               RETURN type(r) AS type, count(*) AS n ORDER BY type""",
+            m=match_id,
+        ).data()
+    return {
+        "match_id": match_id,
+        "nodes": {r["label"]: r["n"] for r in nodes},
+        "edges": {r["type"]: r["n"] for r in edges},
+    }
