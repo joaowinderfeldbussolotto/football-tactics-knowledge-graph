@@ -511,3 +511,72 @@ rodada: o que mudou foi o modelo, de Claude para um agregador gratuito/barato,
 confirmando ao vivo a ressalva 2 da ADR-9. Para uma citação que dependa de
 fidelidade ~100%, a 3ª rodada (estrutural, Claude) continua sendo a referência
 — preservada em `eval_results_r3_sonnet.json` exatamente para isso.
+
+## ADR-13 — Indexação retomável e não destrutiva (2026-10-05)
+
+**Contexto.** Rodando `index_graphiti.py` na máquina do próprio autor (Codespace,
+`graphiti-core 0.30.2`, OpenRouter + `z-ai/glm-5.3-flash`), a indexação caiu na
+construção de comunidades depois de já ter gasto dinheiro com os triplets:
+
+```
+Error in generating LLM response: LLM returned an empty response
+Retrying _generate_response_with_retry after 2 attempts...   (3, 4)
+Error in generating LLM response: Unterminated string starting at: line 1 column 14
+graphiti_core.llm_client.errors.EmptyResponseError: LLM returned an empty response
+```
+
+Três defeitos, todos de desenho nosso e não do provedor:
+
+1. **Rodar de novo apagava o que já fora pago.** `index_match_patterns` limpava o
+   grupo inteiro no início de cada execução. Reexecutar depois de uma queda
+   repagava tudo — inclusive o que tinha dado certo.
+2. **A falha de uma etapa opcional derrubava o processo.** Comunidades só
+   acrescentam resumos (a busca híbrida funciona sobre os fatos), mas uma
+   exceção em `build_communities` matava o script e deixava as partidas
+   seguintes sem indexar. E o `build_communities` do Graphiti é tudo-ou-nada:
+   resume os clusters em paralelo e só grava no fim, então uma chamada
+   falhando perde todas as já pagas daquela partida.
+3. **O cliente resiliente não cobria a falha real.** O que escrevi em 28/08
+   tratava só `TypeError` por `choices` ausente — mas o `graphiti-core` 0.30
+   levanta `EmptyResponseError`, que passava direto. Pior: esse ramo usava
+   `logger`, que `provider.py` nunca definiu; teria virado `NameError` na
+   primeira vez que rodasse, e nenhum teste o exercitava. Confirmado
+   revertendo o arquivo: `NameError: name 'logger' is not defined`.
+
+**Decisão.**
+
+- **Retomável por padrão.** Padrões cujo nó já existe no grupo são pulados (a
+  chave é o nome `tipo:uid[:8]`); um triplet que falhou não deixa nó, então é
+  tentado de novo. Comunidades só são construídas onde ainda não existem.
+  `--do-zero` restaura o comportamento antigo, explícito, para quando os
+  `PadraoTatico` mudaram. A rota `POST /analyze` da API passa `limpar=True`,
+  porque ali a análise acabou de ser refeita e reindexar do zero é o certo.
+- **Comunidades isoladas por partida.** `build_pattern_communities` repete a
+  etapa inteira (3 vezes, espera crescente, limpando as comunidades da
+  tentativa anterior para não duplicar). Se ainda assim falhar, o script marca
+  a partida como pendente, segue, e sai com código 2 e o comando exato para
+  refazer só aquilo (`--so-comunidades`).
+- **Cliente cobre as três assinaturas.** `EmptyResponseError`,
+  `json.JSONDecodeError` e `TypeError` de `choices`, 3 tentativas rápidas
+  *dentro* de cada uma das 4 do Graphiti (até 12 no total, sem multiplicar as
+  esperas longas), e `logger` definido.
+
+**O que NÃO foi estabelecido.** A causa de o GLM devolver corpo vazio ou JSON
+cortado não foi confirmada. Duas hipóteses: orçamento de `max_tokens` consumido
+por raciocínio oculto (o JSON cortado no caractere 13 combina com isso), ou o
+`finish_reason: "error"` intermitente que este provedor já mostrou antes
+(ADR-12). Uma pista descartou uma terceira: o Graphiti usa `temperature=1` por
+padrão, então repetir não reexecuta a mesma amostra — o retry tem chance real,
+e a minha suposição inicial de que seria determinístico estava errada. Sem
+distinguir as hipóteses, o conserto não depende delas: protege o dinheiro já
+gasto qualquer que seja a causa. Distinguir exigiria chamadas pagas de
+diagnóstico (ex.: ler `finish_reason` e o uso de tokens de raciocínio nas
+respostas vazias) e não foi feito.
+
+**Consequências.** Uma queda no meio da indexação custa, no pior caso, a etapa
+em curso — não a rodada inteira. O preço do desenho: comunidades repetidas
+gastam de novo as chamadas de resumo (poucas por partida, mas não zero), e a
+retomada por nome assume que um padrão já indexado não mudou; se mudou, use
+`--do-zero`. Os testes (`tests/test_resiliencia_indexacao.py`, 15, sem rede)
+cobrem cada decisão acima, e foram verificados contra o código antigo: os de
+resposta vazia e de `choices` falham nele.

@@ -125,7 +125,8 @@ python scripts/run_pipeline.py
 python scripts/build_graph.py
 python scripts/run_analysis.py
 
-# 3. índice do Graphiti (PAGO — ver seção 6 para reaproveitar o backup)
+# 3. índice do Graphiti (PAGO — ver seção 6 para reaproveitar o backup).
+#    É retomável: se cair, rode de novo e ele só paga o que faltou (ADR-13).
 python scripts/index_graphiti.py
 
 # 4. conferir o pipeline antes de gastar: 4 perguntas

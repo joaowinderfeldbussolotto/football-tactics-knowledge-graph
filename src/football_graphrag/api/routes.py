@@ -60,8 +60,11 @@ async def analyze(match_id: int, request: Request):
     if graphiti is not None:
         from football_graphrag.graph.communities import build_pattern_communities, index_match_patterns
 
-        await index_match_patterns(graphiti, _driver(request), match_id)
-        await build_pattern_communities(graphiti, match_id)
+        # limpar=True: a análise acabou de ser refeita, então os resumos já
+        # indexados podem estar velhos. Reindexar do zero é o comportamento
+        # correto aqui; o modo retomável (default) é para o script de indexação.
+        await index_match_patterns(graphiti, _driver(request), match_id, limpar=True)
+        await build_pattern_communities(graphiti, match_id, driver=_driver(request))
     return schemas.AnalyzeResponse(match_id=match_id, padroes_por_tipo=results)
 
 
