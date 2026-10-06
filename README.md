@@ -57,6 +57,7 @@ docker compose exec api python scripts/run_analysis.py   # 5. camada 2 (insights
 | [docs/07-validacao.md](docs/07-validacao.md) | relatório da execução de validação: todos os números medidos, separados da doc |
 | [docs/08-autonomia.md](docs/08-autonomia.md) | o processo do modo autônomo: text-to-Cypher read-only no relatório e no Q&A, bugs reais e regras |
 | [docs/09-a-avaliacao-por-dentro.md](docs/09-a-avaliacao-por-dentro.md) | **como a avaliação funciona**: os três braços, o que cada métrica mede, como rodar, quanto custa e como restaurar o backup do índice |
+| [docs/10-roteiro-de-testes.md](docs/10-roteiro-de-testes.md) | **para testar na mão e entender o app**: 28 casos com comando, resultado esperado (conferido contra o grafo) e como validar — do Neo4j Browser a perguntas que tentam fazer o app errar |
 
 Dados: [StatsBomb Open Data](https://github.com/statsbomb/open-data) (CC BY-NC 4.0, uso
 acadêmico com atribuição). Partidas da PoC: Copa do Mundo 2022 — final, semifinal e quartas.

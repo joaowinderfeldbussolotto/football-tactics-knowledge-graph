@@ -249,7 +249,7 @@ baseline não tem ferramenta que produza equivalente. Não misturar as duas.
 docker compose exec api pytest tests/ -q
 ```
 
-Esperado: `93 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
+Esperado: `108 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
 está disponível (rodam completos com o stack de pé e a pipeline executada).
 
 ## Troca de provedor de LLM
