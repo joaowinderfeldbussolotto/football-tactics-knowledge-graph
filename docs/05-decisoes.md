@@ -577,7 +577,7 @@ respostas vazias) e não foi feito.
 em curso — não a rodada inteira. O preço do desenho: comunidades repetidas
 gastam de novo as chamadas de resumo (poucas por partida, mas não zero), e a
 retomada por nome assume que um padrão já indexado não mudou; se mudou, use
-`--do-zero`. Os testes (`tests/test_resiliencia_indexacao.py`, 17, sem rede)
+`--do-zero`. Os testes (`tests/test_resiliencia_indexacao.py`, 17 dos 20 — os 3 últimos são da ADR-14 —, sem rede)
 cobrem cada decisão acima, e foram verificados contra o código antigo: os de
 resposta vazia e de `choices` falham nele.
 
@@ -615,3 +615,77 @@ relação aos padrões sem nada avisar; o script mostra o estado, a rota não
 verificaria. `tests/test_resiliencia_indexacao.py` guarda a regra: qualquer
 chamada ao Graphiti durante `/analyze` falha o teste, e ele foi verificado
 contra a rota antiga, onde falha.
+
+## ADR-14 — Teto de tokens e esforço de raciocínio configuráveis; erro do modelo vira 502 (2026-10-06)
+
+**Contexto.** Numa requisição à API (`/ask` ou `/report`), o log do autor:
+
+```
+pydantic_ai.exceptions.UnexpectedModelBehavior: Model token limit (16000) exceeded
+before any response was generated. Increase the `max_tokens` model setting, ...
+```
+
+O cliente recebeu um 500 com traceback.
+
+**O que está estabelecido** (lido no código instalado, não suposto):
+
+- O PydanticAI levanta isso só quando `finish_reason == 'length'` **e** a
+  resposta chega vazia, com texto em branco, ou só com raciocínio
+  (`_agent_graph.py`). O próprio comentário dele diz *"possibly during
+  thinking"*, e de propósito **não repete** a chamada nesse caso.
+- O 16000 é um teto **nosso** (`_MODEL_SETTINGS`, hardcoded até aqui). O
+  OpenRouter anuncia `max_completion_tokens` de 943.717 para
+  `z-ai/glm-5.3-flash`.
+- O mesmo modelo anuncia `reasoning`, `reasoning_effort` e `include_reasoning`
+  entre os parâmetros suportados — é um modelo capaz de raciocínio oculto.
+- `provider.py` usa `OpenAIChatModel` + `OpenRouterProvider`. A tradução
+  `openrouter_reasoning` → `extra_body["reasoning"]` pertence à classe
+  `OpenRouterModel`, que não é a usada; o caminho que o `OpenAIChatModel`
+  envia é o `extra_body` direto.
+
+**O que NÃO está estabelecido.**
+
+- **Que a causa é o raciocínio.** A condição acima também cobre resposta
+  genuinamente vazia. Este erro é do mesmo tipo do `EmptyResponseError` da
+  ADR-13 (mesmo modelo, mesmo sintoma de saída vazia/cortada), o que dá peso à
+  hipótese "raciocínio consumindo o orçamento" — mas por caminhos diferentes
+  (PydanticAI aqui, Graphiti lá), então é indício, não prova de que são a mesma
+  causa.
+- **Que `effort: low` reduz o raciocínio deste modelo**, ou que não piora o uso
+  de ferramenta e a saída estruturada. Nada foi rodado ao vivo: o ambiente em
+  que isto foi escrito não tem a chave do provedor, e nenhuma chamada paga foi
+  feita.
+- **Que 32000 basta.** Se o raciocínio for um laço descontrolado em vez de
+  longo-mas-finito, dobrar o teto só dobra o gasto da chamada que falha.
+
+**Decisão.**
+
+- Dois botões no `.env`, com defaults que **preservam o comportamento atual**:
+  `LLM_MAX_TOKENS=16000` (o valor que sempre foi usado) e `LLM_REASONING_EFFORT=`
+  (vazio: não envia nada). Não mudei o default de tokens porque não sei se
+  dobrá-lo resolve; mudar às cegas gastaria mais sem garantia.
+- `LLM_REASONING_EFFORT` só é traduzido para o `openrouter`
+  (`extra_body["reasoning"]["effort"]`). Em outro provedor é **ignorado com
+  aviso no log**: ignorar em silêncio faria o botão parecer funcionar. Os dois
+  valores vão para `pydantic_ai_model_settings()` em `llm/provider.py` — a
+  camada que já isola o que muda de provedor — e não ficam espalhados em
+  `agents.py`.
+- `/ask` e `/report` devolvem **502** com a instrução (qual variável ajustar)
+  quando o erro é de limite de tokens, e 502 genérico para outro
+  `UnexpectedModelBehavior`, sem a dica de tokens — não se manda ajustar um teto
+  por um erro que não é de teto. 502, não 500: quem falhou foi o modelo, não a
+  aplicação.
+- **Sem repetição automática na API.** O PydanticAI se recusa a repetir de
+  propósito, e repetir com o mesmo teto tende a repetir o resultado, cada
+  tentativa podendo gastar o teto inteiro. (O runner de avaliação repete, via
+  `_retentar`, mas ali o custo de uma pergunta perdida é de uma rodada inteira;
+  numa requisição de API, quem chamou pode simplesmente tentar de novo.)
+
+**Consequências.** A ordem sugerida é `LLM_MAX_TOKENS=32000` primeiro — só dá
+espaço, não pode piorar a resposta — e `LLM_REASONING_EFFORT=low` depois, se
+persistir. Só a medição ao vivo diz qual resolve, e se a qualidade das respostas
+(fidelidade, insight) se mantém: a avaliação (`run_evaluation.py`) é o
+instrumento, e o `effort` merece uma rodada própria antes de virar default. Fora
+do escopo e não tocado: os juízes e o baseline não definem teto
+(`judges.py`, `baseline_rag.py`), então usam o do provedor — o mesmo risco de
+raciocínio longo existe ali, sem a proteção do teto.

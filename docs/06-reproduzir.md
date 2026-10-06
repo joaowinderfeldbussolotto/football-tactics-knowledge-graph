@@ -249,7 +249,7 @@ baseline não tem ferramenta que produza equivalente. Não misturar as duas.
 docker compose exec api pytest tests/ -q
 ```
 
-Esperado: `82 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
+Esperado: `93 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
 está disponível (rodam completos com o stack de pé e a pipeline executada).
 
 ## Troca de provedor de LLM
@@ -265,6 +265,31 @@ EMBEDDER_PROVIDER=mistral        # anthropic e openrouter não têm API de embed
 EMBEDDER_API_KEY=...
 EMBEDDER_MODEL=mistral-embed
 ```
+
+### Quando `/ask` ou `/report` devolvem 502 por limite de tokens
+
+Sintoma, no log da API:
+
+```
+UnexpectedModelBehavior: Model token limit (16000) exceeded before any response was generated.
+```
+
+O cliente recebe **502** com a instrução de o que ajustar (antes era um 500 com
+traceback). Significa que a chamada terminou com `finish_reason: length` **sem
+texto**. Em modelo de raciocínio (ex. `z-ai/glm-5.3-flash`), o raciocínio oculto
+conta contra o teto de saída, e pode consumi-lo inteiro. Dois botões no `.env`
+(ADR-14), nesta ordem:
+
+```bash
+LLM_MAX_TOKENS=32000          # 1º: só dá mais espaço; não muda a qualidade da resposta
+LLM_REASONING_EFFORT=low      # 2º, se persistir: limita o raciocínio (só openrouter)
+```
+
+Reinicie a API depois (`docker compose restart api`): os agentes leem o `.env`
+uma vez, no primeiro uso. **Nenhum dos dois foi testado ao vivo** — ver a ADR-14
+para o que se sabe e o que não se sabe. Para distinguir "raciocínio longo" de
+"resposta vazia", o trace dessa chamada no Langfuse (se as chaves estiverem
+no `.env`) deve mostrar os tokens de saída gastos.
 
 Com `LLM_PROVIDER=openrouter` (ver ADR-9 em `05-decisoes.md` — inclui a ressalva
 de modelo stealth): `LLM_MODEL` precisa do formato `vendor/modelo`

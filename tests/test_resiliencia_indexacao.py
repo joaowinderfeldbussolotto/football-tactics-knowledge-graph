@@ -473,3 +473,66 @@ def test_analyze_responde_igual_com_e_sem_graphiti(monkeypatch):
     com = _cliente_da_api(monkeypatch, object()).post("/analyze/1").json()
     sem = _cliente_da_api(monkeypatch, None).post("/analyze/1").json()
     assert com == sem
+
+
+# ---------------------------------------------------------------------------
+# /ask e /report — erro do modelo vira 502 acionável, não 500 com traceback
+# ---------------------------------------------------------------------------
+
+# A mensagem exata que o PydanticAI levantou na API do autor.
+_ERRO_DE_LIMITE = (
+    "Model token limit (16000) exceeded before any response was generated. "
+    "Increase the `max_tokens` model setting, or simplify the prompt to result in "
+    "a shorter response that will fitwithin the limit."
+)
+
+
+def _cliente_com_modelo_que_falha(monkeypatch, mensagem):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from pydantic_ai.exceptions import UnexpectedModelBehavior
+
+    from football_graphrag.api import routes
+
+    async def contexto(*a, **k):
+        return [], [], [], {}
+
+    async def falha(*a, **k):
+        raise UnexpectedModelBehavior(mensagem)
+
+    monkeypatch.setattr(routes, "_require_llm", lambda: None)
+    monkeypatch.setattr(routes.retrieval, "retrieve_context", contexto)
+    monkeypatch.setattr(routes.retrieval, "fetch_all_patterns", lambda *a, **k: [{"uid": "x"}])
+    monkeypatch.setattr(routes.agents, "answer_question", falha)
+    monkeypatch.setattr(routes.agents, "generate_report", falha)
+
+    app = FastAPI()
+    app.include_router(routes.router)
+    app.state.driver = object()
+    app.state.graphiti = None
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def test_ask_limite_de_tokens_vira_502_dizendo_o_que_ajustar(monkeypatch):
+    cliente = _cliente_com_modelo_que_falha(monkeypatch, _ERRO_DE_LIMITE)
+    r = cliente.post("/ask", json={"match_id": 1, "pergunta": "quem fez os gols?"})
+    assert r.status_code == 502
+    detalhe = r.json()["detail"]
+    assert "LLM_MAX_TOKENS" in detalhe and "LLM_REASONING_EFFORT" in detalhe
+    assert "16000" in detalhe  # mantém o detalhe original do PydanticAI
+
+
+def test_report_limite_de_tokens_vira_502(monkeypatch):
+    cliente = _cliente_com_modelo_que_falha(monkeypatch, _ERRO_DE_LIMITE)
+    r = cliente.get("/report/1")
+    assert r.status_code == 502
+    assert "LLM_MAX_TOKENS" in r.json()["detail"]
+
+
+def test_outro_comportamento_inesperado_do_modelo_tambem_vira_502_sem_a_dica_de_tokens(monkeypatch):
+    """Não se manda ajustar LLM_MAX_TOKENS por um erro que não é de tokens."""
+    cliente = _cliente_com_modelo_que_falha(monkeypatch, "Exceeded maximum retries for output validation")
+    r = cliente.post("/ask", json={"match_id": 1, "pergunta": "x"})
+    assert r.status_code == 502
+    assert "LLM_MAX_TOKENS" not in r.json()["detail"]
+    assert "inutilizável" in r.json()["detail"]

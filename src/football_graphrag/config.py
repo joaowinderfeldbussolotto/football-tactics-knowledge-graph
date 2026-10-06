@@ -29,6 +29,17 @@ class Settings(BaseSettings):
     # agregador o implementa, e "json_object" é o degrau de compatibilidade —
     # o primeiro botão a girar se a camada 3 falhar em validação de saída.
     llm_structured_output_mode: Literal["json_schema", "json_object"] = "json_schema"
+    # Teto de tokens de SAÍDA por chamada dos agentes da camada 3 (/ask, /report).
+    # Em modelo de raciocínio o raciocínio oculto conta contra este teto: se ele o
+    # consome inteiro, a chamada termina com finish_reason "length" e SEM texto, e o
+    # PydanticAI levanta "Model token limit (N) exceeded before any response was
+    # generated". O default é o valor que o código sempre usou.
+    llm_max_tokens: int = 16000
+    # Esforço de raciocínio, enviado como extra_body["reasoning"]["effort"] — só
+    # openrouter. Vazio = não envia nada (comportamento do modelo). Opt-in porque
+    # esforço menor pode piorar o uso de ferramenta e a saída estruturada, e isso
+    # não foi medido neste projeto.
+    llm_reasoning_effort: Literal["", "none", "low", "medium", "high"] = ""
 
     # --- Embeddings ---
     embedder_provider: str = ""

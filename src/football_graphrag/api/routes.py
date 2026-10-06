@@ -4,6 +4,7 @@ import logging
 import time
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from football_graphrag.api import agents, retrieval, schemas
 from football_graphrag.config import get_settings
@@ -30,6 +31,27 @@ def _require_llm() -> None:
             status_code=503,
             detail="LLM_API_KEY/LLM_MODEL ausentes no .env: este endpoint usa o agente de verbalização (camada 3)",
         )
+
+
+def _erro_do_modelo(exc: UnexpectedModelBehavior) -> HTTPException:
+    """502 com mensagem acionável no lugar de um 500 com traceback.
+
+    ``UnexpectedModelBehavior`` é o modelo (ou o provedor) devolvendo algo que
+    não dá para usar — não é bug da aplicação, e quem chamou a API precisa saber
+    o que ajustar. O caso que motivou isto: ``finish_reason: length`` sem texto,
+    típico de modelo de raciocínio cujo raciocínio consumiu o teto de tokens.
+    """
+    texto = str(exc)
+    if "token limit" in texto:
+        detalhe = (
+            "O modelo esgotou o limite de tokens de saída antes de produzir resposta "
+            "(em modelo de raciocínio, o raciocínio oculto conta contra o limite). "
+            "Aumente LLM_MAX_TOKENS ou, no openrouter, defina LLM_REASONING_EFFORT=low, "
+            f"reinicie a API e tente de novo. Detalhe: {texto}"
+        )
+    else:
+        detalhe = f"O modelo devolveu uma resposta inutilizável: {texto}"
+    return HTTPException(status_code=502, detail=detalhe)
 
 
 @router.get("/health")
@@ -81,7 +103,11 @@ async def report(match_id: int, request: Request):
     if not patterns:
         raise HTTPException(status_code=404, detail=f"sem padrões para {match_id}; rode /analyze antes")
     t0 = time.perf_counter()
-    result = await agents.generate_report(patterns, _driver(request), match_id)
+    try:
+        result = await agents.generate_report(patterns, _driver(request), match_id)
+    except UnexpectedModelBehavior as exc:
+        logger.exception("relatório %s: modelo devolveu resposta inutilizável", match_id)
+        raise _erro_do_modelo(exc) from exc
     logger.info("relatório %s gerado em %.2fs (%d padrões)", match_id, time.perf_counter() - t0, len(patterns))
     return result
 
@@ -94,9 +120,13 @@ async def ask(body: schemas.AskRequest, request: Request):
         _driver(request), body.match_id, body.pergunta, _graphiti(request)
     )
     t0 = time.perf_counter()
-    result = await agents.answer_question(
-        body.pergunta, patterns, stats, extra_facts, _driver(request), body.match_id
-    )
+    try:
+        result = await agents.answer_question(
+            body.pergunta, patterns, stats, extra_facts, _driver(request), body.match_id
+        )
+    except UnexpectedModelBehavior as exc:
+        logger.exception("ask %s: modelo devolveu resposta inutilizável", body.match_id)
+        raise _erro_do_modelo(exc) from exc
     timings["generation_seconds"] = round(time.perf_counter() - t0, 4)
     logger.info("ask %s: %s", body.match_id, timings)
     return result

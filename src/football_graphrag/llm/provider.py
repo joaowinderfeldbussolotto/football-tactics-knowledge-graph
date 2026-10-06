@@ -244,6 +244,35 @@ def _classe_cliente_resiliente():
     return ClienteResiliente
 
 
+def pydantic_ai_model_settings(settings: Settings) -> dict:
+    """Settings de chamada dos agentes da camada 3 (``Agent(model_settings=...)``).
+
+    Fica aqui, e não em ``api/agents.py``, porque o que muda de provedor para
+    provedor é responsabilidade desta camada — e porque a ``extra_body`` que o
+    OpenRouter entende não existe nos outros.
+
+    ``max_tokens`` vem de ``LLM_MAX_TOKENS``. ``LLM_REASONING_EFFORT`` só é
+    traduzido para o OpenRouter, via ``extra_body["reasoning"]``: o projeto usa
+    ``OpenAIChatModel`` com ``OpenRouterProvider``, e é esse o caminho que esse
+    modelo envia (a tradução ``openrouter_reasoning`` pertence à classe
+    ``OpenRouterModel``, que não é a usada). Em outro provedor a opção é
+    ignorada COM aviso — ignorar em silêncio faria parecer que o botão
+    funciona.
+    """
+    configuradas: dict = {"max_tokens": settings.llm_max_tokens}
+    esforco = settings.llm_reasoning_effort
+    if esforco:
+        if settings.llm_provider == "openrouter":
+            configuradas["extra_body"] = {"reasoning": {"effort": esforco}}
+        else:
+            logger.warning(
+                "LLM_REASONING_EFFORT=%s ignorado: só é traduzido para o provedor openrouter "
+                "(provedor atual: %s)",
+                esforco, settings.llm_provider,
+            )
+    return configuradas
+
+
 def graphiti_llm_client(settings: Settings) -> LLMClient:
     """Cliente de LLM do Graphiti com o cliente SDK (e seu retry) injetado."""
     config = LLMConfig(
