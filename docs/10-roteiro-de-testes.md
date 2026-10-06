@@ -317,6 +317,9 @@ curl -s localhost:8000/report/999
 
 # Parte 3 — Perguntar ao app  `[LLM]`
 
+> Quer mais perguntas? O `11-perguntas-para-fazer-ao-app.md` tem um banco de
+> mais de 60, com variações de formulação, outras partidas e armadilhas.
+
 ```bash
 curl -s -X POST localhost:8000/ask -H 'Content-Type: application/json' \
   -d '{"match_id": 3869685, "pergunta": "SUA PERGUNTA"}' | python -m json.tool
