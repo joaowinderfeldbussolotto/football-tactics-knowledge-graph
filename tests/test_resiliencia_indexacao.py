@@ -426,3 +426,65 @@ def test_do_zero_pede_limpeza_explicitamente(script, monkeypatch):
     asyncio.run(script.main([1], True, False))
 
     assert script._chamadas["indice"] == [(1, True)]
+
+
+# ---------------------------------------------------------------------------
+# POST /analyze — o Graphiti é opcional e não pode derrubar a análise
+# ---------------------------------------------------------------------------
+
+def _app_de_teste(monkeypatch, graphiti, indexar, comunidades):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from football_graphrag.api import routes
+    from football_graphrag.graph import communities
+
+    monkeypatch.setattr(routes.analysis, "run_all", lambda *a, **k: {"pivo_estrutural": 2})
+    monkeypatch.setattr(communities, "index_match_patterns", indexar)
+    monkeypatch.setattr(communities, "build_pattern_communities", comunidades)
+
+    app = FastAPI()
+    app.include_router(routes.router)
+    app.state.driver = object()
+    app.state.graphiti = graphiti
+    return TestClient(app)
+
+
+def test_analyze_devolve_200_com_a_analise_quando_o_graphiti_falha(monkeypatch):
+    """O defeito: EmptyResponseError em build_communities subia da rota e o
+    cliente recebia 500, com os PadraoTatico já gravados pela camada 2."""
+
+    async def indexar(*a, **k):
+        return 24
+
+    async def comunidades(*a, **k):
+        raise EmptyResponseError("LLM returned an empty response")
+
+    resposta = _app_de_teste(monkeypatch, object(), indexar, comunidades).post("/analyze/3869685")
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["padroes_por_tipo"] == {"pivo_estrutural": 2}  # a análise sobrevive
+    assert corpo["graphiti"]["comunidades"] is False
+    assert "EmptyResponseError" in corpo["graphiti"]["erro"]
+    assert corpo["graphiti"]["indexados"] == 24  # o que já foi pago fica registrado
+    assert "--so-comunidades" in corpo["graphiti"]["como_completar"]
+
+
+def test_analyze_sem_graphiti_nao_inventa_status(monkeypatch):
+    async def nunca(*a, **k):
+        raise AssertionError("não deveria ser chamado")
+
+    corpo = _app_de_teste(monkeypatch, None, nunca, nunca).post("/analyze/1").json()
+    assert corpo["graphiti"] is None
+
+
+def test_analyze_graphiti_ok_reporta_sucesso(monkeypatch):
+    async def indexar(*a, **k):
+        return 24
+
+    async def comunidades(*a, **k):
+        return ("nos", "arestas")
+
+    corpo = _app_de_teste(monkeypatch, object(), indexar, comunidades).post("/analyze/1").json()
+    assert corpo["graphiti"] == {"indexados": 24, "comunidades": True, "erro": None}
