@@ -20,11 +20,17 @@ NATIVOS de cada SDK, configurados aqui uma única vez a partir do .env:
 Validações ao vivo registradas no ADR-5/ADR-7 de docs/05-decisoes.md.
 """
 
+import asyncio
+import json
+import logging
+
 from graphiti_core.cross_encoder.client import CrossEncoderClient
 from graphiti_core.embedder import EmbedderClient, OpenAIEmbedder, OpenAIEmbedderConfig
 from graphiti_core.llm_client import LLMClient, LLMConfig
 
 from football_graphrag.config import Settings
+
+logger = logging.getLogger(__name__)
 
 MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -172,42 +178,99 @@ def pydantic_ai_model(settings: Settings):
 # ---------------------------------------------------------------------------
 
 def _classe_cliente_resiliente():
-    """Cliente do Graphiti que aguenta resposta sem ``choices``.
+    """Cliente do Graphiti que repete a chamada quando o provedor devolve lixo.
 
-    Defeito real, observado ao indexar com OpenRouter: o cliente genérico do
-    Graphiti faz ``response.choices[0]`` sem checar nada. Quando o provedor
-    devolve resposta sem ``choices`` — acontece com agregadores, em resposta
-    vazia ou filtrada —, estoura ``TypeError: 'NoneType' object is not
-    subscriptable`` lá dentro. O retry do tenacity não reconhece isso como
-    erro retentável, e a indexação inteira morre no meio (aconteceu, com 22
-    de 73 padrões indexados).
+    Três assinaturas de "resposta ruim" de um provedor agregado, todas vistas
+    ao indexar com OpenRouter + ``z-ai/glm-5.3-flash``:
 
-    A resposta vazia é intermitente: repetir a chamada resolve. A subclasse é
-    montada dentro da função, e não no topo do módulo, porque ``graphiti_core``
-    é dependência pesada que o projeto só importa onde precisa.
+    - ``TypeError: 'NoneType' object is not subscriptable`` — resposta sem
+      ``choices`` (graphiti-core antigo fazia ``response.choices[0]`` sem
+      checar);
+    - ``EmptyResponseError`` — corpo vazio (graphiti-core 0.30 trata o caso e
+      levanta isto);
+    - ``json.JSONDecodeError`` — JSON cortado no meio (``Unterminated string
+      starting at ... char 13``).
+
+    O Graphiti já repete as duas últimas (4 tentativas, backoff de 5 a 120 s)
+    e, esgotadas, reraise — foi o que derrubou o ``index_graphiti.py`` no meio
+    da construção de comunidades. Esta camada fica DENTRO de cada tentativa
+    dele: 3 chamadas rápidas por tentativa do Graphiti, ou seja, até 12 no
+    total antes de desistir, sem multiplicar as esperas longas.
+
+    Não se afirma aqui a causa da resposta vazia — pode ser orçamento de
+    ``max_tokens`` consumido por raciocínio oculto, pode ser o
+    ``finish_reason: "error"`` intermitente que este provedor já mostrou. O
+    Graphiti usa ``temperature=1`` por padrão, então repetir NÃO é reexecutar
+    a mesma amostra; é uma nova tirada, e é isso que se está apostando.
+
+    A subclasse é montada dentro da função, e não no topo do módulo, porque
+    ``graphiti_core`` é dependência pesada que o projeto só importa onde
+    precisa.
     """
     from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
 
+    try:
+        from graphiti_core.llm_client.errors import EmptyResponseError
+    except ImportError:  # graphiti-core antigo, sem a classe: nada a capturar
+
+        class EmptyResponseError(Exception):  # type: ignore[no-redef]
+            pass
+
     class ClienteResiliente(OpenAIGenericClient):
         TENTATIVAS = 3
+        ESPERA_S = 3.0
 
         async def _generate_response(self, *args, **kwargs):
-            ultimo = None
+            ultimo: Exception | None = None
             for tentativa in range(1, self.TENTATIVAS + 1):
                 try:
                     return await super()._generate_response(*args, **kwargs)
+                except (EmptyResponseError, json.JSONDecodeError) as exc:
+                    ultimo = exc
                 except TypeError as exc:
                     # a assinatura exata do defeito: choices ausente/None
                     if "subscriptable" not in str(exc):
                         raise
                     ultimo = exc
-                    logger.warning(
-                        "resposta sem choices (tentativa %d/%d); repetindo",
-                        tentativa, self.TENTATIVAS,
-                    )
+                logger.warning(
+                    "resposta ruim do provedor (tentativa %d/%d): %s: %s",
+                    tentativa, self.TENTATIVAS, type(ultimo).__name__, ultimo,
+                )
+                if tentativa < self.TENTATIVAS:
+                    await asyncio.sleep(self.ESPERA_S * tentativa)
+            assert ultimo is not None
             raise ultimo
 
     return ClienteResiliente
+
+
+def pydantic_ai_model_settings(settings: Settings) -> dict:
+    """Settings de chamada dos agentes da camada 3 (``Agent(model_settings=...)``).
+
+    Fica aqui, e não em ``api/agents.py``, porque o que muda de provedor para
+    provedor é responsabilidade desta camada — e porque a ``extra_body`` que o
+    OpenRouter entende não existe nos outros.
+
+    ``max_tokens`` vem de ``LLM_MAX_TOKENS``. ``LLM_REASONING_EFFORT`` só é
+    traduzido para o OpenRouter, via ``extra_body["reasoning"]``: o projeto usa
+    ``OpenAIChatModel`` com ``OpenRouterProvider``, e é esse o caminho que esse
+    modelo envia (a tradução ``openrouter_reasoning`` pertence à classe
+    ``OpenRouterModel``, que não é a usada). Em outro provedor a opção é
+    ignorada COM aviso — ignorar em silêncio faria parecer que o botão
+    funciona.
+    """
+    configuradas: dict = {"max_tokens": settings.llm_max_tokens}
+    esforco = settings.llm_reasoning_effort
+    if esforco:
+        if settings.llm_provider == "openrouter":
+            configuradas["extra_body"] = {"reasoning": {"effort": esforco}}
+        else:
+            logger.warning(
+                "LLM_REASONING_EFFORT=%s ignorado: só é traduzido para o provedor openrouter "
+                "(provedor atual: %s)",
+                esforco, settings.llm_provider,
+            )
+    return configuradas
 
 
 def graphiti_llm_client(settings: Settings) -> LLMClient:

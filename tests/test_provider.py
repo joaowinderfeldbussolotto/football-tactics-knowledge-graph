@@ -145,3 +145,75 @@ def test_mistral_pydantic_ai_model_carries_retry_config():
     model = provider.pydantic_ai_model(make_settings(llm_provider="mistral"))
     retry = model.client.sdk_configuration.retry_config
     assert retry is not None and retry.strategy == "backoff"
+
+
+# ---------------------------------------------------------------------------
+# Teto de tokens e esforço de raciocínio (LLM_MAX_TOKENS / LLM_REASONING_EFFORT)
+# ---------------------------------------------------------------------------
+
+def test_model_settings_default_preserva_o_comportamento_antigo():
+    """Antes era a constante {"max_tokens": 16000}. Sem tocar no .env, o mesmo."""
+    assert provider.pydantic_ai_model_settings(make_settings()) == {"max_tokens": 16000}
+
+
+def test_model_settings_max_tokens_vem_do_env():
+    assert provider.pydantic_ai_model_settings(make_settings(llm_max_tokens=32000)) == {
+        "max_tokens": 32000
+    }
+
+
+def test_reasoning_effort_vai_como_extra_body_no_openrouter():
+    s = provider.pydantic_ai_model_settings(
+        make_settings(llm_provider="openrouter", llm_reasoning_effort="low")
+    )
+    assert s["extra_body"] == {"reasoning": {"effort": "low"}}
+    assert s["max_tokens"] == 16000
+
+
+@pytest.mark.parametrize("llm_provider", ["mistral", "anthropic", "gemini"])
+def test_reasoning_effort_em_outro_provedor_e_ignorado_com_aviso(llm_provider, caplog):
+    """Ignorar em silêncio faria o botão parecer funcionar."""
+    with caplog.at_level("WARNING"):
+        s = provider.pydantic_ai_model_settings(
+            make_settings(llm_provider=llm_provider, llm_reasoning_effort="low")
+        )
+    assert "extra_body" not in s
+    assert "LLM_REASONING_EFFORT" in caplog.text
+
+
+def test_reasoning_effort_valor_invalido_e_rejeitado_na_configuracao():
+    with pytest.raises(Exception):
+        make_settings(llm_provider="openrouter", llm_reasoning_effort="muito-alto")
+
+
+def test_o_agente_recebe_as_settings_montadas_pelo_provider(monkeypatch):
+    """Garante a fiação: um .env com LLM_MAX_TOKENS tem que chegar ao Agent."""
+    from football_graphrag.api import agents
+
+    chegou = {}
+
+    class AgenteFalso:
+        def __init__(self, *a, **kw):
+            chegou.update(kw)
+
+        def system_prompt(self, fn):
+            return fn
+
+        def tool(self, fn):
+            return fn
+
+    monkeypatch.setattr(agents, "Agent", AgenteFalso)
+    monkeypatch.setattr(agents, "pydantic_ai_model", lambda s: "modelo")
+    monkeypatch.setattr(
+        agents, "get_settings",
+        lambda: make_settings(llm_provider="openrouter", llm_max_tokens=24000, llm_reasoning_effort="low"),
+    )
+    agents.qa_agent.cache_clear()
+    try:
+        agents.qa_agent()
+    finally:
+        agents.qa_agent.cache_clear()
+    assert chegou["model_settings"] == {
+        "max_tokens": 24000,
+        "extra_body": {"reasoning": {"effort": "low"}},
+    }

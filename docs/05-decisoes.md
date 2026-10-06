@@ -511,3 +511,181 @@ rodada: o que mudou foi o modelo, de Claude para um agregador gratuito/barato,
 confirmando ao vivo a ressalva 2 da ADR-9. Para uma citação que dependa de
 fidelidade ~100%, a 3ª rodada (estrutural, Claude) continua sendo a referência
 — preservada em `eval_results_r3_sonnet.json` exatamente para isso.
+
+## ADR-13 — Indexação retomável e não destrutiva (2026-10-05)
+
+**Contexto.** Rodando `index_graphiti.py` na máquina do próprio autor (Codespace,
+`graphiti-core 0.30.2`, OpenRouter + `z-ai/glm-5.3-flash`), a indexação caiu na
+construção de comunidades depois de já ter gasto dinheiro com os triplets:
+
+```
+Error in generating LLM response: LLM returned an empty response
+Retrying _generate_response_with_retry after 2 attempts...   (3, 4)
+Error in generating LLM response: Unterminated string starting at: line 1 column 14
+graphiti_core.llm_client.errors.EmptyResponseError: LLM returned an empty response
+```
+
+Três defeitos, todos de desenho nosso e não do provedor:
+
+1. **Rodar de novo apagava o que já fora pago.** `index_match_patterns` limpava o
+   grupo inteiro no início de cada execução. Reexecutar depois de uma queda
+   repagava tudo — inclusive o que tinha dado certo.
+2. **A falha de uma etapa opcional derrubava o processo.** Comunidades só
+   acrescentam resumos (a busca híbrida funciona sobre os fatos), mas uma
+   exceção em `build_communities` matava o script e deixava as partidas
+   seguintes sem indexar. E o `build_communities` do Graphiti é tudo-ou-nada:
+   resume os clusters em paralelo e só grava no fim, então uma chamada
+   falhando perde todas as já pagas daquela partida.
+3. **O cliente resiliente não cobria a falha real.** O que escrevi em 28/08
+   tratava só `TypeError` por `choices` ausente — mas o `graphiti-core` 0.30
+   levanta `EmptyResponseError`, que passava direto. Pior: esse ramo usava
+   `logger`, que `provider.py` nunca definiu; teria virado `NameError` na
+   primeira vez que rodasse, e nenhum teste o exercitava. Confirmado
+   revertendo o arquivo: `NameError: name 'logger' is not defined`.
+
+**Decisão.**
+
+- **Retomável por padrão.** Padrões cujo nó já existe no grupo são pulados (a
+  chave é o nome `tipo:uid[:8]`); um triplet que falhou não deixa nó, então é
+  tentado de novo. Comunidades só são construídas onde ainda não existem.
+  `--do-zero` restaura o comportamento antigo, explícito, para quando os
+  `PadraoTatico` mudaram. (A rota `POST /analyze` deixou de indexar — ver o
+  adendo ao fim desta ADR.)
+- **Comunidades isoladas por partida.** `build_pattern_communities` repete a
+  etapa inteira (3 vezes, espera crescente, limpando as comunidades da
+  tentativa anterior para não duplicar). Se ainda assim falhar, o script marca
+  a partida como pendente, segue, e sai com código 2 e o comando exato para
+  refazer só aquilo (`--so-comunidades`).
+- **Cliente cobre as três assinaturas.** `EmptyResponseError`,
+  `json.JSONDecodeError` e `TypeError` de `choices`, 3 tentativas rápidas
+  *dentro* de cada uma das 4 do Graphiti (até 12 no total, sem multiplicar as
+  esperas longas), e `logger` definido.
+
+**O que NÃO foi estabelecido.** A causa de o GLM devolver corpo vazio ou JSON
+cortado não foi confirmada. Duas hipóteses: orçamento de `max_tokens` consumido
+por raciocínio oculto (o JSON cortado no caractere 13 combina com isso), ou o
+`finish_reason: "error"` intermitente que este provedor já mostrou antes
+(ADR-12). Uma pista descartou uma terceira: o Graphiti usa `temperature=1` por
+padrão, então repetir não reexecuta a mesma amostra — o retry tem chance real,
+e a minha suposição inicial de que seria determinístico estava errada. Sem
+distinguir as hipóteses, o conserto não depende delas: protege o dinheiro já
+gasto qualquer que seja a causa. Distinguir exigiria chamadas pagas de
+diagnóstico (ex.: ler `finish_reason` e o uso de tokens de raciocínio nas
+respostas vazias) e não foi feito.
+
+**Consequências.** Uma queda no meio da indexação custa, no pior caso, a etapa
+em curso — não a rodada inteira. O preço do desenho: comunidades repetidas
+gastam de novo as chamadas de resumo (poucas por partida, mas não zero), e a
+retomada por nome assume que um padrão já indexado não mudou; se mudou, use
+`--do-zero`. Os testes (`tests/test_resiliencia_indexacao.py`, 17 dos 20 — os 3 últimos são da ADR-14 —, sem rede)
+cobrem cada decisão acima, e foram verificados contra o código antigo: os de
+resposta vazia e de `choices` falham nele.
+
+**Adendo (2026-10-06) — o Graphiti sai da rota `POST /analyze`.** Uma hora
+depois de escrever a ADR acima, a mesma falha apareceu num log da API
+(`EmptyResponseError`, vindo de `build_communities`), e ela mostrou que eu tinha
+consertado o script e deixado a rota com o defeito: a camada 2 já estava gravada
+quando o Graphiti entrava, e qualquer falha dele virava HTTP 500, com o cliente
+achando que a análise falhara. O primeiro conserto (commit `0491c26`) isolou a
+falha e devolveu 200 com um campo `graphiti`. Foi **desfeito** no passo
+seguinte, por decisão do autor, e o motivo vale registrar: isolar a falha
+resolvia o 500 mas não o problema de fundo.
+
+A rota apagava o índice da partida a cada chamada (`limpar=True`) e repagava
+todas as chamadas de LLM. Quem chamava `/analyze` só para refazer a camada 2 —
+determinística, de graça — gastava dinheiro sem saber, e perdia um índice
+restaurado do backup. Um 200 com `erro` dentro da resposta deixa isso mais
+tolerável, não menos caro. O que o script tem e a rota não pode ter: mostra o
+estado antes de agir, retoma em vez de recomeçar, e exige `--do-zero` por
+escrito para destruir.
+
+**Decisão.** `/analyze` faz só a camada 2: sem LLM, sem custo, sem tocar no
+Graphiti. O índice é construído exclusivamente por `scripts/index_graphiti.py`.
+O `/ask` continua usando o Graphiti na busca híbrida, só leitura — `app.state.graphiti`
+segue criado no lifespan. O campo `graphiti` que a rota ganhara foi removido da
+resposta (seria sempre `None`); como o PR ainda não foi mergeado, não há cliente
+dependendo dele.
+
+**Consequência, que é uma mudança de comportamento.** Quem dependia de
+`/analyze` para manter o índice atualizado depois de refazer a análise agora
+precisa rodar `index_graphiti.py` (`--do-zero` se os padrões mudaram). Isso
+é mais um passo manual — e foi o preço aceito em troca de a rota nunca mais
+gastar dinheiro por baixo dos panos. O índice pode ficar desatualizado em
+relação aos padrões sem nada avisar; o script mostra o estado, a rota não
+verificaria. `tests/test_resiliencia_indexacao.py` guarda a regra: qualquer
+chamada ao Graphiti durante `/analyze` falha o teste, e ele foi verificado
+contra a rota antiga, onde falha.
+
+## ADR-14 — Teto de tokens e esforço de raciocínio configuráveis; erro do modelo vira 502 (2026-10-06)
+
+**Contexto.** Numa requisição à API (`/ask` ou `/report`), o log do autor:
+
+```
+pydantic_ai.exceptions.UnexpectedModelBehavior: Model token limit (16000) exceeded
+before any response was generated. Increase the `max_tokens` model setting, ...
+```
+
+O cliente recebeu um 500 com traceback.
+
+**O que está estabelecido** (lido no código instalado, não suposto):
+
+- O PydanticAI levanta isso só quando `finish_reason == 'length'` **e** a
+  resposta chega vazia, com texto em branco, ou só com raciocínio
+  (`_agent_graph.py`). O próprio comentário dele diz *"possibly during
+  thinking"*, e de propósito **não repete** a chamada nesse caso.
+- O 16000 é um teto **nosso** (`_MODEL_SETTINGS`, hardcoded até aqui). O
+  OpenRouter anuncia `max_completion_tokens` de 943.717 para
+  `z-ai/glm-5.3-flash`.
+- O mesmo modelo anuncia `reasoning`, `reasoning_effort` e `include_reasoning`
+  entre os parâmetros suportados — é um modelo capaz de raciocínio oculto.
+- `provider.py` usa `OpenAIChatModel` + `OpenRouterProvider`. A tradução
+  `openrouter_reasoning` → `extra_body["reasoning"]` pertence à classe
+  `OpenRouterModel`, que não é a usada; o caminho que o `OpenAIChatModel`
+  envia é o `extra_body` direto.
+
+**O que NÃO está estabelecido.**
+
+- **Que a causa é o raciocínio.** A condição acima também cobre resposta
+  genuinamente vazia. Este erro é do mesmo tipo do `EmptyResponseError` da
+  ADR-13 (mesmo modelo, mesmo sintoma de saída vazia/cortada), o que dá peso à
+  hipótese "raciocínio consumindo o orçamento" — mas por caminhos diferentes
+  (PydanticAI aqui, Graphiti lá), então é indício, não prova de que são a mesma
+  causa.
+- **Que `effort: low` reduz o raciocínio deste modelo**, ou que não piora o uso
+  de ferramenta e a saída estruturada. Nada foi rodado ao vivo: o ambiente em
+  que isto foi escrito não tem a chave do provedor, e nenhuma chamada paga foi
+  feita.
+- **Que 32000 basta.** Se o raciocínio for um laço descontrolado em vez de
+  longo-mas-finito, dobrar o teto só dobra o gasto da chamada que falha.
+
+**Decisão.**
+
+- Dois botões no `.env`, com defaults que **preservam o comportamento atual**:
+  `LLM_MAX_TOKENS=16000` (o valor que sempre foi usado) e `LLM_REASONING_EFFORT=`
+  (vazio: não envia nada). Não mudei o default de tokens porque não sei se
+  dobrá-lo resolve; mudar às cegas gastaria mais sem garantia.
+- `LLM_REASONING_EFFORT` só é traduzido para o `openrouter`
+  (`extra_body["reasoning"]["effort"]`). Em outro provedor é **ignorado com
+  aviso no log**: ignorar em silêncio faria o botão parecer funcionar. Os dois
+  valores vão para `pydantic_ai_model_settings()` em `llm/provider.py` — a
+  camada que já isola o que muda de provedor — e não ficam espalhados em
+  `agents.py`.
+- `/ask` e `/report` devolvem **502** com a instrução (qual variável ajustar)
+  quando o erro é de limite de tokens, e 502 genérico para outro
+  `UnexpectedModelBehavior`, sem a dica de tokens — não se manda ajustar um teto
+  por um erro que não é de teto. 502, não 500: quem falhou foi o modelo, não a
+  aplicação.
+- **Sem repetição automática na API.** O PydanticAI se recusa a repetir de
+  propósito, e repetir com o mesmo teto tende a repetir o resultado, cada
+  tentativa podendo gastar o teto inteiro. (O runner de avaliação repete, via
+  `_retentar`, mas ali o custo de uma pergunta perdida é de uma rodada inteira;
+  numa requisição de API, quem chamou pode simplesmente tentar de novo.)
+
+**Consequências.** A ordem sugerida é `LLM_MAX_TOKENS=32000` primeiro — só dá
+espaço, não pode piorar a resposta — e `LLM_REASONING_EFFORT=low` depois, se
+persistir. Só a medição ao vivo diz qual resolve, e se a qualidade das respostas
+(fidelidade, insight) se mantém: a avaliação (`run_evaluation.py`) é o
+instrumento, e o `effort` merece uma rodada própria antes de virar default. Fora
+do escopo e não tocado: os juízes e o baseline não definem teto
+(`judges.py`, `baseline_rag.py`), então usam o do provedor — o mesmo risco de
+raciocínio longo existe ali, sem a proteção do teto.

@@ -26,7 +26,7 @@ from pydantic_ai import Agent, RunContext
 from football_graphrag.api.schemas import RelatorioTatico, RespostaTatica
 from football_graphrag.config import Settings, get_settings
 from football_graphrag.graph import db, schema
-from football_graphrag.llm.provider import pydantic_ai_model
+from football_graphrag.llm.provider import pydantic_ai_model, pydantic_ai_model_settings
 
 logger = logging.getLogger(__name__)
 
@@ -115,9 +115,10 @@ def _semaphore() -> asyncio.Semaphore:
 
 
 # Knobs nativos do PydanticAI (não são camada nossa): retries = novas
-# tentativas quando a saída estruturada falha na validação; max_tokens alto
-# porque o relatório completo não cabe no default de 4096 do SDK.
-_MODEL_SETTINGS = {"max_tokens": 16000}
+# tentativas quando a saída estruturada falha na validação. O teto de tokens
+# (o relatório completo não cabe no default de 4096 do SDK) e o esforço de
+# raciocínio vêm de LLM_MAX_TOKENS / LLM_REASONING_EFFORT, montados em
+# llm/provider.py. Os agentes são lru_cache: o .env é lido uma vez, no primeiro uso.
 
 
 @dataclass
@@ -177,7 +178,7 @@ def report_agent() -> Agent:
         output_type=RelatorioTatico,
         system_prompt=PROMPT_RELATORIO,
         retries=2,
-        model_settings=_MODEL_SETTINGS,
+        model_settings=pydantic_ai_model_settings(get_settings()),
     )
     _register_schema(agent)
     _register_consultar_grafo(agent)
@@ -192,7 +193,7 @@ def qa_agent() -> Agent:
         output_type=RespostaTatica,
         system_prompt=PROMPT_QA,
         retries=2,
-        model_settings=_MODEL_SETTINGS,
+        model_settings=pydantic_ai_model_settings(get_settings()),
     )
     _register_schema(agent)
     _register_consultar_grafo(agent)
