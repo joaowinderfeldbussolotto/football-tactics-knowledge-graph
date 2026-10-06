@@ -3,8 +3,9 @@
 
 Por que este script existe
 --------------------------
-A indexação só acontecia dentro da rota ``POST /analyze/{match_id}`` da API.
-Quem reproduz o projeto pelos scripts (``run_pipeline`` → ``build_graph`` →
+A indexação acontecia dentro da rota ``POST /analyze/{match_id}`` da API — e
+foi removida de lá (ADR-13): este script é o único caminho. Quem reproduzia o
+projeto pelos scripts (``run_pipeline`` → ``build_graph`` →
 ``run_analysis``) nunca criava o índice — e a busca híbrida ficava dormente
 sem avisar, porque ``retrieve_context`` recebe ``graphiti=None`` e segue só
 com a recuperação estruturada.

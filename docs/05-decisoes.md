@@ -549,8 +549,8 @@ Três defeitos, todos de desenho nosso e não do provedor:
   chave é o nome `tipo:uid[:8]`); um triplet que falhou não deixa nó, então é
   tentado de novo. Comunidades só são construídas onde ainda não existem.
   `--do-zero` restaura o comportamento antigo, explícito, para quando os
-  `PadraoTatico` mudaram. A rota `POST /analyze` da API passa `limpar=True`,
-  porque ali a análise acabou de ser refeita e reindexar do zero é o certo.
+  `PadraoTatico` mudaram. (A rota `POST /analyze` deixou de indexar — ver o
+  adendo ao fim desta ADR.)
 - **Comunidades isoladas por partida.** `build_pattern_communities` repete a
   etapa inteira (3 vezes, espera crescente, limpando as comunidades da
   tentativa anterior para não duplicar). Se ainda assim falhar, o script marca
@@ -577,6 +577,41 @@ respostas vazias) e não foi feito.
 em curso — não a rodada inteira. O preço do desenho: comunidades repetidas
 gastam de novo as chamadas de resumo (poucas por partida, mas não zero), e a
 retomada por nome assume que um padrão já indexado não mudou; se mudou, use
-`--do-zero`. Os testes (`tests/test_resiliencia_indexacao.py`, 15, sem rede)
+`--do-zero`. Os testes (`tests/test_resiliencia_indexacao.py`, 17, sem rede)
 cobrem cada decisão acima, e foram verificados contra o código antigo: os de
 resposta vazia e de `choices` falham nele.
+
+**Adendo (2026-10-06) — o Graphiti sai da rota `POST /analyze`.** Uma hora
+depois de escrever a ADR acima, a mesma falha apareceu num log da API
+(`EmptyResponseError`, vindo de `build_communities`), e ela mostrou que eu tinha
+consertado o script e deixado a rota com o defeito: a camada 2 já estava gravada
+quando o Graphiti entrava, e qualquer falha dele virava HTTP 500, com o cliente
+achando que a análise falhara. O primeiro conserto (commit `0491c26`) isolou a
+falha e devolveu 200 com um campo `graphiti`. Foi **desfeito** no passo
+seguinte, por decisão do autor, e o motivo vale registrar: isolar a falha
+resolvia o 500 mas não o problema de fundo.
+
+A rota apagava o índice da partida a cada chamada (`limpar=True`) e repagava
+todas as chamadas de LLM. Quem chamava `/analyze` só para refazer a camada 2 —
+determinística, de graça — gastava dinheiro sem saber, e perdia um índice
+restaurado do backup. Um 200 com `erro` dentro da resposta deixa isso mais
+tolerável, não menos caro. O que o script tem e a rota não pode ter: mostra o
+estado antes de agir, retoma em vez de recomeçar, e exige `--do-zero` por
+escrito para destruir.
+
+**Decisão.** `/analyze` faz só a camada 2: sem LLM, sem custo, sem tocar no
+Graphiti. O índice é construído exclusivamente por `scripts/index_graphiti.py`.
+O `/ask` continua usando o Graphiti na busca híbrida, só leitura — `app.state.graphiti`
+segue criado no lifespan. O campo `graphiti` que a rota ganhara foi removido da
+resposta (seria sempre `None`); como o PR ainda não foi mergeado, não há cliente
+dependendo dele.
+
+**Consequência, que é uma mudança de comportamento.** Quem dependia de
+`/analyze` para manter o índice atualizado depois de refazer a análise agora
+precisa rodar `index_graphiti.py` (`--do-zero` se os padrões mudaram). Isso
+é mais um passo manual — e foi o preço aceito em troca de a rota nunca mais
+gastar dinheiro por baixo dos panos. O índice pode ficar desatualizado em
+relação aos padrões sem nada avisar; o script mostra o estado, a rota não
+verificaria. `tests/test_resiliencia_indexacao.py` guarda a regra: qualquer
+chamada ao Graphiti durante `/analyze` falha o teste, e ele foi verificado
+contra a rota antiga, onde falha.

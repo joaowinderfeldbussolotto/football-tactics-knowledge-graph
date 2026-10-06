@@ -83,7 +83,7 @@ Latência de recuperação e de geração são medidas separadamente e logadas
 | Endpoint | Camadas | LLM? |
 |---|---|---|
 | `POST /ingest/{match_id}` | 0 + 1 | não |
-| `POST /analyze/{match_id}` | 2 (+ indexação Graphiti se configurado) | só na indexação/comunidades |
+| `POST /analyze/{match_id}` | 2 | não (o índice do Graphiti é feito por `scripts/index_graphiti.py`) |
 | `GET /report/{match_id}` | 3 | sim (verbalização) |
 | `POST /ask` | 3 | sim (geração; recuperação sem LLM) |
 | `GET /graph/{match_id}/stats` | — | não |

@@ -112,7 +112,7 @@ Aceita filtro por id: `check_golden_queries.py q23 q17`.
 ## 6. Relatório e Q&A (camada 3 — exige chaves de LLM)
 
 ```bash
-curl -X POST localhost:8000/analyze/3869685        # (re)gera padrões + indexa no Graphiti
+curl -X POST localhost:8000/analyze/3869685        # (re)gera os padrões (camada 2); não toca no Graphiti
 curl localhost:8000/report/3869685                  # relatório estruturado com citações
 curl -X POST localhost:8000/ask \
   -H 'Content-Type: application/json' \
@@ -131,7 +131,8 @@ docker compose exec api python scripts/index_graphiti.py
 Indexa os `PadraoTatico` como fatos temporais e constrói as comunidades. Até a
 4ª rodada isso só acontecia dentro da rota `POST /analyze/{match_id}`: quem
 reproduzia pelos scripts nunca criava o índice, e a busca híbrida ficava
-dormente sem avisar (ADR-11). Custo: ~3-4 chamadas de embedding por padrão,
+dormente sem avisar (ADR-11). Desde a ADR-13 a rota **não indexa mais**: este
+script é o único caminho. Custo: ~3-4 chamadas de embedding por padrão,
 espaçadas por `GRAPHITI_PACE_SECONDS`.
 
 **É o único passo caro, e é retomável** (ADR-13). Rodar de novo depois de uma
@@ -248,7 +249,7 @@ baseline não tem ferramenta que produza equivalente. Não misturar as duas.
 docker compose exec api pytest tests/ -q
 ```
 
-Esperado: `80 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
+Esperado: `82 passed`. Testes que exigem Neo4j/parquet se auto-pulam quando o recurso não
 está disponível (rodam completos com o stack de pé e a pipeline executada).
 
 ## Troca de provedor de LLM
@@ -287,6 +288,6 @@ e reiniciar a api: `docker compose restart api`.
 Nota sobre **rate limits / chaves free-tier** (ADR-7): `LLM_MAX_RETRIES` é repassado ao
 retry nativo de todos os SDKs (LLM, embedder e reranker), que respeitam o
 `Retry-After`/`retryDelay` do servidor — 429 esporádico se resolve sozinho. A indexação
-do Graphiti (`/analyze`) é adicionalmente ritmada por `GRAPHITI_PACE_SECONDS` (default
+do Graphiti (`scripts/index_graphiti.py`) é adicionalmente ritmada por `GRAPHITI_PACE_SECONDS` (default
 2.0, ~3 min por partida, dimensionado para a cota gratuita do Gemini de 100
 embed-requests/min); com chave paga use `GRAPHITI_PACE_SECONDS=0`.

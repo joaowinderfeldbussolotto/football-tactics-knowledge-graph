@@ -429,20 +429,16 @@ def test_do_zero_pede_limpeza_explicitamente(script, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# POST /analyze — o Graphiti é opcional e não pode derrubar a análise
+# POST /analyze — só a camada 2; nunca toca o Graphiti
 # ---------------------------------------------------------------------------
 
-def _app_de_teste(monkeypatch, graphiti, indexar, comunidades):
+def _cliente_da_api(monkeypatch, graphiti):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
     from football_graphrag.api import routes
-    from football_graphrag.graph import communities
 
     monkeypatch.setattr(routes.analysis, "run_all", lambda *a, **k: {"pivo_estrutural": 2})
-    monkeypatch.setattr(communities, "index_match_patterns", indexar)
-    monkeypatch.setattr(communities, "build_pattern_communities", comunidades)
-
     app = FastAPI()
     app.include_router(routes.router)
     app.state.driver = object()
@@ -450,41 +446,30 @@ def _app_de_teste(monkeypatch, graphiti, indexar, comunidades):
     return TestClient(app)
 
 
-def test_analyze_devolve_200_com_a_analise_quando_o_graphiti_falha(monkeypatch):
-    """O defeito: EmptyResponseError em build_communities subia da rota e o
-    cliente recebia 500, com os PadraoTatico já gravados pela camada 2."""
+def test_analyze_nao_toca_no_graphiti_mesmo_quando_ele_esta_habilitado(monkeypatch):
+    """A rota já indexou aqui: apagava o índice da partida a cada chamada
+    (limpar=True) e repagava tudo, e uma falha do provedor virava 500 com a
+    análise já gravada. Foi decidido tirar o Graphiti da rota (ADR-13). Este
+    teste impede a volta: qualquer chamada ao Graphiti durante /analyze falha."""
+    from football_graphrag.graph import communities
 
-    async def indexar(*a, **k):
-        return 24
+    async def proibido(*a, **k):
+        raise AssertionError("/analyze não pode tocar no Graphiti")
 
-    async def comunidades(*a, **k):
-        raise EmptyResponseError("LLM returned an empty response")
+    monkeypatch.setattr(communities, "index_match_patterns", proibido)
+    monkeypatch.setattr(communities, "build_pattern_communities", proibido)
 
-    resposta = _app_de_teste(monkeypatch, object(), indexar, comunidades).post("/analyze/3869685")
+    class GraphitiQueExplode:
+        def __getattr__(self, nome):
+            raise AssertionError(f"/analyze acessou graphiti.{nome}")
+
+    resposta = _cliente_da_api(monkeypatch, GraphitiQueExplode()).post("/analyze/3869685")
 
     assert resposta.status_code == 200
-    corpo = resposta.json()
-    assert corpo["padroes_por_tipo"] == {"pivo_estrutural": 2}  # a análise sobrevive
-    assert corpo["graphiti"]["comunidades"] is False
-    assert "EmptyResponseError" in corpo["graphiti"]["erro"]
-    assert corpo["graphiti"]["indexados"] == 24  # o que já foi pago fica registrado
-    assert "--so-comunidades" in corpo["graphiti"]["como_completar"]
+    assert resposta.json() == {"match_id": 3869685, "padroes_por_tipo": {"pivo_estrutural": 2}}
 
 
-def test_analyze_sem_graphiti_nao_inventa_status(monkeypatch):
-    async def nunca(*a, **k):
-        raise AssertionError("não deveria ser chamado")
-
-    corpo = _app_de_teste(monkeypatch, None, nunca, nunca).post("/analyze/1").json()
-    assert corpo["graphiti"] is None
-
-
-def test_analyze_graphiti_ok_reporta_sucesso(monkeypatch):
-    async def indexar(*a, **k):
-        return 24
-
-    async def comunidades(*a, **k):
-        return ("nos", "arestas")
-
-    corpo = _app_de_teste(monkeypatch, object(), indexar, comunidades).post("/analyze/1").json()
-    assert corpo["graphiti"] == {"indexados": 24, "comunidades": True, "erro": None}
+def test_analyze_responde_igual_com_e_sem_graphiti(monkeypatch):
+    com = _cliente_da_api(monkeypatch, object()).post("/analyze/1").json()
+    sem = _cliente_da_api(monkeypatch, None).post("/analyze/1").json()
+    assert com == sem

@@ -114,6 +114,3 @@ class IngestResponse(BaseModel):
 class AnalyzeResponse(BaseModel):
     match_id: int
     padroes_por_tipo: dict[str, int]
-    # None = Graphiti desligado (sem chaves de LLM/embedder). Presente = o que
-    # aconteceu com a indexação opcional; uma falha ali não derruba a análise.
-    graphiti: dict | None = None

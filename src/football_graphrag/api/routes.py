@@ -53,46 +53,22 @@ async def ingest(match_id: int, request: Request):
 
 @router.post("/analyze/{match_id}", response_model=schemas.AnalyzeResponse)
 async def analyze(match_id: int, request: Request):
-    """Roda camada 2 (insights via GDS) e indexa no Graphiti se configurado.
+    """Roda a camada 2 (insights via GDS). Determinística, sem LLM, sem custo.
 
-    A camada 2 é a parte determinística e é o que esta rota promete: quando
-    ela termina, os ``PadraoTatico`` já estão gravados. A indexação no Graphiti
-    é OPCIONAL (o Q&A funciona sem ela, só sem a busca híbrida) e depende de
-    chamadas de LLM que falham de forma intermitente. Por isso uma falha ali
-    NÃO derruba a requisição: a resposta é 200 com a análise, e o campo
-    ``graphiti`` diz o que aconteceu. Antes, qualquer exceção do Graphiti
-    virava 500 e o cliente achava que a análise tinha falhado, com os padrões
-    já gravados.
+    Esta rota NÃO toca no Graphiti. Já tocou: indexava os padrões e construía
+    as comunidades aqui, e isso tinha três problemas que pesaram mais que a
+    conveniência — apagava o índice da partida a cada chamada (``limpar=True``)
+    repagando todas as chamadas de LLM, uma falha intermitente do provedor
+    virava 500 mesmo com a análise já gravada, e quem chamava ``/analyze`` só
+    para refazer a camada 2 gastava dinheiro sem saber.
 
-    ATENÇÃO — esta rota APAGA o índice do Graphiti desta partida e o refaz do
-    zero (``limpar=True``), o que repaga todas as chamadas de LLM. É o
-    comportamento certo quando a análise acabou de ser refeita e os resumos
-    podem estar velhos, mas é caro. Para só completar um índice interrompido,
-    use ``scripts/index_graphiti.py`` (retomável).
+    O índice do Graphiti, que alimenta a busca híbrida do ``/ask``, é
+    construído por ``scripts/index_graphiti.py``: retomável, não destrutivo por
+    padrão, e que mostra o estado antes de agir (ADR-13).
     """
     settings = get_settings()
     results = analysis.run_all(_driver(request), match_id, settings.data_dir)
-    graphiti = _graphiti(request)
-    status: dict | None = None
-    if graphiti is not None:
-        from football_graphrag.graph.communities import build_pattern_communities, index_match_patterns
-
-        status = {"indexados": None, "comunidades": None, "erro": None}
-        try:
-            status["indexados"] = await index_match_patterns(
-                graphiti, _driver(request), match_id, limpar=True
-            )
-            await build_pattern_communities(graphiti, match_id, driver=_driver(request))
-            status["comunidades"] = True
-        except Exception as exc:
-            logger.exception("indexação no Graphiti da partida %s falhou; análise mantida", match_id)
-            status["comunidades"] = False
-            status["erro"] = f"{type(exc).__name__}: {exc}"
-            status["como_completar"] = (
-                f"python scripts/index_graphiti.py --partidas {match_id}"
-                f"{' --so-comunidades' if status['indexados'] is not None else ''}"
-            )
-    return schemas.AnalyzeResponse(match_id=match_id, padroes_por_tipo=results, graphiti=status)
+    return schemas.AnalyzeResponse(match_id=match_id, padroes_por_tipo=results)
 
 
 @router.get("/report/{match_id}", response_model=schemas.RelatorioTatico)
