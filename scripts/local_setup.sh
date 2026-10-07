@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prepara o projeto para rodar FORA do container `api` (scripts no host, Neo4j no Docker).
+# Prepara o projeto para rodar FORA do container `app` (scripts no host, Neo4j no Docker).
 #
 # Quando usar: o container não resolve nomes (Codespaces com DNS quebrado no
 # Docker), ou você simplesmente prefere o ambiente Python no host. O Neo4j
@@ -12,33 +12,27 @@
 #   3. cria/ajusta o .env (NEO4J_URI aponta para localhost, não para o serviço `neo4j`)
 #   4. sobe SÓ o Neo4j e espera ficar saudável; confere o plugin GDS
 #   5. camadas 0, 1/1b e 2 (de graça: sem LLM, sem API)
-#   6. restaura o índice do Graphiti a partir do backup, se ainda não houver índice
 #
 # Uso:
 #   scripts/local_setup.sh                    # tudo
 #   scripts/local_setup.sh --sem-camadas      # só ambiente + Neo4j (pula o passo 5)
-#   scripts/local_setup.sh --sem-restore      # pula o passo 6
 #   scripts/local_setup.sh --testes           # roda o pytest no fim
-#   BACKUP=outro.json.gz scripts/local_setup.sh
 #
-# Nada aqui gasta API: LLM e embeddings só entram em index_graphiti.py e
-# run_evaluation.py, que este script nunca chama.
+# Nada aqui gasta API: LLM e embeddings só entram no benchmark, que este
+# script nunca chama.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 PY_VERSION="3.11"
-BACKUP="${BACKUP:-backup_graphiti.json.gz}"
 FAZER_CAMADAS=1
-FAZER_RESTORE=1
 FAZER_TESTES=0
 
 for arg in "$@"; do
   case "$arg" in
     --sem-camadas) FAZER_CAMADAS=0 ;;
-    --sem-restore) FAZER_RESTORE=0 ;;
     --testes)      FAZER_TESTES=1 ;;
-    -h|--help)     sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)     sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "argumento desconhecido: $arg (use --help)" >&2; exit 1 ;;
   esac
 done
@@ -48,7 +42,7 @@ aviso() { printf '    ! %s\n' "$*" >&2; }
 ok()    { printf '    ok: %s\n' "$*"; }
 
 # ---------------------------------------------------------------- 1. Docker + uv
-passo "1/6 Docker e uv"
+passo "1/5 Docker e uv"
 command -v docker >/dev/null || { aviso "docker não encontrado"; exit 1; }
 docker info >/dev/null 2>&1 || { aviso "o daemon do Docker não responde (docker info falhou)"; exit 1; }
 ok "docker respondendo"
@@ -61,7 +55,7 @@ fi
 ok "uv $(uv --version | awk '{print $2}')"
 
 # ---------------------------------------------------------------- 2. venv + projeto
-passo "2/6 Ambiente Python ${PY_VERSION}"
+passo "2/5 Ambiente Python ${PY_VERSION}"
 VENV_OK=0
 if [ -x .venv/bin/python ] && .venv/bin/python --version 2>&1 | grep -q "Python ${PY_VERSION}\."; then
   VENV_OK=1
@@ -77,7 +71,7 @@ uv pip install --python "$PY" --quiet -e ".[dev]"
 ok "projeto instalado (editável, com extras de teste)"
 
 # ---------------------------------------------------------------- 3. .env
-passo "3/6 Arquivo .env"
+passo "3/5 Arquivo .env"
 if [ ! -f .env ]; then
   cp .env.example .env
   ok ".env criado a partir do .env.example"
@@ -99,7 +93,7 @@ if [ "$AVISAR_CHAVES" -eq 1 ]; then
 fi
 
 # ---------------------------------------------------------------- 4. Neo4j
-passo "4/6 Neo4j (só ele; o container api não é necessário)"
+passo "4/5 Neo4j (só ele; o container app não é necessário)"
 SENHA="$(grep -E '^NEO4J_PASSWORD=' .env | head -1 | cut -d= -f2-)"
 SENHA="${SENHA:-changeme}"
 
@@ -168,41 +162,13 @@ fi
 
 # ---------------------------------------------------------------- 5. camadas
 if [ "$FAZER_CAMADAS" -eq 1 ]; then
-  passo "5/6 Camadas 0, 1/1b e 2 (sem custo de API)"
+  passo "5/5 Camadas 0, 1/1b e 2 (sem custo de API)"
   "$PY" scripts/run_pipeline.py
   "$PY" scripts/build_graph.py
   "$PY" scripts/run_analysis.py
   ok "camadas montadas"
 else
-  passo "5/6 Camadas — pulado (--sem-camadas)"
-fi
-
-# ---------------------------------------------------------------- 6. índice do Graphiti
-if [ "$FAZER_RESTORE" -eq 1 ]; then
-  passo "6/6 Índice do Graphiti"
-  if [ ! -f "$BACKUP" ]; then
-    aviso "backup '$BACKUP' não encontrado — nada a restaurar."
-    aviso "sem ele, o índice é refeito por: $PY scripts/index_graphiti.py (usa LLM + embeddings, ~US\$ 0,06 por partida)"
-  else
-    NOS="$("$PY" - <<'PYEOF'
-from football_graphrag.config import get_settings
-from football_graphrag.graph import db
-d = db.make_driver(get_settings())
-with d.session() as s:
-    print(s.run("MATCH (n:Entity) WHERE n.group_id STARTS WITH 'match-' RETURN count(n)").single()[0])
-d.close()
-PYEOF
-)"
-    if [ "${NOS:-0}" -gt 0 ]; then
-      ok "índice do Graphiti já existe (${NOS} nós Entity); não vou sobrescrever."
-      ok "para forçar: $PY scripts/restore_graphiti.py $BACKUP"
-    else
-      "$PY" scripts/restore_graphiti.py "$BACKUP"
-      ok "índice restaurado a partir de $BACKUP"
-    fi
-  fi
-else
-  passo "6/6 Índice do Graphiti — pulado (--sem-restore)"
+  passo "5/5 Camadas — pulado (--sem-camadas)"
 fi
 
 # ---------------------------------------------------------------- testes (opcional)
@@ -219,8 +185,6 @@ pronto. Em cada terminal novo, ative o ambiente antes de rodar qualquer script:
 
 próximos passos (os que usam LLM precisam das chaves no .env):
 
-    python scripts/check_golden_queries.py     # as 30 perguntas contra o grafo, sem custo
-    python scripts/smoke_llm.py                # 1 pergunta: confere provedor + ferramenta
-    python scripts/run_evaluation.py --amostra --hibrida --saida eval_amostra.json
+    python scripts/smoke_llm.py                # confere tool calling + saída estruturada do modelo
 
 FIM

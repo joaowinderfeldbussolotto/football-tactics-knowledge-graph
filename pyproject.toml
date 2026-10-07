@@ -1,7 +1,7 @@
 [project]
 name = "football-graphrag"
 version = "0.1.0"
-description = "PoC: grafo tático de futebol com insights não triviais (StatsBomb -> SPADL -> Neo4j/GDS -> Graphiti + PydanticAI)"
+description = "Benchmark: como permitir perguntas em linguagem natural sobre eventos de futebol (StatsBomb -> SPADL -> Neo4j/GDS -> PydanticAI)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -16,19 +16,17 @@ dependencies = [
     # xgboost: treino único do VAEP (ADR-3)
     "xgboost>=2.0",
     "neo4j>=5.20",
-    "graphiti-core>=0.11",
     "pydantic-ai-slim[openai,anthropic,google,mistral]>=0.2",
-    "fastapi>=0.110",
-    "uvicorn[standard]>=0.29",
     "pydantic-settings>=2.2",
     "langfuse>=3.0",
+    "networkx>=3.0",
+    "numpy>=1.26",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
-    "httpx>=0.27",
 ]
 
 [build-system]
