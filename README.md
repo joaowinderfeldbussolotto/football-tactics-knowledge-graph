@@ -72,8 +72,47 @@ depois da chamada. Se cair, `--resume` continua de onde parou. Também aceita
 `--repeats N`, `--arms a,b` e `--questions f01,s02`. Com chaves do Langfuse no
 `.env`, cada execução vira um span `{pergunta}/{braço}/r{n}`.
 
-Para usar Docker também nos scripts, em vez do venv local:
-`docker compose up -d` e `docker compose exec app python scripts/...`.
+## Rodando tudo no Docker
+
+Alternativa ao venv local: os scripts rodam dentro do container `app`, ao
+lado do Neo4j. Só precisa de Docker, sem Python na máquina.
+
+```bash
+cp .env.example .env                  # preencha LLM_* e EMBEDDER_* (Langfuse é opcional)
+docker compose up -d --build          # sobe neo4j (GDS/APOC) + app; o app espera o Neo4j ficar saudável
+```
+
+Depois, os mesmos comandos, prefixados com `docker compose exec app`:
+
+```bash
+docker compose exec app python scripts/download_statsbomb.py
+docker compose exec app python scripts/run_pipeline.py
+docker compose exec app python scripts/build_graph.py
+docker compose exec app python scripts/run_analysis.py
+docker compose exec app python scripts/check_ground_truth.py
+docker compose exec app python scripts/smoke_llm.py
+docker compose exec app python scripts/run_benchmark.py --sample
+docker compose exec app python scripts/run_benchmark.py
+docker compose exec app python scripts/ask.py --question s01 --arm graph_tools
+```
+
+O que é bom saber:
+
+- **Código e dados são montados do host** (`./src`, `./scripts`, `./data`).
+  Editar o código não exige rebuild, e o `results.jsonl` e o `summary.md`
+  aparecem direto em `data/benchmark/` na sua máquina. Só mudanças no
+  `pyproject.toml` pedem `docker compose up -d --build`.
+- **O `NEO4J_URI` é ajustado pelo compose.** Dentro do container, o Neo4j é
+  `bolt://neo4j:7687`, e o compose sobrescreve o valor do `.env`. O mesmo
+  `.env` serve para os dois jeitos de rodar.
+- **Erro `Temporary failure in name resolution`** no download (comum em
+  Codespaces) significa que o container não resolve nomes. Rode
+  `docker compose down && docker compose up -d` e tente de novo. Se
+  persistir, baixe os dados pelo host: o download nunca refaz um arquivo que
+  já existe em `data/raw/`, então o container os encontra pelo volume. Outra
+  saída é usar o `scripts/local_setup.sh`.
+- Para parar: `docker compose down`. O grafo fica no volume `neo4j_data`;
+  `docker compose down -v` o apaga.
 
 ## Uma pergunta isolada
 
