@@ -137,8 +137,10 @@ def stats_table(match_id: int = MATCH_ID) -> str:
         body = [",".join("" if r.get(c) is None else str(r[c]) for c in cols) for r in rows]
         return "\n".join([",".join(cols), *body])
 
+    fields = sorted({k for r in teams + players for k in r} - tools._HIDDEN)
     return (
-        "Team stats (posse_pct is possession by time; ppda = opponent passes per defensive action):\n"
+        f"What each column means:\n{tools.glossary(fields)}\n\n"
+        "Team stats:\n"
         f"{table(teams, ['nome'])}\n\n"
         "Player stats (one row per player who acted):\n"
         f"{table(players, ['nome', 'time', 'posicao'])}"
@@ -227,6 +229,18 @@ def _call(ctx: RunContext[GraphDeps], tool_name: str, fn, **kwargs):
         return {"error": str(exc)}
 
 
+_TEAM_ARG = '"Argentina" or "France" (Portuguese names such as "França" also work).'
+
+
+def _describe(doc: str):
+    """Set a tool's docstring from a computed string. PydanticAI reads the tool and
+    argument descriptions from the docstring, and an f-string is not a docstring."""
+    def wrap(fn):
+        fn.__doc__ = doc
+        return fn
+    return wrap
+
+
 @lru_cache
 def graph_agent() -> Agent[GraphDeps, Answer]:
     agent = Agent(
@@ -239,47 +253,127 @@ def graph_agent() -> Agent[GraphDeps, Answer]:
     )
 
     @agent.tool
+    @_describe(f"""List the players of one team who took part in the match (starters and
+substitutes who touched the ball), with nominal position and number of on-ball actions.
+Use it to get exact player names before calling other tools.
+
+Args:
+    team: {_TEAM_ARG}
+""")
     def list_players(ctx: RunContext[GraphDeps], team: str) -> list[dict]:
-        """Players of a team ('Argentina' or 'France') who acted in the match, with position and touches."""
         return _call(ctx, "list_players", tools.list_players, team=team)
 
     @agent.tool
+    @_describe("""All aggregated statistics of one player in the match: passes, crosses,
+take-ons, tackles, interceptions, clearances, fouls, cards, shots, goals, assists,
+pressures, xT and VAEP. Field meanings are listed in stat_ranking.
+
+Args:
+    name: Full name, nickname or a surname that is unique in the match (e.g. "Messi",
+        "Enzo Fernández"). An ambiguous name (e.g. "Martínez") returns the candidates.
+""")
     def player_stats(ctx: RunContext[GraphDeps], name: str) -> dict:
-        """All aggregated stats of one player (name, nickname or unique surname)."""
         return _call(ctx, "player_stats", tools.player_stats, name=name)
 
     @agent.tool
+    @_describe(f"""Aggregated statistics of one team in the match: goals, shots and shots on
+target, passes and pass accuracy, tackles, interceptions, fouls, yellow cards, possession
+by time, PPDA per half, field tilt and total xT. Field meanings are listed in stat_ranking.
+
+Args:
+    team: {_TEAM_ARG}
+""")
     def team_stats(ctx: RunContext[GraphDeps], team: str) -> dict:
-        """Aggregated stats of a team ('Argentina' or 'France')."""
         return _call(ctx, "team_stats", tools.team_stats, team=team)
 
-    @agent.tool(description="Players ranked by one stat, highest first. Optional team filter. "
-                f"Valid stats: {', '.join(tools.PLAYER_STATS)}.")
+    @agent.tool
+    @_describe(f"""Rank players by one statistic, highest first. Use it for "who had the most
+...?" and top-N questions. Equal values are listed alphabetically, so look at the values
+before naming a single leader.
+
+Statistics (field: meaning):
+{tools.glossary(tools.PLAYER_STATS)}
+
+Args:
+    stat: One field name from the list above.
+    team: Optional. {_TEAM_ARG} Omit it to rank both teams together.
+    top: How many players to return, 1 to {tools.MAX_TOP}.
+""")
     def stat_ranking(ctx: RunContext[GraphDeps], stat: str, team: str | None = None, top: int = 5) -> list[dict]:
         return _call(ctx, "stat_ranking", tools.stat_ranking, stat=stat, team=team, top=top)
 
-    @agent.tool(description="Events of one type in match order (minute, period, team, player, action, "
-                f"outcome). Optional team filter. Valid event_type: {', '.join(tools.EVENT_TYPES)}.")
+    @agent.tool
+    @_describe(f"""List every event of one type in match order, with broadcast minute, period
+(1 and 2: regular time; 3 and 4: extra time; the penalty shootout is not included), team
+and player. Use it for "who" and "when" questions about specific moments: who scored
+first, who was booked, who assisted a goal.
+
+Event types:
+- goal: goals, penalties included
+- assist: the pass that set up a goal, with assister and scorer
+- yellow_card: yellow cards; `action` tells what caused it: falta_cometida is a foul,
+  anything else (e.g. cartao_por_reclamacao) is a card without a foul
+- shot (with `outcome`), foul, tackle, interception, dribble, clearance, keeper_save
+
+Args:
+    event_type: One of {", ".join(tools.EVENT_TYPES)}.
+    team: Optional. {_TEAM_ARG} Omit it for both teams.
+""")
     def events(ctx: RunContext[GraphDeps], event_type: str, team: str | None = None) -> list[dict]:
         return _call(ctx, "events", tools.events, event_type=event_type, team=team)
 
     @agent.tool
+    @_describe(f"""Find who held a team's passing together. Ranks the team's players by
+betweenness centrality in its pass network, computed live with Neo4j GDS.
+
+How it works: each player is a node and each passer -> receiver pair with at least one
+completed pass is a directed edge. For every pair of teammates, the algorithm finds the
+shortest passing routes between them and counts how many go through each player. An
+edge's length is 1 / (1 + xT of the passes on it), so routes that moved the ball into
+more dangerous areas count as shorter.
+
+How to read it: the higher the score, the more the team's ball circulation depended on
+that player to connect the others (the hub, link or bottleneck of the build-up). It is
+not the same as making the most passes or having the most touches.
+
+Args:
+    team: {_TEAM_ARG}
+    top: How many players to return, 1 to {tools.MAX_TOP}.
+""")
     def pass_network_centrality(ctx: RunContext[GraphDeps], team: str, top: int = 5) -> list[dict]:
-        """Betweenness centrality ranking on the team's network of completed passes
-        (directed, weighted by cost = 1 / (1 + xT of the passes)). Computed live with GDS."""
         return _call(ctx, "pass_network_centrality", tools.pass_network_centrality, team=team, top=top)
 
     @agent.tool
+    @_describe(f"""Find a team's most repeated three-player passing combinations A -> B -> C
+(third-man combinations), most frequent first.
+
+A combination is counted when A completes a pass to B and B completes a pass to C in the
+same possession, with no other pass in between (B may carry the ball), A, B and C are
+three different players, and the ball ends in a more advanced third of the pitch
+(defensive, middle, attacking) than the third where A's pass started.
+
+Returns each combination (a, b, c) with how many times it happened (`occurrences`) and
+the xT it added. To count combinations above a frequency, ask for a large `top`.
+
+Args:
+    team: {_TEAM_ARG}
+    top: How many combinations to return, 1 to {tools.MAX_TOP}.
+""")
     def three_player_sequences(ctx: RunContext[GraphDeps], team: str, top: int = 5) -> list[dict]:
-        """Most frequent progressive completed-pass sequences A->B->C of a team: same
-        possession, nearly consecutive, three distinct players, ending in a more
-        advanced third of the pitch. Returns occurrences and summed xT."""
         return _call(ctx, "three_player_sequences", tools.three_player_sequences, team=team, top=top)
 
     @agent.tool
+    @_describe(f"""Find weak points in a team's passing structure, computed live with Neo4j
+GDS on the undirected pass network:
+- bridges: passing connections whose removal would split the team into two disconnected
+  groups (a well-connected team may have none);
+- communities: groups of players who passed mostly among themselves (Louvain, weighted
+  by number of passes). Louvain is not deterministic: groups can change between calls.
+
+Args:
+    team: {_TEAM_ARG}
+""")
     def pass_network_bridges(ctx: RunContext[GraphDeps], team: str) -> dict:
-        """Bridges (edges whose removal disconnects the network) and Louvain
-        communities of the team's undirected pass network. Computed live with GDS."""
         return _call(ctx, "pass_network_bridges", tools.pass_network_bridges, team=team)
 
     return agent

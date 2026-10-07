@@ -35,6 +35,50 @@ PLAYER_STATS = (
     "pressoes_sofridas", "xt_total", "vaep_total",
 )
 
+# What each stats field means. Shown to the graph_tools arm (stat_ranking
+# description) AND to the stats_in_prompt arm (table header): both arms read
+# the same numbers, so both get the same explanation of them.
+STAT_GLOSSARY = {
+    "toques": "on-ball actions of any type",
+    "acoes": "on-ball actions of any type (team)",
+    "passes_tentados": "passes attempted, including set pieces (throw-ins, goal kicks, free kicks, corners)",
+    "passes_certos": "completed passes (same scope as passes_tentados)",
+    "precisao_passe_pct": "passes_certos / passes_tentados, in %",
+    "passes_progressivos": "completed passes that moved the ball substantially closer to the opponent's goal (Wyscout definition)",
+    "cruzamentos_tentados": "crosses attempted",
+    "cruzamentos_certos": "crosses completed",
+    "conducoes": "carries (moving with the ball)",
+    "dribles_tentados": "take-ons attempted (trying to beat an opponent)",
+    "dribles_certos": "take-ons completed",
+    "desarmes_tentados": "tackles attempted",
+    "desarmes_certos": "tackles won",
+    "interceptacoes": "interceptions",
+    "cortes": "clearances",
+    "faltas_cometidas": "fouls committed",
+    "cartoes_amarelos": "yellow cards (from fouls or not)",
+    "finalizacoes": "shots, penalties included",
+    "finalizacoes_no_gol": "shots on target (saved or scored)",
+    "gols": "goals (penalty shootout excluded)",
+    "gols_de_penalti": "goals from penalties",
+    "assistencias": "passes that set up a goal",
+    "defesas_do_goleiro": "goalkeeper saves",
+    "erros_de_dominio": "miscontrols",
+    "pressoes_feitas": "pressures applied on an opponent with the ball",
+    "pressoes_sofridas": "pressures received from opponents",
+    "xt_total": "expected threat (xT) added by the player's actions",
+    "vaep_total": "VAEP value of the player's actions",
+    "acoes_no_terco_final": "actions in the attacking third (team)",
+    "posse_pct": "ball possession by time, in % (team)",
+    "ppda_1o_tempo": "opponent passes per defensive action, 1st half; lower = more pressing (team)",
+    "ppda_2o_tempo": "same, 2nd half (team)",
+    "field_tilt_pct": "share of the two teams' attacking-third actions, in % (team)",
+}
+
+
+def glossary(fields) -> str:
+    return "\n".join(f"- {f}: {STAT_GLOSSARY[f]}" for f in fields if f in STAT_GLOSSARY)
+
+
 # event_type -> filter on the REALIZOU action log (layer 1).
 EVENT_FILTERS = {
     "goal": "r.gol",
