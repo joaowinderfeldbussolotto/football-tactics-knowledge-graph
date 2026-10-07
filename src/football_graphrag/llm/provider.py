@@ -168,3 +168,41 @@ def pydantic_ai_model_settings(settings: Settings) -> dict:
                 esforco, settings.llm_provider,
             )
     return configuradas
+
+
+# ---------------------------------------------------------------------------
+# Embeddings (the benchmark's "vector" arm)
+# ---------------------------------------------------------------------------
+
+MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
+EMBED_BATCH = 100  # Gemini's batch limit; fine for OpenAI-compatible endpoints too
+
+
+async def embed_texts(texts: list[str], settings: Settings) -> list[list[float]]:
+    """Embed texts in batches with the provider configured in EMBEDDER_*.
+
+    One request per batch of 100, so the 2.6k event lines of a match cost
+    ~26 requests (the Gemini free tier allows 100 requests per minute).
+    Retries are the SDK's own (LLM_MAX_RETRIES), as everywhere else.
+    """
+    vectors: list[list[float]] = []
+    batches = [texts[i : i + EMBED_BATCH] for i in range(0, len(texts), EMBED_BATCH)]
+    if settings.embedder_provider == "gemini":
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(
+            api_key=settings.embedder_api_key,
+            http_options=types.HttpOptions(retry_options=_genai_retry_options(settings)),
+        )
+        for batch in batches:
+            result = await client.aio.models.embed_content(model=settings.embedder_model, contents=batch)
+            vectors.extend(e.values for e in result.embeddings)
+        return vectors
+    # Default: any OpenAI-compatible endpoint (includes mistral-embed).
+    base_url = MISTRAL_BASE_URL if settings.embedder_provider == "mistral" else None
+    client = _openai_compat_sdk_client(settings.embedder_api_key, base_url, settings)
+    for batch in batches:
+        result = await client.embeddings.create(model=settings.embedder_model, input=batch)
+        vectors.extend(d.embedding for d in result.data)
+    return vectors
