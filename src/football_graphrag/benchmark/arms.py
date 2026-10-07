@@ -301,8 +301,9 @@ def query_actions(ctx: RunContext[GraphDeps], filters: tools.ActionFilters | Non
 
 @_describe(f"""Lists the individual actions that match the filters, in match order: period,
 broadcast minute, second (elapsed time since kickoff, the scale of the time filters), team,
-player, action, success, receiver, third, corridor and outcome (goal, yellow_card, shot
-result). Returns at most `limit` actions and the total that matched.
+player, action, success, receiver, third, corridor, outcome (goal, yellow_card, shot
+result) and score (the score when the action starts, before it: "Argentina 2-1 France").
+Returns at most `limit` actions and the total that matched.
 
 In football terms: the play-by-play of the match. It shows when and how something
 happened, in what order, and locates a moment of the match in time.

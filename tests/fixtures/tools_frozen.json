@@ -1,9 +1,10 @@
 {
-  "tag": "v2.1-tools-frozen",
-  "definitions_sha256": "f9c756160db0593d6b2cbf83ec5144a9ac8c1d8d892a9bec592350391fdc21c1",
-  "tools_py_sha256": "c0c67edf48c9b25d467766e5b8ba04657bf5b10b224f58b3d74822ebc1877f61",
+  "tag": "v2.2-tools-frozen",
+  "definitions_sha256": "9510ba04dd176175ae42d0cda4c71c2f9beaf946ab38a7d9958dd49344567d5c",
+  "tools_py_sha256": "f450f03253f273e84d901d1834e15809403cd2b2f2a28ab2c653c78b65bfd12f",
   "approved_changes": [
     "list_actions shows the second with 3 decimals and the time filters compare at that precision, so a second read from list_actions keeps its own action (approved by the user at checkpoint 2)",
-    "v2.1, after the pilot (approved by the user): period takes a list; pass_network, network_metric, network_edges and pass_paths repeat the team and filters; tool calls are sequential; the shared system prompt forbids approximate answers"
+    "v2.1, after the pilot (approved by the user): period takes a list; pass_network, network_metric, network_edges and pass_paths repeat the team and filters; tool calls are sequential; the shared system prompt forbids approximate answers",
+    "v2.2 (approved by the user): list_actions shows the score before each action"
   ]
 }

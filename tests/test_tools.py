@@ -284,3 +284,18 @@ def test_network_results_repeat_team_and_filters(tb):
     metric = tb.network_metric(net["network_id"], "degree")
     assert edges["filters"] == metric["filters"] == {"period": 2}
     assert edges["team"] == metric["team"] == "Argentina"
+
+
+def test_list_actions_shows_the_score_before_each_action(tb, df):
+    goals = tb.list_actions({"goal": True})["actions"]
+    assert [g["score"] for g in goals] == [
+        "Argentina 0-0 France", "Argentina 1-0 France", "Argentina 2-0 France",
+        "Argentina 2-1 France", "Argentina 2-2 France", "Argentina 3-2 France",
+    ]
+    # every action of the match against the Parquet: goals strictly before it
+    rows = tb.list_actions({"team": "France", "action": "falta_cometida"}, limit=100)["actions"]
+    scored = df[df.gol].sort_values(["period_id", "time_seconds", "action_id"])
+    for r in rows:
+        before = scored[scored.second < r["second"] - 1e-6]
+        arg, fra = (before.team_name == "Argentina").sum(), (before.team_name == "France").sum()
+        assert r["score"] == f"Argentina {arg}-{fra} France"

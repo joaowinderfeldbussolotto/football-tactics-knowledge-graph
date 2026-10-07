@@ -205,6 +205,7 @@ class Toolbox:
         self._names: list[str] | None = None
         self._clock: dict | None = None
         self._assists: list[int] | None = None
+        self._goals: list[tuple] | None = None
 
     # ------------------------------------------------------------------ plumbing
 
@@ -246,6 +247,20 @@ class Toolbox:
                 RETURN s.action_id AS goal, max(p.action_id) AS assist""")
             self._assists = [r["assist"] for r in rows]
         return self._assists
+
+    def goals(self) -> list[tuple]:
+        """(period, game clock, action_id, team) of every goal, in match order."""
+        if self._goals is None:
+            self._goals = [(r["period"], r["clock"], r["aid"], r["team"]) for r in self._rows("""
+                MATCH (j:Jogador)-[x:REALIZOU {match_id: $m, gol: true}]->()
+                RETURN x.periodo AS period, x.segundo AS clock, x.action_id AS aid, j.time AS team
+                ORDER BY period, clock, aid""")]
+        return self._goals
+
+    def score_before(self, period: int, clock: float, action_id: int) -> str:
+        """The score when an action starts, before it: "Argentina 2-1 France"."""
+        scored = [g[3] for g in self.goals() if g[:3] < (period, clock, action_id)]
+        return f"Argentina {scored.count('Argentina')}-{scored.count('France')} France"
 
     def player_names(self) -> list[str]:
         if self._names is None:
@@ -345,10 +360,11 @@ class Toolbox:
                                      j.time AS team, j.nome AS player, x.acao AS action,
                                      x.sucesso AS success, rc.nome AS receiver, x.terco AS third,
                                      x.corredor AS corridor, x.gol AS gol, x.cartao_amarelo AS cartao_amarelo,
-                                     x.desfecho AS desfecho
+                                     x.desfecho AS desfecho, x.segundo AS clock, x.action_id AS aid
                               ORDER BY period, x.segundo, x.action_id""", **params)
         shown = rows[: _top(limit, MAX_LIST)]
         for r in shown:
+            r["score"] = self.score_before(r["period"], r.pop("clock"), r.pop("aid"))
             r["third"] = _TO_ENGLISH.get(r["third"], r["third"])
             r["corridor"] = _TO_ENGLISH.get(r["corridor"], r["corridor"])
             r["outcome"] = _outcome(r)
