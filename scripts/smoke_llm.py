@@ -5,10 +5,10 @@ The benchmark needs two capabilities from the model, and they are the first
 to break on an unfamiliar model or provider:
 
 1. tool calling (the ``graph_tools`` arm is an agent with tools);
-2. structured output (every arm answers with a Pydantic model).
+2. structured output (every arm answers with the ``Answer`` model).
 
 This script checks both with a single cheap call: an agent with one tool
-whose result only the tool knows, asked to return a structured answer.
+whose result only the tool knows, asked to return an ``Answer``.
 It does not touch Neo4j.
 
 Usage:
@@ -19,9 +19,9 @@ import asyncio
 import sys
 import time
 
-from pydantic import BaseModel
 from pydantic_ai import Agent
 
+from football_graphrag.benchmark.scoring import Answer
 from football_graphrag.config import get_settings
 from football_graphrag.llm.provider import pydantic_ai_model, pydantic_ai_model_settings
 from football_graphrag.observability import logging_setup
@@ -29,10 +29,6 @@ from football_graphrag.observability import logging_setup
 logging_setup.setup()
 
 SECRET = 7341
-
-
-class SmokeAnswer(BaseModel):
-    value: float | None = None
 
 
 async def main() -> int:
@@ -44,8 +40,8 @@ async def main() -> int:
 
     agent = Agent(
         pydantic_ai_model(settings),
-        output_type=SmokeAnswer,
-        output_retries=2,
+        output_type=Answer,
+        retries={"output": 2},
         model_settings={**pydantic_ai_model_settings(settings), "temperature": 0},
         system_prompt="Use the available tool to answer. Do not guess.",
     )
