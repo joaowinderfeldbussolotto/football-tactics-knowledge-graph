@@ -195,6 +195,13 @@ def _outcome(row: dict) -> str:
     return "+".join(parts)
 
 
+def _after(score: str, scorer: str) -> str:
+    """"Argentina 2-1 France" + a goal by France -> "Argentina 2-2 France"."""
+    arg, fra = (int(x) for x in score.split(" ")[1].split("-"))
+    arg, fra = (arg + 1, fra) if scorer == "Argentina" else (arg, fra + 1)
+    return f"Argentina {arg}-{fra} France"
+
+
 class Toolbox:
     """The seven tools, bound to a driver, for one run (one question)."""
 
@@ -365,9 +372,14 @@ class Toolbox:
         shown = rows[: _top(limit, MAX_LIST)]
         for r in shown:
             r["score"] = self.score_before(r["period"], r.pop("clock"), r.pop("aid"))
+            goal_by = r["team"] if r["gol"] else None
             r["third"] = _TO_ENGLISH.get(r["third"], r["third"])
             r["corridor"] = _TO_ENGLISH.get(r["corridor"], r["corridor"])
             r["outcome"] = _outcome(r)
+            if goal_by:
+                # The row of a goal also says what it made: the score column
+                # alone (before the action) showed 2-2 on the goal that made 3-2.
+                r["outcome"] = r["outcome"].replace("goal", f"goal (score after: {_after(r['score'], goal_by)})", 1)
         return {"total": len(rows), "shown": len(shown), "actions": shown}
 
     # ------------------------------------------------------------------ pass network

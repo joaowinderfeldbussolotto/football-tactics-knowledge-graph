@@ -292,6 +292,9 @@ def test_list_actions_shows_the_score_before_each_action(tb, df):
         "Argentina 0-0 France", "Argentina 1-0 France", "Argentina 2-0 France",
         "Argentina 2-1 France", "Argentina 2-2 France", "Argentina 3-2 France",
     ]
+    # the goal row also says the score it made
+    assert goals[3]["outcome"] == "goal (score after: Argentina 2-2 France)"
+    assert goals[4]["outcome"] == "goal (score after: Argentina 3-2 France)"
     # every action of the match against the Parquet: goals strictly before it
     rows = tb.list_actions({"team": "France", "action": "falta_cometida"}, limit=100)["actions"]
     scored = df[df.gol].sort_values(["period_id", "time_seconds", "action_id"])
