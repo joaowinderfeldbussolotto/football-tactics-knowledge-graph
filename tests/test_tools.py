@@ -246,7 +246,7 @@ def reference_chains(df, team, length, same_possession, consecutive, first=None)
 @pytest.mark.parametrize("same_possession, consecutive", [(True, True), (True, False), (False, False)])
 def test_pass_paths_match_brute_force(tb, df, same_possession, consecutive):
     expected = reference_chains(df, "France", 2, same_possession, consecutive)
-    got = tb.pass_paths("France", 2, same_possession, consecutive, top=100)
+    got = tb.pass_paths("France", 3, same_possession, consecutive, top=100)
     assert got["total_chains"] == sum(expected.values())
     assert got["distinct_sequences"] == len(expected)
     for s in got["sequences"]:
@@ -255,7 +255,7 @@ def test_pass_paths_match_brute_force(tb, df, same_possession, consecutive):
 
 def test_pass_paths_longer_chains_and_filters(tb, df):
     expected = reference_chains(df, "Argentina", 3, True, False, first=lambda p: p.period_id == 1)
-    got = tb.pass_paths("Argentina", 3, True, False, {"period": 1}, top=100)
+    got = tb.pass_paths("Argentina", 4, True, False, {"period": 1}, top=100)
     assert got["total_chains"] == sum(expected.values())
     assert all(len(s["players"]) == 4 for s in got["sequences"])
 

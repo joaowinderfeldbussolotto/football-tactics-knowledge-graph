@@ -532,14 +532,14 @@ class Toolbox:
 
     # ------------------------------------------------------------------ pass chains
 
-    def pass_paths(self, team: str, length: int = 2, same_possession: bool = True,
+    def pass_paths(self, team: str, players: int = 3, same_possession: bool = True,
                    consecutive: bool = True, filters=None, top: int = 10) -> dict:
         team = resolve_team(team)
         if team is None:
             raise ToolError("team is required: 'Argentina' or 'France'")
-        if not 2 <= int(length) <= 4:
-            raise ToolError("length must be 2, 3 or 4 (passes in the chain)")
-        length = int(length)
+        if not 3 <= int(players) <= 5:
+            raise ToolError("players must be 3, 4 or 5 (players in the sequence; 3 is A -> B -> C)")
+        length = int(players) - 1  # passes in the chain
         f = _as_filters(filters).model_copy(update={"team": team})
         where, params = self._where(f)
         # Every pass attempt of both teams, in match order, flagged when it
@@ -578,6 +578,7 @@ class Toolbox:
                 chains[tuple(seq)] += 1
         ranked = sorted(chains.items(), key=lambda kv: (-kv[1], kv[0]))[: _top(top)]
         return {"team": team, "filters": f.model_dump(exclude_none=True, exclude={"team"}),
-                "length": length, "same_possession": same_possession, "consecutive": consecutive,
+                "players_per_sequence": length + 1, "same_possession": same_possession,
+                "consecutive": consecutive,
                 "total_chains": sum(chains.values()), "distinct_sequences": len(chains),
                 "sequences": [{"players": list(s), "count": n} for s, n in ranked]}
