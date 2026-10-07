@@ -52,7 +52,7 @@ STAT_GLOSSARY = {
     "dribles_certos": "take-ons completed",
     "desarmes_tentados": "tackles attempted",
     "desarmes_certos": "tackles won",
-    "interceptacoes": "interceptions",
+    "interceptacoes": "successful interceptions",
     "cortes": "clearances",
     "faltas_cometidas": "fouls committed",
     "cartoes_amarelos": "yellow cards (from fouls or not)",
@@ -71,7 +71,7 @@ STAT_GLOSSARY = {
     "posse_pct": "ball possession by time, in % (team)",
     "ppda_1o_tempo": "opponent passes per defensive action, 1st half; lower = more pressing (team)",
     "ppda_2o_tempo": "same, 2nd half (team)",
-    "field_tilt_pct": "share of the two teams' attacking-third actions, in % (team)",
+    "field_tilt_pct": "this team's share of the passes both teams made in their attacking third, in % (team)",
 }
 
 
