@@ -1,8 +1,7 @@
 """Configuração central, lida do .env via pydantic-settings.
 
-Regra do projeto (docs/05-decisoes.md): trocar de provedor de LLM é editar
-LLM_PROVIDER no .env, nada mais. Nenhum outro módulo lê os.environ direto,
-exceto o Graphiti, que lê SEMAPHORE_LIMIT nativamente.
+Regra do projeto (docs/legado/05-decisoes.md): trocar de provedor de LLM é
+editar LLM_PROVIDER no .env, nada mais. Nenhum outro módulo lê os.environ direto.
 """
 
 from functools import lru_cache
@@ -22,14 +21,8 @@ class Settings(BaseSettings):
     llm_provider: Literal["mistral", "anthropic", "gemini", "openrouter"] = "mistral"
     llm_api_key: str = ""
     llm_model: str = ""
-    llm_small_model: str = ""
     llm_max_retries: int = 5  # repassado ao construtor do SDK; não é camada nossa
-    # Como o Graphiti pede saída estruturada em endpoints compatíveis com OpenAI.
-    # "json_schema" é o modo estrito e o default; nem todo modelo servido por
-    # agregador o implementa, e "json_object" é o degrau de compatibilidade —
-    # o primeiro botão a girar se a camada 3 falhar em validação de saída.
-    llm_structured_output_mode: Literal["json_schema", "json_object"] = "json_schema"
-    # Teto de tokens de SAÍDA por chamada dos agentes da camada 3 (/ask, /report).
+    # Teto de tokens de SAÍDA por chamada dos agentes.
     # Em modelo de raciocínio o raciocínio oculto conta contra este teto: se ele o
     # consome inteiro, a chamada termina com finish_reason "length" e SEM texto, e o
     # PydanticAI levanta "Model token limit (N) exceeded before any response was
@@ -46,17 +39,6 @@ class Settings(BaseSettings):
     embedder_api_key: str = ""
     embedder_model: str = ""
 
-    # --- Concorrência ---
-    # Lido nativamente pelo Graphiti (env SEMAPHORE_LIMIT); reaproveitado no
-    # semáforo de aplicação que envolve cada agent.run() do PydanticAI.
-    semaphore_limit: int = 5
-
-    # Pacing proativo da indexação do Graphiti (segundos entre triplets).
-    # Cada triplet faz ~3-4 chamadas de embedding; 2.0 mantém a indexação
-    # dentro da cota free-tier do Gemini (100 embed-requests/min). Com chave
-    # paga, use 0. O retry nativo (LLM_MAX_RETRIES) cobre o que passar disso.
-    graphiti_pace_seconds: float = 2.0
-
     # --- Neo4j ---
     neo4j_uri: str = "bolt://neo4j:7687"
     neo4j_user: str = "neo4j"
@@ -68,7 +50,9 @@ class Settings(BaseSettings):
     langfuse_host: str = "https://cloud.langfuse.com"
 
     # --- Dados ---
-    statsbomb_match_ids: str = "3869685,3869519,3869354"
+    # Benchmark: só a final (Argentina x França). Outras partidas continuam
+    # suportadas pela pipeline, mas não entram nas perguntas.
+    statsbomb_match_ids: str = "3869685"
     data_dir: Path = Path("data")
 
     @property
