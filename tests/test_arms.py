@@ -33,7 +33,7 @@ def fake_vector_store(monkeypatch, tmp_path):
 def test_event_table_has_one_line_per_action_with_cards_and_goals():
     header, lines = arms.event_lines()
     assert header.split(",") == [
-        "minute", "team", "player", "action", "success", "receiver",
+        "period", "minute", "team", "player", "action", "success", "receiver",
         "zone_from", "zone_to", "possession", "outcome",
     ]
     assert len(lines) == 2585
@@ -106,3 +106,12 @@ def test_tools_answer_from_the_graph():
             tools.player_stats(d, "Martínez")
     finally:
         d.close()
+
+
+@requires_data
+def test_event_table_is_in_match_order():
+    # Giroud's card (95', recovered from the raw JSON) used to sit at the end.
+    _, lines = arms.event_lines()
+    period_minute = [tuple(int(x) for x in ln.split(",")[:2]) for ln in lines]
+    assert period_minute == sorted(period_minute)
+    assert "Olivier Giroud" not in lines[-1]

@@ -71,7 +71,8 @@ class ArmResult:
 
 EVENT_LEGEND = """\
 One row per on-ball action (SPADL), in match order; penalty shootout excluded.
-minute: broadcast minute (1-120+). team, player: who acted. action: action type
+period: 1 and 2 regular time, 3 and 4 extra time. minute: broadcast minute (stoppage
+time continues the count, so the 1st half goes past 45). team, player: who acted. action: action type
 (Portuguese labels, e.g. passe, conducao, drible, desarme, interceptacao,
 falta_cometida, finalizacao, penalti, cartao_por_reclamacao). success: 1/0.
 receiver: who received a completed pass. zone_from/zone_to: cell of a 12x8 grid,
@@ -99,13 +100,18 @@ def _outcome(row) -> str:
 @lru_cache
 def event_lines(match_id: int = MATCH_ID) -> tuple[str, list[str]]:
     """Header and one CSV line per action, built from the layer 0 Parquet."""
-    df = pd.read_parquet(get_settings().processed_dir / f"{match_id}.parquet").sort_values("action_id")
+    # Match order is (period, time). action_id alone is not: layer 0 appends
+    # actions it recovers from the raw JSON (e.g. Giroud's yellow card for
+    # dissent, 95') at the end of the table.
+    df = pd.read_parquet(get_settings().processed_dir / f"{match_id}.parquet").sort_values(
+        ["period_id", "time_seconds", "action_id"]
+    )
     names = df.dropna(subset=["player_id"]).groupby("player_id").player_name.first()
     receiver = df.receiver_player_id.map(lambda r: names.get(int(r), "") if pd.notna(r) else "")
-    header = "minute,team,player,action,success,receiver,zone_from,zone_to,possession,outcome"
+    header = "period,minute,team,player,action,success,receiver,zone_from,zone_to,possession,outcome"
     lines = [
         ",".join([
-            str(r.minuto), r.team_name, r.player_name, r.acao, str(int(r.sucesso)), rec,
+            str(r.period_id), str(r.minuto), r.team_name, r.player_name, r.acao, str(int(r.sucesso)), rec,
             _int(r.zone_start), _int(r.zone_end), _int(r.possession_id), _outcome(r),
         ])
         for r, rec in zip(df.itertuples(), receiver)
