@@ -76,3 +76,19 @@ um piloto para validar a ideia, não um resultado.
 
 ✅ certo · ❌ alucinação · 🟡 abstenção · ⚠️ erro de formato. Cada símbolo abre o trace no Langfuse.
 
+
+## Repetição dos 5 erros do `graph_tools`
+
+Para separar erro sistemático de variação, as 5 perguntas que o
+`graph_tools` errou rodaram mais 2 vezes cada, só nesse braço
+([`pilot_rerun_graph_tools.jsonl`](../../data/benchmark/pilot_rerun_graph_tools.jsonl),
+US$ 0,07). Resultado: 0 de 10 acertos. Com a primeira rodada, cada pergunta
+tem 3 tentativas.
+
+| Pergunta | Respostas nas 3 tentativas | A causa se repete? |
+|---|---|---|
+| f03 | Messi, Messi, Messi | Não exatamente. Na 1ª, a janela de busca parou 60 s antes do gol. Nas 2 seguintes, o modelo **viu** o chute defendido de Lautaro (7499,1 s) e mesmo assim escolheu a defesa anterior, num chute de Messi. É erro de raciocínio, não de busca. |
+| a05 | Otamendi 26, três vezes | Sim, de forma idêntica: lê "enquanto vencia por 2 a 0" como "até o 2 a 0". |
+| s01 | Tchouaméni, Camavinga, Camavinga | Sim: nas 3, monta uma rede para o período 3 e outra para o 4 e não consegue juntá-las. |
+| s04 | errada, abstenção, errada | Sim: nas 3, troca a rede do 1º tempo pela do 2º. Nas 3, a primeira chamada é `network_edges` com um id inventado ("pending", "none"), feita antes de a rede existir, e o braço termina com 9 chamadas, acima do limite de 8. |
+| u03 | 2, 8, 9 | Sim: nas 3, conta conduções como "piques". |
