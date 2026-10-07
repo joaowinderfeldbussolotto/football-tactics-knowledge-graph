@@ -1,64 +1,85 @@
 # football-tactics-knowledge-graph
 
-PoC de **grafo tático de futebol com insights não triviais**: dados de evento
-(StatsBomb Open Data) passam por uma pipeline determinística, viram um grafo em Neo4j, e
-algoritmos de grafo (GDS) produzem insights que **não existem em nenhuma linha da tabela**
-— o LLM (Graphiti + PydanticAI) apenas verbaliza e recupera, nunca calcula.
+Um benchmark que responde uma pergunta:
 
-> **Novo por aqui?** Comece por
-> **[docs/00-entenda-o-projeto.md](docs/00-entenda-o-projeto.md)** — explica do
-> zero de onde vem o dado e o que cada transformação faz, acompanhando o gol
-> do Di María na final da Copa de 2022 da origem até a resposta.
+> Dado o registro de eventos de uma partida de futebol, qual a melhor forma de
+> permitir perguntas em linguagem natural: vetorizar, colocar tudo no prompt,
+> colocar dados processados no prompt, ou deixar o modelo consultar um grafo
+> por ferramentas?
 
-## Arquitetura
+Os dados são a final da Copa do Mundo de 2022, Argentina x França (StatsBomb
+Open Data). São 30 perguntas fechadas, cada uma com resposta certa calculada
+por código e corrigida por código; nenhum LLM dá nota.
 
-```mermaid
-flowchart TD
-    SB["StatsBomb Open Data"] --> C0
-    C0["CAMADA 0 — Pipeline de dados<br/>kloppy → SPADL → xT/VAEP<br/>→ vocabulário de futebol (acao, sucesso, minuto)"] --> PQ[("Parquet")]
-    PQ --> C1["CAMADA 1 — Grafo factual<br/>Jogador, Time, Zona, FaseDePosse +<br/>REALIZOU, PASSOU_PARA, PRESSIONOU..."]
-    PQ --> C1B["CAMADA 1b — Súmula pré-agregada<br/>EstatisticaJogador / EstatisticaTime"]
-    C1 --> NEO[("Neo4j")]
-    C1B --> NEO
-    NEO --> C2["CAMADA 2 — Análise estrutural (GDS)<br/>AQUI NASCEM OS INSIGHTS<br/>betweenness, comunidades, pontes, janelas"]
-    C2 -->|"nós PadraoTatico"| NEO
-    NEO --> C3["CAMADA 3 — Interpretação e recuperação<br/>Graphiti + PydanticAI, citação obrigatória"]
-    C3 --> OUT["Relatório e Q&A"]
+## Comece por aqui
 
-    style C3 fill:#fdf0e3,stroke:#a86420,stroke-width:2px
-```
+A documentação foi escrita para ser lida em ordem, sem conhecimento prévio:
 
-**Só a camada 3 usa LLM.** Todo número nasce nas camadas determinísticas; o
-modelo lê, consulta e escreve — nunca calcula.
+| Capítulo | O que você aprende |
+|---|---|
+| [1. Visão geral](docs/01-visao-geral.md) | a pergunta do benchmark, os 5 braços e os 5 tipos de pergunta, com analogias |
+| [2. Dos dados ao grafo](docs/02-dos-dados-ao-grafo.md) | o caminho do JSON bruto ao banco em grafo, acompanhando o gol de Di María |
+| [3. Perguntas e gabarito](docs/03-perguntas-e-gabarito.md) | o arquivo de perguntas, como a resposta certa é calculada e conferida |
+| [4. Os cinco braços](docs/04-os-cinco-bracos.md) | exatamente o que cada braço envia ao modelo, com trechos reais |
+| [5. Conferência e métricas](docs/05-conferencia-e-metricas.md) | como cada resposta é corrigida e como ler o relatório |
+| [6. Como rodar](docs/06-como-rodar.md) | passo a passo do zero, local ou Docker, e solução de problemas |
+| [7. Decisões e limitações](docs/07-decisoes-e-limitacoes.md) | por que cada escolha, problemas achados nos dados, o que o benchmark não diz |
+| [8. Glossário](docs/08-glossario.md) | todos os termos técnicos em linguagem simples |
+| [Registro das execuções](docs/execucoes/README.md) | cada execução do benchmark: configuração, custo real, resultado, achados e links para os traces |
 
+## Em uma tabela
 
-## Quickstart
+| Braço | O modelo recebe |
+|---|---|
+| `no_context` | só a pergunta (mede a memória do modelo) |
+| `vector` | as 30 linhas de evento mais parecidas com a pergunta |
+| `events_in_prompt` | todos os 2.585 lances da partida (~68 mil tokens) |
+| `stats_in_prompt` | a súmula por jogador e por time |
+| `graph_tools` | 8 ferramentas que consultam o grafo no Neo4j |
+
+| Tipo de pergunta (6 de cada) | Exemplo |
+|---|---|
+| `factual` | "Quem deu a assistência para o segundo gol da França na final?" |
+| `aggregation` | "Quem fez mais desarmes certos na final? Liste os 3 primeiros." |
+| `structural` | "Quem foi o jogador da Argentina por quem passava o maior número de rotas de passe entre os companheiros?" |
+| `composite` | "Quantos passes errou esse jogador?" |
+| `unanswerable` | "Qual foi a velocidade máxima atingida por Mbappé na final?" |
+
+As perguntas ficam em [`config/questions.yaml`](config/questions.yaml).
+
+## Rodar em 5 comandos
+
+Com Docker e Python 3.11 (detalhes e caminho só com Docker no
+[capítulo 6](docs/06-como-rodar.md)):
 
 ```bash
-cp .env.example .env                                  # 1. configurar (chaves de LLM opcionais)
-docker compose up -d                                  # 2. Neo4j (GDS+APOC) + API
-docker compose exec api python scripts/run_pipeline.py   # 3. camada 0
-docker compose exec api python scripts/build_graph.py    # 4. camada 1
-docker compose exec api python scripts/run_analysis.py   # 5. camada 2 (insights)
-# camada 3: GET /report/{match_id} e POST /ask em localhost:8000 (exige LLM_API_KEY)
+cp .env.example .env                       # preencha as chaves de LLM e de embeddings
+scripts/local_setup.sh                     # ambiente, Neo4j e camadas de dados, sem custo de API
+source .venv/bin/activate
+python scripts/check_ground_truth.py       # gabarito x grafo: tem de dar 30/30
+python scripts/run_benchmark.py --sample   # 1 pergunta por tipo, centavos
 ```
 
-## Documentação
+Depois, a execução completa (`python scripts/run_benchmark.py --fresh`).
 
-| Doc | Conteúdo |
-|---|---|
-| [docs/00-entenda-o-projeto.md](docs/00-entenda-o-projeto.md) | **comece aqui**: o projeto do zero — uma jogada real do JSON bruto ao grafo, e uma pergunta real do enunciado à resposta conferida |
-| [docs/01-pipeline.md](docs/01-pipeline.md) | linhagem completa StatsBomb → grafo, com contagens reais |
-| [docs/02-modelo-grafo.md](docs/02-modelo-grafo.md) | schema do grafo, projeções do GDS, volumes medidos |
-| [docs/03-insights.md](docs/03-insights.md) | catálogo dos 8 insights, com exemplos reais das partidas |
-| [docs/04-consumo.md](docs/04-consumo.md) | relatório, Q&A, prompts na íntegra, recuperação estruturada |
-| [docs/05-decisoes.md](docs/05-decisoes.md) | ADRs (por que a camada 1 não usa LLM, etc.) |
-| [docs/06-reproduzir.md](docs/06-reproduzir.md) | passo a passo do zero, com saídas esperadas |
-| [docs/07-validacao.md](docs/07-validacao.md) | relatório da execução de validação: todos os números medidos, separados da doc |
-| [docs/08-autonomia.md](docs/08-autonomia.md) | o processo do modo autônomo: text-to-Cypher read-only no relatório e no Q&A, bugs reais e regras |
-| [docs/09-a-avaliacao-por-dentro.md](docs/09-a-avaliacao-por-dentro.md) | **como a avaliação funciona**: os três braços, o que cada métrica mede, como rodar, quanto custa e como restaurar o backup do índice |
-| [docs/11-perguntas-para-fazer-ao-app.md](docs/11-perguntas-para-fazer-ao-app.md) | **o que perguntar ao app**: mais de 60 perguntas com a resposta correta (conferida no grafo), variações de formulação, o que o grafo não sabe e armadilhas |
-| [docs/10-roteiro-de-testes.md](docs/10-roteiro-de-testes.md) | **para testar na mão e entender o app**: 28 casos com comando, resultado esperado (conferido contra o grafo) e como validar — do Neo4j Browser a perguntas que tentam fazer o app errar |
+## Fazer perguntas livres
 
-Dados: [StatsBomb Open Data](https://github.com/statsbomb/open-data) (CC BY-NC 4.0, uso
-acadêmico com atribuição). Partidas da PoC: Copa do Mundo 2022 — final, semifinal e quartas.
+Qualquer pergunta sobre a final, fora das 30 do benchmark. Não há gabarito:
+a resposta é mostrada, não corrigida.
+
+```bash
+python scripts/ask.py --arm graph_tools                   # modo interativo: uma pergunta por linha, "sair" encerra
+python scripts/ask.py "Quem tocou mais na bola?"          # uma pergunta, nos 5 braços
+python scripts/ask.py "Quem tocou mais na bola?" --arm stats_in_prompt
+python scripts/ask.py --question s03                      # uma pergunta do benchmark, com gabarito
+```
+
+Cada braço mostra a resposta, as ferramentas chamadas (no `graph_tools`) e o
+link do trace no Langfuse. Escolher um braço com `--arm` é mais barato e mais
+rápido do que consultar os cinco.
+
+## Resultados
+
+As execuções ainda estão em andamento e os números não são finais. Cada
+execução, com configuração, custo, resultado e links para os traces, fica
+registrada em [`docs/execucoes/`](docs/execucoes/README.md).

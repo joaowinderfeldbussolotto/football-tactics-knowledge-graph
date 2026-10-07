@@ -20,18 +20,21 @@ services:
       retries: 15
       start_period: 30s
 
-  api:
+  # Optional: runs the scripts inside Docker instead of on the host
+  # (`docker compose exec app python scripts/run_benchmark.py`).
+  app:
     build: .
     depends_on:
       neo4j:
         condition: service_healthy
     env_file: .env
-    ports:
-      - "8000:8000"
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
     volumes:
       - ./data:/app/data
-      - ./docs:/app/docs
-    command: uvicorn football_graphrag.api.main:app --host 0.0.0.0 --port 8000
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+      - ./config:/app/config
 
 volumes:
   neo4j_data:

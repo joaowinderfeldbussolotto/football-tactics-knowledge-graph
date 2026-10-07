@@ -1,92 +1,78 @@
 #!/usr/bin/env python
-"""Teste de fumaça de um provedor de LLM contra o grafo real.
+"""Smoke test for the LLM configured in .env.
 
-Serve para QUALQUER provedor, não só um novo: roda UMA pergunta real
-(escolhida de propósito para exercitar os dois mecanismos que quebram
-primeiro num modelo desconhecido — chamada de ferramenta e saída
-estruturada) e reporta se funcionou, sem o custo de rodar as 30 perguntas
-do golden dataset.
+The benchmark needs two capabilities from the model, and they are the first
+to break on an unfamiliar model or provider:
 
-Uso:
-    python scripts/smoke_llm.py                    # pergunta padrão
-    python scripts/smoke_llm.py "sua pergunta aqui"
+1. tool calling (the ``graph_tools`` arm is an agent with tools);
+2. structured output (every arm answers with the ``Answer`` model).
 
-Não roda nada se LLM_API_KEY estiver ausente — sai com mensagem clara em
-vez de deixar o traceback de autenticação explicar o problema por você.
+This script checks both with a single cheap call: an agent with one tool
+whose result only the tool knows, asked to return an ``Answer``.
+It does not touch Neo4j.
+
+Usage:
+    python scripts/smoke_llm.py
 """
 
 import asyncio
 import sys
 import time
 
-from football_graphrag.api import agents, retrieval
+from pydantic_ai import Agent
+from pydantic_ai.usage import RunUsage
+
+from football_graphrag.benchmark.scoring import Answer
 from football_graphrag.config import get_settings
-from football_graphrag.evaluation import faithfulness
-from football_graphrag.graph import db
+from football_graphrag.llm.provider import pydantic_ai_model, pydantic_ai_model_settings
 from football_graphrag.observability import logging_setup
-from football_graphrag.observability.langfuse_setup import setup_observability
 
 logging_setup.setup()
 
-# Pede um fato que não está em nenhum PadraoTatico (força o agente a usar
-# consultar_grafo) e cita um jogador (a súmula entra no contexto — ver
-# api/retrieval.py) — cobre ferramenta, súmula e saída estruturada num só tiro.
-PERGUNTA_PADRAO = "Quantos desarmes certos o Enzo Fernandez fez na final?"
-MATCH_ID = 3869685
+SECRET = 7341
 
 
-async def main(pergunta: str) -> int:
+async def main() -> int:
     settings = get_settings()
     if not settings.llm_api_key:
-        print("LLM_API_KEY ausente no .env — nada para testar. Configure e rode de novo.")
+        print("LLM_API_KEY is missing in .env: nothing to test.")
         return 1
+    print(f"provider={settings.llm_provider}  model={settings.llm_model}")
 
-    print(f"provedor={settings.llm_provider}  modelo={settings.llm_model}")
-    observado = setup_observability(settings)
-    print(f"Langfuse: {'instrumentado' if observado else 'sem chaves, desligado'}")
-    print(f"pergunta: {pergunta}\n")
+    agent = Agent(
+        pydantic_ai_model(settings),
+        output_type=Answer,
+        retries={"output": 2},
+        model_settings={**pydantic_ai_model_settings(settings), "temperature": 0},
+        system_prompt="Use the available tool to answer. Do not guess.",
+    )
+    calls: list[str] = []
 
-    driver = db.make_driver(settings)
+    @agent.tool_plain
+    def get_ticket_number() -> int:
+        """Return the ticket number the user is asking about."""
+        calls.append("get_ticket_number")
+        return SECRET
+
+    # Same as benchmark/arms.py: our own RunUsage, filled in place by the run.
+    # (``result.usage`` changed from a method to a property across PydanticAI
+    # versions; this works in both.)
+    usage = RunUsage()
+    t0 = time.perf_counter()
     try:
-        t0 = time.perf_counter()
-        patterns, stats, extra_facts, timings = await retrieval.retrieve_context(driver, MATCH_ID, pergunta)
-        try:
-            resposta = await agents.answer_question(pergunta, patterns, stats, extra_facts, driver, MATCH_ID)
-        except Exception as exc:
-            print(f"FALHOU ao gerar a resposta estruturada: {type(exc).__name__}: {exc}")
-            return 1
-        elapsed = round(time.perf_counter() - t0, 2)
+        result = await agent.run("What is the ticket number? Put it in `value`.", usage=usage)
+    except Exception as exc:
+        print(f"FAILED: {type(exc).__name__}: {exc}")
+        return 1
+    elapsed = time.perf_counter() - t0
 
-        print("saída validou no schema RespostaTatica: sim")
-        print(f"resposta: {resposta.resposta}")
-        print(f"em_bom_portugues: {resposta.em_bom_portugues}")
-        print(f"confiança declarada: {resposta.confianca}")
-        print(f"consultas executadas: {len(resposta.consultas_executadas)}")
-        for c in resposta.consultas_executadas:
-            print(f"  - {c.cypher}\n    => {c.resultado_resumido}")
-
-        if resposta.consultas_executadas:
-            qfid = faithfulness.check_queries(driver, resposta.consultas_executadas)
-            print(f"re-execução das consultas: {qfid.score:.0%} ({qfid.matched}/{qfid.total})")
-            for m in qfid.mismatches:
-                print(f"  MISMATCH: {m}")
-        if resposta.metricas_citadas:
-            cfid = faithfulness.check_citations(driver, resposta.metricas_citadas)
-            print(f"citações válidas: {cfid.score:.0%} ({cfid.matched}/{cfid.total})")
-
-        print(f"\ntempo total: {elapsed}s (recuperação {timings['retrieval_seconds']}s)")
-        return 0
-    finally:
-        driver.close()
-        if observado:
-            # Script de vida curta: sem isso os spans do OTel ficam no buffer
-            # e o processo termina antes do exporter mandar para o Langfuse.
-            from langfuse import get_client
-
-            get_client().flush()
-            print("Langfuse: spans enviados (flush)")
+    tool_ok = bool(calls)
+    output_ok = result.output.value == SECRET
+    print(f"tool calling:      {'ok' if tool_ok else 'FAILED (tool was not called)'}")
+    print(f"structured output: {'ok' if output_ok else f'FAILED (value={result.output.value})'}")
+    print(f"tokens in/out: {usage.input_tokens}/{usage.output_tokens}  latency: {elapsed:.1f}s")
+    return 0 if tool_ok and output_ok else 1
 
 
 if __name__ == "__main__":
-    pergunta = " ".join(sys.argv[1:]) or PERGUNTA_PADRAO
-    sys.exit(asyncio.run(main(pergunta)))
+    sys.exit(asyncio.run(main()))
