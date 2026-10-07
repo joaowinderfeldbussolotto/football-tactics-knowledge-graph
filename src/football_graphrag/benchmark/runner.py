@@ -34,6 +34,8 @@ def result_row(question: Question, arm: str, repeat: int, result: ArmResult, exp
         "error": result.error,
         "input_tokens": result.input_tokens,
         "output_tokens": result.output_tokens,
+        "cache_read_tokens": result.cache_read_tokens,
+        "cache_write_tokens": result.cache_write_tokens,
         "n_tool_calls": len(result.tool_calls),
         "tool_calls": result.tool_calls,
         "latency_s": result.latency_s,

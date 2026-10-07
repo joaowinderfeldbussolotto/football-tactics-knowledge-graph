@@ -118,11 +118,15 @@ def pydantic_ai_model(settings: Settings):
             provider=MistralProvider(mistral_client=_mistral_sdk_client(settings)),
         )
     if settings.llm_provider == "openrouter":
-        from pydantic_ai.models.openai import OpenAIChatModel
+        # OpenRouterModel (not the generic OpenAIChatModel): it is the class
+        # that turns a CachePoint into the `cache_control` breakpoint that
+        # Anthropic models need for prompt caching. The generic class drops
+        # the CachePoint silently. Models without explicit caching ignore it.
+        from pydantic_ai.models.openrouter import OpenRouterModel
         from pydantic_ai.providers.openrouter import OpenRouterProvider
 
         openai_client = _openai_compat_sdk_client(settings.llm_api_key, OPENROUTER_BASE_URL, settings)
-        return OpenAIChatModel(
+        return OpenRouterModel(
             settings.llm_model,
             provider=OpenRouterProvider(
                 openai_client=openai_client,
@@ -148,10 +152,8 @@ def pydantic_ai_model_settings(settings: Settings) -> dict:
     OpenRouter entende não existe nos outros.
 
     ``max_tokens`` vem de ``LLM_MAX_TOKENS``. ``LLM_REASONING_EFFORT`` só é
-    traduzido para o OpenRouter, via ``extra_body["reasoning"]``: o projeto usa
-    ``OpenAIChatModel`` com ``OpenRouterProvider``, e é esse o caminho que esse
-    modelo envia (a tradução ``openrouter_reasoning`` pertence à classe
-    ``OpenRouterModel``, que não é a usada). Em outro provedor a opção é
+    traduzido para o OpenRouter, via ``extra_body["reasoning"]``, que o
+    OpenAI SDK repassa como está. Em outro provedor a opção é
     ignorada COM aviso — ignorar em silêncio faria parecer que o botão
     funciona.
     """

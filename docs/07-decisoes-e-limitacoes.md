@@ -87,6 +87,26 @@ Cada linha da tabela de eventos é um documento. Assim o `vector` e o
 "30 linhas escolhidas" contra "todas as linhas". Os embeddings são calculados
 em lotes de 100 (cerca de 26 pedidos) e guardados em cache.
 
+### Cache de prompt nos braços com dados fixos
+
+O `events_in_prompt` envia a mesma tabela de ~100 mil tokens em todas as
+perguntas, e o `stats_in_prompt` a mesma súmula. Com cache de prompt, o
+provedor guarda esse trecho na primeira pergunta e cobra as seguintes por uma
+fração do preço (no Claude Haiku 5.5, leitura a 10% do preço de entrada). Na
+amostra sem cache, o `events_in_prompt` sozinho custou ~95% do total.
+
+Para funcionar, a mensagem desses dois braços vai em **dois blocos de texto**:
+os dados, com a marcação de cache, e a pergunta. O cache só reaproveita um
+começo idêntico, e a pergunta muda a cada vez. **O modelo lê exatamente o
+mesmo texto**; muda só a cobrança. Por isso o projeto usa a classe
+`OpenRouterModel` do PydanticAI, a única que repassa essa marcação a modelos
+Anthropic pelo OpenRouter. Modelos sem esse tipo de cache simplesmente a
+ignoram. O `results.jsonl` registra os tokens lidos e gravados no cache
+(`cache_read_tokens`, `cache_write_tokens`).
+
+Verificado com o Claude Haiku 5.5: a segunda pergunta do `stats_in_prompt`
+leu 4.921 de 4.966 tokens do cache e custou metade.
+
 ### Ferramentas com consultas fixas
 
 O modelo escolhe ferramentas, mas não escreve consultas ao banco. Deixar o

@@ -115,3 +115,16 @@ def test_event_table_is_in_match_order():
     period_minute = [tuple(int(x) for x in ln.split(",")[:2]) for ln in lines]
     assert period_minute == sorted(period_minute)
     assert "Olivier Giroud" not in lines[-1]
+
+
+def test_cached_arms_split_data_and_question_around_a_cache_point():
+    from pydantic_ai.messages import CachePoint
+
+    prompt = "Match stats:\nnome,toques\nEnzo,195\n\nQuestion: Quem tocou mais?"
+    data, cache_point, question = arms.user_content("stats_in_prompt", prompt)
+    assert isinstance(cache_point, CachePoint)
+    assert data == "Match stats:\nnome,toques\nEnzo,195"
+    assert question == "Question: Quem tocou mais?"
+    # arms whose content changes with the question are sent as a plain string
+    assert arms.user_content("vector", prompt) == prompt
+    assert arms.user_content("no_context", "Quem?") == "Quem?"

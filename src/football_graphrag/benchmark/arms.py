@@ -21,6 +21,7 @@ from functools import lru_cache
 import numpy as np
 import pandas as pd
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import CachePoint
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.usage import RunUsage, UsageLimits
 
@@ -59,8 +60,10 @@ OUTPUT_RETRIES = 2
 class ArmResult:
     arm: str
     answer: Answer | None  # None: no valid Answer even after the output retries
-    input_tokens: int = 0
+    input_tokens: int = 0  # includes cached tokens
     output_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
     tool_calls: list[dict] = field(default_factory=list)
     latency_s: float = 0.0
     prompt_preview: str = ""
@@ -420,6 +423,25 @@ async def build_prompt(arm: str, question_text: str) -> str:
     raise ValueError(f"unknown arm {arm!r}; valid: {', '.join(ARMS)}")
 
 
+# Arms whose data block is identical for every question: worth caching.
+CACHED_ARMS = ("events_in_prompt", "stats_in_prompt")
+QUESTION_MARKER = "\n\nQuestion: "
+
+
+def user_content(arm: str, prompt: str) -> str | list:
+    """The user message as sent. For the cached arms, the same text split in
+    two parts, data and question, with a cache breakpoint after the data.
+
+    Prompt caching changes the bill, not what the model reads: the parts
+    are the same text. The question has to be a separate part because the
+    cache matches a prefix up to the breakpoint, and the question changes.
+    """
+    if arm not in CACHED_ARMS:
+        return prompt
+    data, question = prompt.rsplit(QUESTION_MARKER, 1)
+    return [data, CachePoint(), f"{QUESTION_MARKER.lstrip()}{question}"]
+
+
 async def run_arm(arm: str, question_text: str) -> ArmResult:
     """Ask one question to one arm. Never raises for a bad model answer."""
     prompt = await build_prompt(arm, question_text)
@@ -429,7 +451,7 @@ async def run_arm(arm: str, question_text: str) -> ArmResult:
     t0 = time.perf_counter()
     answer, error = None, None
     try:
-        result = await agent.run(prompt, deps=deps, usage=usage,
+        result = await agent.run(user_content(arm, prompt), deps=deps, usage=usage,
                                  usage_limits=UsageLimits(request_limit=REQUEST_LIMIT))
         answer = result.output
     except UnexpectedModelBehavior as exc:  # output still invalid after the retries
@@ -441,6 +463,8 @@ async def run_arm(arm: str, question_text: str) -> ArmResult:
         answer=answer,
         input_tokens=usage.input_tokens,
         output_tokens=usage.output_tokens,
+        cache_read_tokens=usage.cache_read_tokens,
+        cache_write_tokens=usage.cache_write_tokens,
         tool_calls=deps.calls if deps else [],
         latency_s=round(time.perf_counter() - t0, 2),
         prompt_preview=prompt,
