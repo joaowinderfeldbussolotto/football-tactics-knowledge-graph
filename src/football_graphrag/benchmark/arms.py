@@ -87,10 +87,10 @@ falta_cometida, finalizacao, penalti, cartao_por_reclamacao). success: 1/0.
 receiver: who received a completed pass. zone_from/zone_to: cell of a 12x8 grid,
 zone = column*8 + row, column 0-11 from the acting team's own goal to the
 opponent's goal; third = zone // 32 (0 defensive, 1 middle, 2 attacking).
-possession: id of the possession phase. outcome: goal, yellow_card, and the
-shot result (defendida, bloqueada, para_fora) when there is one. score: the
-score Argentina-France when the action starts, before it (2-1: Argentina 2,
-France 1)."""
+possession: id of the possession phase. outcome: goal with the score it made,
+e.g. goal(3-2), yellow_card, and the shot result (defendida, bloqueada,
+para_fora) when there is one. score: the score Argentina-France when the
+action starts, before it (2-1: Argentina 2, France 1)."""
 
 
 def _int(value) -> str:
@@ -123,12 +123,14 @@ def event_lines(match_id: int = MATCH_ID) -> tuple[str, list[str]]:
     lines, goals = [], {"Argentina": 0, "France": 0}
     for r, rec in zip(df.itertuples(), receiver):
         score = f"{goals['Argentina']}-{goals['France']}"  # before this action
-        lines.append(",".join([
-            str(r.period_id), str(r.minuto), r.team_name, r.player_name, r.acao, str(int(r.sucesso)), rec,
-            _int(r.zone_start), _int(r.zone_end), _int(r.possession_id), _outcome(r), score,
-        ]))
+        outcome = _outcome(r)
         if r.gol:
             goals[r.team_name] += 1
+            outcome = outcome.replace("goal", f"goal({goals['Argentina']}-{goals['France']})", 1)
+        lines.append(",".join([
+            str(r.period_id), str(r.minuto), r.team_name, r.player_name, r.acao, str(int(r.sucesso)), rec,
+            _int(r.zone_start), _int(r.zone_end), _int(r.possession_id), outcome, score,
+        ]))
     return header, lines
 
 
@@ -410,15 +412,15 @@ through whom when the ball moves from player to player.
 
 Args:
     team: {tools.TEAM_HELP}
-    length: Number of passes in a chain, 2 to 4 (2 is A -> B -> C).
+    players: Number of players in a sequence, 3 to 5 (3 is A -> B -> C, two passes).
     same_possession: Require the whole chain within one possession.
     consecutive: Require no other pass between two linked passes.
     filters: Which passes may start a chain. Omit it for every completed pass of the team.
     top: How many sequences to return, 1 to {tools.MAX_TOP}.
 """)
-def pass_paths(ctx: RunContext[GraphDeps], team: str, length: int = 2, same_possession: bool = True,
+def pass_paths(ctx: RunContext[GraphDeps], team: str, players: int = 3, same_possession: bool = True,
                consecutive: bool = True, filters: tools.ActionFilters | None = None, top: int = 10) -> dict:
-    return _call(ctx, "pass_paths", ctx.deps.toolbox.pass_paths, team=team, length=length,
+    return _call(ctx, "pass_paths", ctx.deps.toolbox.pass_paths, team=team, players=players,
                  same_possession=same_possession, consecutive=consecutive, filters=filters, top=top)
 
 

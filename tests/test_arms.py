@@ -42,8 +42,9 @@ def test_event_table_has_one_line_per_action_with_cards_and_goals():
     assert len(lines) == 2585
     giroud = [ln for ln in lines if "Olivier Giroud" in ln and "yellow_card" in ln]
     assert len(giroud) == 1 and "cartao_por_reclamacao" in giroud[0]
-    goals = [ln.split(",") for ln in lines if "goal" in ln.split(",")[-2].split("+")]
+    goals = [ln.split(",") for ln in lines if ln.split(",")[-2].startswith("goal")]
     assert [g[-1] for g in goals] == ["0-0", "1-0", "2-0", "2-1", "2-2", "3-2"]  # score before each goal
+    assert [g[-2] for g in goals] == ["goal(1-0)", "goal(2-0)", "goal(2-1)", "goal(2-2)", "goal(3-2)", "goal(3-3)"]
     assert lines[-1].split(",")[-1] == "3-3"
 
 
