@@ -122,9 +122,12 @@ def graph_answer(driver, qid: str) -> dict:
         stored = _pivot_pattern(driver, team)
         live = _betweenness(driver, team)
         return ans([stored], detail=f"PadraoTatico; GDS live top: {live[0]['nome']} {live[0]['score']}")
-    if qid in ("s03", "s04"):
-        live = _betweenness(driver, "Argentina" if qid == "s03" else "France")
+    if qid == "s03":
+        live = _betweenness(driver, "Argentina")
         return ans([live[1]["nome"]], detail=f"GDS live: {[(x['nome'], x['score']) for x in live[:3]]}")
+    if qid == "s04":
+        trio = graph_answer(driver, "s05")["players"]
+        return ans([trio[1]], detail=" -> ".join(trio))
     if qid == "s05":
         stored = _rows(driver, """MATCH (p:PadraoTatico {match_id: $m, tipo: 'terceiro_homem', time: 'France'})
                                   RETURN p.jogadores_envolvidos AS js, p.valor_metrica AS n
@@ -153,7 +156,7 @@ def graph_answer(driver, qid: str) -> dict:
                              RETURN count(p) AS v""", a=a, b=b)
         return ans(value=r[0]["v"], detail=f"{a} -> {b}")
     if qid == "c06":
-        p = _betweenness(driver, "France")[1]["nome"]
+        p = _pivot_pattern(driver, "France")
         return ans(value=_stat(driver, p, "faltas_cometidas"), detail=p)
     return ans(detail="no graph query: the data has no answer")
 

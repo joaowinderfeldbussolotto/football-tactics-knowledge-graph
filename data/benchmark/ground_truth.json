@@ -135,11 +135,11 @@
   "s04": {
     "source": "parquet",
     "players": [
-      "Adrien Rabiot"
+      "Raphaël Varane"
     ],
     "value": null,
     "no_data": false,
-    "detail": "betweenness 25.0"
+    "detail": "Jules Koundé -> Raphaël Varane -> Dayotchanculle Upamecano, 3x"
   },
   "s05": {
     "source": "parquet",
@@ -199,9 +199,9 @@
   "c06": {
     "source": "parquet+raw_json",
     "players": [],
-    "value": 3,
+    "value": 2,
     "no_data": false,
-    "detail": "2nd: Adrien Rabiot"
+    "detail": "pivot: Jules Koundé"
   },
   "u01": {
     "source": "none",

@@ -25,6 +25,16 @@ Choices made while writing them (details in docs/benchmark.md):
   Louvain communities, which change with the random seed. A ground truth
   that depends on a seed is not a ground truth.
 - No question has a tie at the position being asked.
+- Structural and composite questions are worded in football language, not in
+  the vocabulary of the graph tools: no "betweenness", no algorithm or tool
+  names (guarded by tests/test_questions.py). Otherwise the question would
+  name the tool and the ``graph_tools`` arm would get a lexical shortcut.
+  The "link player" questions keep only answers that do not change across
+  reasonable readings (xT-weighted or unweighted, directed or not); France's
+  2nd link player changes with the reading and was dropped. The three-player
+  combinations do change with the definition (6 repeated Argentine ones
+  become 58 without "reaching a more advanced third"), so their questions
+  carry the definition, in plain words.
 """
 
 from dataclasses import dataclass
@@ -34,21 +44,22 @@ MATCH_ID = 3869685
 QUESTION_TYPES = ("factual", "aggregation", "structural", "composite", "unanswerable")
 CHECKS = ("player", "value", "set", "player_and_value", "no_data")
 
-# Definitions repeated in the structural and composite questions, so that
-# every arm receives the same, self-contained question.
-_PIVOT = (
-    "o pivô da rede de passes {team} (o jogador com maior betweenness centrality "
-    "na rede de passes certos do time, ponderada pelo xT)"
+# Football wording shared by the structural and composite questions, so that
+# every arm receives the same self-contained question.
+_LINK = (
+    "o jogador {team} por quem passava o maior número de rotas de passe entre os "
+    "companheiros (o principal elo de ligação na circulação de bola do time)"
 )
-_SECOND = (
-    "o jogador com a segunda maior betweenness centrality na rede de passes {team} "
-    "(rede de passes certos do time, ponderada pelo xT)"
+_SECOND_LINK = (
+    "o segundo jogador {team} por quem passavam mais rotas de passe entre os "
+    "companheiros (o segundo principal elo de ligação na circulação de bola do time)"
 )
-_TRIO_DEFINITION = (
-    "sequência de passes certos A→B→C entre três jogadores diferentes, na mesma "
-    "posse e quase consecutivos, que leva a bola a um terço mais avançado do campo"
+_COMBO_RULE = (
+    "A passa para B e B passa para C, três jogadores diferentes, na mesma posse de "
+    "bola e sem outro passe no meio, terminando num terço do campo mais avançado "
+    "do que aquele onde a jogada começou"
 )
-_TRIO = f"trio progressivo ({_TRIO_DEFINITION})"
+_COMBO = f"combinação de três jogadores ({_COMBO_RULE})"
 
 
 @dataclass(frozen=True)
@@ -112,60 +123,65 @@ QUESTIONS: list[Question] = [
     ),
     Question("a06", "aggregation", "Quais jogadores da França receberam cartão amarelo na final?", "set"),
     # ------------------------------------------------------------ structural
-    Question("s01", "structural", f"Na final, quem era {_PIVOT.format(team='da Argentina')}?", "player"),
-    Question("s02", "structural", f"Na final, quem era {_PIVOT.format(team='da França')}?", "player"),
-    Question("s03", "structural", f"Na final, quem era {_SECOND.format(team='da Argentina')}?", "player"),
-    Question("s04", "structural", f"Na final, quem era {_SECOND.format(team='da França')}?", "player"),
+    Question("s01", "structural", f"Na final, quem foi {_LINK.format(team='da Argentina')}?", "player"),
+    Question("s02", "structural", f"Na final, quem foi {_LINK.format(team='da França')}?", "player"),
+    Question("s03", "structural", f"Na final, quem foi {_SECOND_LINK.format(team='da Argentina')}?", "player"),
+    Question(
+        "s04",
+        "structural",
+        f"Na {_COMBO} que a França mais repetiu na final, quem era o jogador do meio (o B)?",
+        "player",
+    ),
     Question(
         "s05",
         "structural",
-        f"Quais jogadores formam o {_TRIO} que a França mais repetiu na final?",
+        f"Quais jogadores formam a {_COMBO} que a França mais repetiu na final?",
         "set",
     ),
     Question(
         "s06",
         "structural",
-        "Quantos trios progressivos distintos a Argentina repetiu pelo menos duas vezes "
-        f"na final? Trio progressivo: {_TRIO_DEFINITION}.",
+        "Quantas combinações diferentes de três jogadores a Argentina repetiu pelo menos "
+        f"duas vezes na final? Considere como combinação: {_COMBO_RULE}.",
         "value",
     ),
     # ------------------------------------------------------------ composite
     Question(
         "c01",
         "composite",
-        f"Quantos passes errou {_PIVOT.format(team='da Argentina')} na final?",
+        f"Na final, quantos passes errou {_LINK.format(team='da Argentina')}?",
         "value",
     ),
     Question(
         "c02",
         "composite",
-        f"Quantos passes certos deu {_PIVOT.format(team='da França')} na final?",
+        f"Na final, quantos passes certos deu {_LINK.format(team='da França')}?",
         "value",
     ),
     Question(
         "c03",
         "composite",
-        f"Quantos desarmes certos fez {_SECOND.format(team='da Argentina')} na final?",
+        f"Na final, quantos desarmes certos fez {_SECOND_LINK.format(team='da Argentina')}?",
         "value",
     ),
     Question(
         "c04",
         "composite",
-        f"Entre os três jogadores do {_TRIO} que a França mais repetiu na final, "
+        f"Entre os três jogadores da {_COMBO} que a França mais repetiu na final, "
         "qual deu mais passes certos na partida?",
         "player",
     ),
     Question(
         "c05",
         "composite",
-        f"Quantos passes certos {_PIVOT.format(team='da Argentina')} deu para "
-        f"{_SECOND.format(team='da Argentina')}, na final?",
+        f"Na final, quantos passes certos {_LINK.format(team='da Argentina')} deu para "
+        f"{_SECOND_LINK.format(team='da Argentina')}?",
         "value",
     ),
     Question(
         "c06",
         "composite",
-        f"Quantas faltas cometeu {_SECOND.format(team='da França')} na final?",
+        f"Na final, quantas faltas cometeu {_LINK.format(team='da França')}?",
         "value",
     ),
     # ------------------------------------------------------------ unanswerable

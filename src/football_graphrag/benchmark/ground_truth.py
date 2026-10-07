@@ -248,7 +248,6 @@ def compute() -> dict[str, dict]:
     arg_pivot, arg_pivot_score = _pivot("Argentina")
     fra_pivot, fra_pivot_score = _pivot("France")
     arg_second, arg_second_score = _pivot("Argentina", 2)
-    fra_second, fra_second_score = _pivot("France", 2)
     fra_trio, fra_trio_n = _top_trio("France")
     trios = progressive_trios()
     arg_repeated = trios[(trios.team == "Argentina") & (trios.n >= 2)]
@@ -278,7 +277,7 @@ def compute() -> dict[str, dict]:
         "s01": _answer("parquet", [arg_pivot], detail=f"betweenness {arg_pivot_score}"),
         "s02": _answer("parquet", [fra_pivot], detail=f"betweenness {fra_pivot_score}"),
         "s03": _answer("parquet", [arg_second], detail=f"betweenness {arg_second_score}"),
-        "s04": _answer("parquet", [fra_second], detail=f"betweenness {fra_second_score}"),
+        "s04": _answer("parquet", [fra_trio[1]], detail=f"{' -> '.join(fra_trio)}, {fra_trio_n}x"),
         "s05": _answer("parquet", fra_trio, detail=f"{' -> '.join(fra_trio)}, {fra_trio_n}x"),
         "s06": _answer("parquet", value=len(arg_repeated),
                        detail=str([" -> ".join((r.a, r.b, r.c)) for r in arg_repeated.itertuples()])),
@@ -289,7 +288,7 @@ def compute() -> dict[str, dict]:
                        detail=str({p: passes_ok[p] for p in fra_trio})),
         "c05": _answer("parquet+raw_json", value=completed_passes_between(arg_pivot, arg_second),
                        detail=f"{arg_pivot} -> {arg_second}"),
-        "c06": _answer("parquet+raw_json", value=fouls[fra_second], detail=f"2nd: {fra_second}"),
+        "c06": _answer("parquet+raw_json", value=fouls[fra_pivot], detail=f"pivot: {fra_pivot}"),
     }
     for q in QUESTIONS:
         if q.type == "unanswerable":
