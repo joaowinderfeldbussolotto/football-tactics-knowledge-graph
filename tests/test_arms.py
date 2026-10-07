@@ -127,3 +127,8 @@ def test_cached_arms_split_data_and_question_around_a_cache_point():
     # arms whose content changes with the question are sent as a plain string
     assert arms.user_content("vector", prompt) == prompt
     assert arms.user_content("no_context", "Quem?") == "Quem?"
+
+
+def test_shared_prompt_forbids_approximate_answers_and_tool_calls_are_sequential():
+    assert "do not answer with a different or\napproximate measure" in arms.SYSTEM_PROMPT
+    assert arms.tool_agent("graph_tools").model_settings["parallel_tool_calls"] is False

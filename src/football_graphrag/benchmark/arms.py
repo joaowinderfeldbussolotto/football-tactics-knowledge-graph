@@ -45,8 +45,9 @@ Argentina vs France. Questions are in Portuguese.
 
 Answer only with the data provided in this conversation (in the message or
 returned by your tools). Do not use outside knowledge, even if you think you
-know the answer. If the provided data does not contain what is needed to
-answer, set no_data to true.
+know the answer. If the provided data does not contain exactly what the
+question asks for, set no_data to true: do not answer with a different or
+approximate measure in its place.
 
 Write player names exactly as they appear in the data."""
 
@@ -318,8 +319,8 @@ def list_actions(ctx: RunContext[GraphDeps], filters: tools.ActionFilters | None
 @_describe(f"""Builds a team's pass network from the completed passes between teammates that
 match the filters: each player is a node, and each passer -> receiver pair is a connection
 carrying the number of passes and the xT they added. Returns a network_id, used by
-network_metric and network_edges, and a summary (players, connections, passes). Networks
-last until the end of the question.
+network_metric and network_edges, the team and filters it was built with, and a summary
+(players, connections, passes). Networks last until the end of the question.
 
 In football terms: the map of who passes to whom, for the whole match or for a slice of
 it (a period, a stretch of time, an area of the pitch).
@@ -333,7 +334,8 @@ def pass_network(ctx: RunContext[GraphDeps], team: str, filters: tools.ActionFil
     return _call(ctx, "pass_network", ctx.deps.toolbox.pass_network, team=team, filters=filters)
 
 
-@_describe(f"""Computes a graph metric on a network built by pass_network (Neo4j GDS):
+@_describe(f"""Computes a graph metric on a network built by pass_network (Neo4j GDS). The result
+repeats the team and filters the network was built with.
 - betweenness: for every pair of other players, counts how many shortest passing routes
   go through each player. Unweighted, every connection has length 1; weighted, a
   connection is shorter the more passes (length 1/passes) or the more xT (length
@@ -372,8 +374,9 @@ def network_metric(ctx: RunContext[GraphDeps], network_id: str, metric: tools.Ne
 
 
 @_describe(f"""Lists the connections of a network built by pass_network: passer, receiver,
-number of completed passes and the xT they added, most passes first. With a player, only
-the connections where that player passes or receives.
+number of completed passes and the xT they added, most passes first, with the team and
+filters the network was built with. With a player, only the connections where that
+player passes or receives.
 
 In football terms: the passing partnerships of a team or of one player, and which of
 them moved the ball toward danger.
@@ -384,7 +387,7 @@ Args:
     top: How many connections to return, 1 to {tools.MAX_TOP}.
 """)
 def network_edges(ctx: RunContext[GraphDeps], network_id: str, player: str | None = None,
-                  top: int = 20) -> list[dict]:
+                  top: int = 20) -> dict:
     return _call(ctx, "network_edges", ctx.deps.toolbox.network_edges,
                  network_id=network_id, player=player, top=top)
 
@@ -427,7 +430,9 @@ def tool_agent(arm: str = "graph_tools") -> Agent[GraphDeps, Answer]:
         deps_type=GraphDeps,
         output_type=Answer,
         retries={"output": OUTPUT_RETRIES, "tools": TOOL_RETRIES},
-        model_settings=_model_settings(),
+        # One tool call per step: in parallel, the model asked for a network's
+        # edges before the network existed, with an invented id.
+        model_settings={**_model_settings(), "parallel_tool_calls": False},
         system_prompt=SYSTEM_PROMPT,
         tools=[Tool(TOOLS[name], takes_ctx=True) for name in TOOL_ARMS[arm]],
     )
