@@ -271,26 +271,60 @@ para os traces, gerada por `python scripts/trace_links.py --results <arquivo>`.
 
 ---
 
-## 6.7 Fazer uma pergunta isolada
+## 6.7 Fazer perguntas livres (ou uma pergunta isolada)
 
-Para testar, investigar um erro ou só ver como cada braço se comporta, sem
-gravar nada em `results.jsonl`:
+Para explorar, investigar um erro ou ver como cada braço se comporta, sem
+gravar nada em `results.jsonl`. Há três jeitos:
+
+**Modo interativo**, para várias perguntas livres seguidas:
 
 ```bash
-python scripts/ask.py --question s03                      # uma pergunta do benchmark, nos 5 braços
-python scripts/ask.py --question s03 --arm graph_tools    # um braço só
-python scripts/ask.py "Quem tocou mais na bola?"          # pergunta livre, nos 5 braços
+python scripts/ask.py --arm graph_tools
+```
+
+```text
+model: openrouter:anthropic/claude-haiku-5.5 | arms: graph_tools
+Free questions about the 2022 World Cup final, one per line. Empty line or 'sair' to quit.
+
+pergunta> Quem tocou mais na bola?
+=== graph_tools  (<segundos>s, tokens in/out <entrada>/<saída>)
+  tool: stat_ranking(stat='toques', team=None, top=5)
+  answer:  <o raciocínio do modelo, em texto>
+  players: <jogadores> | value: <número> | no_data: no
+  trace:   https://us.cloud.langfuse.com/project/.../traces/...
+
+pergunta> sair
+```
+
+Sem `--arm`, cada pergunta vai aos cinco braços. Isso é útil para comparar,
+mas é mais caro: o `events_in_prompt` envia ~100 mil tokens por pergunta. Com
+cache de prompt, a primeira pergunta paga a gravação e as seguintes, feitas em
+até 5 minutos, saem bem mais baratas.
+
+**Uma pergunta livre**, num comando só:
+
+```bash
+python scripts/ask.py "Quem tocou mais na bola?"                  # nos 5 braços
 python scripts/ask.py "Quem tocou mais na bola?" --arm stats_in_prompt
+```
+
+**Uma pergunta do benchmark**, com gabarito e veredito:
+
+```bash
+python scripts/ask.py --question s03                      # nos 5 braços
+python scripts/ask.py --question s03 --arm graph_tools    # um braço só
 python scripts/ask.py --question s03 --show-prompt        # mostra também o prompt enviado
 ```
 
-Para cada braço, a saída mostra a resposta completa (com o `rationale`), os
-tokens, o tempo e, no `graph_tools`, cada ferramenta chamada com os
-argumentos. Em pergunta do benchmark, mostra também o gabarito e o veredito
-(`CORRECT`, `WRONG`, `ABSTENTION` ou `FORMAT ERROR`). Pergunta livre não tem
-gabarito, então não tem veredito.
+Pergunta livre **não tem gabarito**: a resposta é mostrada, não corrigida.
+Todo braço responde no mesmo formato do benchmark (`rationale`, `players`,
+`value`, `no_data`), então a explicação fica no campo `answer` (o
+`rationale`). Perguntas abertas ("como a Argentina construía o jogo?")
+funcionam, mas o formato foi pensado para perguntas fechadas, e a resposta
+vem resumida nesse campo.
 
----
+Em pergunta do benchmark, a saída mostra também o gabarito e o veredito:
+`CORRECT`, `WRONG`, `ABSTENTION` ou `FORMAT ERROR`.
 
 ## 6.8 Testes
 

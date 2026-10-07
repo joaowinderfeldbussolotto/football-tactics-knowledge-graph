@@ -60,43 +60,26 @@ python scripts/check_ground_truth.py       # gabarito x grafo: tem de dar 30/30
 python scripts/run_benchmark.py --sample   # 1 pergunta por tipo, centavos
 ```
 
-Depois, a execução completa (`python scripts/run_benchmark.py --fresh`) e
-perguntas isoladas (`python scripts/ask.py --question s03`).
+Depois, a execução completa (`python scripts/run_benchmark.py --fresh`).
+
+## Fazer perguntas livres
+
+Qualquer pergunta sobre a final, fora das 30 do benchmark. Não há gabarito:
+a resposta é mostrada, não corrigida.
+
+```bash
+python scripts/ask.py --arm graph_tools                   # modo interativo: uma pergunta por linha, "sair" encerra
+python scripts/ask.py "Quem tocou mais na bola?"          # uma pergunta, nos 5 braços
+python scripts/ask.py "Quem tocou mais na bola?" --arm stats_in_prompt
+python scripts/ask.py --question s03                      # uma pergunta do benchmark, com gabarito
+```
+
+Cada braço mostra a resposta, as ferramentas chamadas (no `graph_tools`) e o
+link do trace no Langfuse. Escolher um braço com `--arm` é mais barato e mais
+rápido do que consultar os cinco.
 
 ## Resultados
 
-Primeira execução: **Claude Haiku 5.5** (via OpenRouter), **1 repetição** (150
-execuções), com cache de prompt. Custo real ~US$ 0,25. Relatório completo em
-[`data/benchmark/summary.md`](data/benchmark/summary.md); cada resposta em
-[`data/benchmark/results.jsonl`](data/benchmark/results.jsonl); análise e links para os
-traces em [`docs/execucoes/`](docs/execucoes/README.md).
-
-| Tipo | `no_context` | `vector` | `events_in_prompt` | `stats_in_prompt` | `graph_tools` |
-|---|---|---|---|---|---|
-| factual | 0% | 33% | **100%** | 33% | **100%** |
-| aggregation | 0% | 17% | 33% | 50% | **100%** |
-| structural | 0% | 0% | 17% | 0% | **100%** |
-| composite | 0% | 0% | 0% | 17% | **83%** |
-| unanswerable | 100% | 100% | 100% | 100% | 100% |
-| **total** | 20% | 30% | 50% | 40% | **97%** |
-
-| Braço | Alucinação | Abstenção |
-|---|---|---|
-| `no_context` | 0% | 80% |
-| `vector` | **47%** | 23% |
-| `events_in_prompt` | 37% | 13% |
-| `stats_in_prompt` | 17% | 43% |
-| `graph_tools` | 3% | 0% |
-
-Como ler, com cuidado:
-
-- **Uma repetição só, 6 perguntas por tipo**: cada célula de tipo é de 0 a 6
-  acertos. As tendências são claras, mas os números ainda não medem
-  consistência (a tabela de repetições fica vazia com 1 execução).
-- **Um modelo, sem raciocínio estendido.** Na amostra com o DeepSeek V4 Pro,
-  que raciocina, o `events_in_prompt` acertou contagens que o Haiku errou.
-- **Dois defeitos conhecidos do benchmark**, achados nesta execução:
-  - **c05**: nenhuma ferramenta conta passes entre dois jogadores específicos,
-    então o `graph_tools` não tinha como responder (é o seu único erro);
-  - **c06** confere só o número: o `stats_in_prompt` acertou com o jogador
-    errado, por coincidência (Tchouaméni e Koundé fizeram 2 faltas cada).
+As execuções ainda estão em andamento e os números não são finais. Cada
+execução, com configuração, custo, resultado e links para os traces, fica
+registrada em [`docs/execucoes/`](docs/execucoes/README.md).
