@@ -185,6 +185,8 @@ pronto. Em cada terminal novo, ative o ambiente antes de rodar qualquer script:
 
 próximos passos (os que usam LLM precisam das chaves no .env):
 
+    python scripts/check_ground_truth.py       # gabarito x grafo, sem custo
     python scripts/smoke_llm.py                # confere tool calling + saída estruturada do modelo
+    python scripts/run_benchmark.py --sample   # 1 pergunta por tipo (centavos)
 
 FIM

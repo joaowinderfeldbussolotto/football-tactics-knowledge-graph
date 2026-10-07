@@ -1,64 +1,109 @@
 # football-tactics-knowledge-graph
 
-PoC de **grafo tático de futebol com insights não triviais**: dados de evento
-(StatsBomb Open Data) passam por uma pipeline determinística, viram um grafo em Neo4j, e
-algoritmos de grafo (GDS) produzem insights que **não existem em nenhuma linha da tabela**
-— o LLM (Graphiti + PydanticAI) apenas verbaliza e recupera, nunca calcula.
+Um benchmark que responde uma pergunta só:
 
-> **Novo por aqui?** Comece por
-> **[docs/00-entenda-o-projeto.md](docs/00-entenda-o-projeto.md)** — explica do
-> zero de onde vem o dado e o que cada transformação faz, acompanhando o gol
-> do Di María na final da Copa de 2022 da origem até a resposta.
+> Dado um JSON de eventos de futebol, qual a melhor forma de permitir perguntas
+> em linguagem natural: vetorizar, colocar tudo no prompt, colocar dados
+> processados no prompt, ou deixar o LLM percorrer um grafo via tools?
 
-## Arquitetura
+Dados: a final da Copa do Mundo de 2022, Argentina x França (StatsBomb Open
+Data, partida 3869685). Detalhes, decisões e limitações estão em
+**[docs/benchmark.md](docs/benchmark.md)**.
 
-```mermaid
-flowchart TD
-    SB["StatsBomb Open Data"] --> C0
-    C0["CAMADA 0 — Pipeline de dados<br/>kloppy → SPADL → xT/VAEP<br/>→ vocabulário de futebol (acao, sucesso, minuto)"] --> PQ[("Parquet")]
-    PQ --> C1["CAMADA 1 — Grafo factual<br/>Jogador, Time, Zona, FaseDePosse +<br/>REALIZOU, PASSOU_PARA, PRESSIONOU..."]
-    PQ --> C1B["CAMADA 1b — Súmula pré-agregada<br/>EstatisticaJogador / EstatisticaTime"]
-    C1 --> NEO[("Neo4j")]
-    C1B --> NEO
-    NEO --> C2["CAMADA 2 — Análise estrutural (GDS)<br/>AQUI NASCEM OS INSIGHTS<br/>betweenness, comunidades, pontes, janelas"]
-    C2 -->|"nós PadraoTatico"| NEO
-    NEO --> C3["CAMADA 3 — Interpretação e recuperação<br/>Graphiti + PydanticAI, citação obrigatória"]
-    C3 --> OUT["Relatório e Q&A"]
+## Os 5 braços
 
-    style C3 fill:#fdf0e3,stroke:#a86420,stroke-width:2px
-```
+Todos usam o mesmo modelo, o mesmo prompt de sistema, `temperature=0` e a
+mesma saída estruturada. Só muda o que o LLM recebe.
 
-**Só a camada 3 usa LLM.** Todo número nasce nas camadas determinísticas; o
-modelo lê, consulta e escreve — nunca calcula.
+| Braço | O LLM recebe |
+|---|---|
+| `no_context` | só a pergunta (mede o que o modelo sabe de memória) |
+| `vector` | os 30 eventos mais parecidos com a pergunta (embeddings) |
+| `events_in_prompt` | a tabela de todos os eventos da partida (~63 mil tokens) |
+| `stats_in_prompt` | estatísticas agregadas por jogador e por time, lidas do Neo4j |
+| `graph_tools` | 8 tools com Cypher fixo sobre o Neo4j, incluindo algoritmos do GDS |
 
+## Os 5 tipos de pergunta (6 de cada)
 
-## Quickstart
+| Tipo | Exige | Exemplo |
+|---|---|---|
+| `factual` | achar um fato | "Quem deu a assistência para o segundo gol da França?" |
+| `aggregation` | contar e ordenar | "Quem fez mais desarmes certos? Top 3." |
+| `structural` | algoritmo de grafo | "Quem era o pivô (maior betweenness) da rede de passes da Argentina?" |
+| `composite` | estrutural + agregação | "Quantos passes errou o pivô da Argentina?" |
+| `unanswerable` | perceber que o dado não existe | "Qual a velocidade máxima do Mbappé?" |
+
+O gabarito é calculado **sem o Neo4j**: do JSON bruto do StatsBomb, e com
+networkx sobre o Parquet para as estruturais. Ele é conferido contra o grafo
+(30/30). Nenhum LLM dá nota; a conferência é feita por código.
+
+## Como rodar do zero
+
+Pré-requisitos: Docker e Python 3.11 (o `socceraction` não instala em 3.13).
 
 ```bash
-cp .env.example .env                                  # 1. configurar (chaves de LLM opcionais)
-docker compose up -d                                  # 2. Neo4j (GDS+APOC) + API
-docker compose exec api python scripts/run_pipeline.py   # 3. camada 0
-docker compose exec api python scripts/build_graph.py    # 4. camada 1
-docker compose exec api python scripts/run_analysis.py   # 5. camada 2 (insights)
-# camada 3: GET /report/{match_id} e POST /ask em localhost:8000 (exige LLM_API_KEY)
+cp .env.example .env            # preencha LLM_* e EMBEDDER_* (Langfuse é opcional)
+scripts/local_setup.sh          # venv + Neo4j (GDS/APOC) + camadas 0, 1/1b e 2, sem custo de API
+source .venv/bin/activate
 ```
 
-## Documentação
+O `local_setup.sh` roda os passos abaixo. Para fazê-los à mão:
 
-| Doc | Conteúdo |
-|---|---|
-| [docs/00-entenda-o-projeto.md](docs/00-entenda-o-projeto.md) | **comece aqui**: o projeto do zero — uma jogada real do JSON bruto ao grafo, e uma pergunta real do enunciado à resposta conferida |
-| [docs/01-pipeline.md](docs/01-pipeline.md) | linhagem completa StatsBomb → grafo, com contagens reais |
-| [docs/02-modelo-grafo.md](docs/02-modelo-grafo.md) | schema do grafo, projeções do GDS, volumes medidos |
-| [docs/03-insights.md](docs/03-insights.md) | catálogo dos 8 insights, com exemplos reais das partidas |
-| [docs/04-consumo.md](docs/04-consumo.md) | relatório, Q&A, prompts na íntegra, recuperação estruturada |
-| [docs/05-decisoes.md](docs/05-decisoes.md) | ADRs (por que a camada 1 não usa LLM, etc.) |
-| [docs/06-reproduzir.md](docs/06-reproduzir.md) | passo a passo do zero, com saídas esperadas |
-| [docs/07-validacao.md](docs/07-validacao.md) | relatório da execução de validação: todos os números medidos, separados da doc |
-| [docs/08-autonomia.md](docs/08-autonomia.md) | o processo do modo autônomo: text-to-Cypher read-only no relatório e no Q&A, bugs reais e regras |
-| [docs/09-a-avaliacao-por-dentro.md](docs/09-a-avaliacao-por-dentro.md) | **como a avaliação funciona**: os três braços, o que cada métrica mede, como rodar, quanto custa e como restaurar o backup do índice |
-| [docs/11-perguntas-para-fazer-ao-app.md](docs/11-perguntas-para-fazer-ao-app.md) | **o que perguntar ao app**: mais de 60 perguntas com a resposta correta (conferida no grafo), variações de formulação, o que o grafo não sabe e armadilhas |
-| [docs/10-roteiro-de-testes.md](docs/10-roteiro-de-testes.md) | **para testar na mão e entender o app**: 28 casos com comando, resultado esperado (conferido contra o grafo) e como validar — do Neo4j Browser a perguntas que tentam fazer o app errar |
+```bash
+docker compose up -d neo4j
+python scripts/download_statsbomb.py      # JSON bruto (eventos + escalações)
+python scripts/run_pipeline.py            # camada 0: SPADL, xT, VAEP -> Parquet
+python scripts/build_graph.py             # camadas 1 e 1b: grafo factual + súmula
+python scripts/run_analysis.py            # camada 2: padrões do GDS (usados só na checagem cruzada)
+```
 
-Dados: [StatsBomb Open Data](https://github.com/statsbomb/open-data) (CC BY-NC 4.0, uso
-acadêmico com atribuição). Partidas da PoC: Copa do Mundo 2022 — final, semifinal e quartas.
+Depois, o benchmark:
+
+```bash
+python scripts/check_ground_truth.py      # gabarito x grafo, 30/30, sem LLM
+python scripts/smoke_llm.py               # o modelo faz tool calling e saída estruturada?
+python scripts/run_benchmark.py --sample  # 1 pergunta por tipo, 1 repetição (centavos)
+python scripts/run_benchmark.py           # 30 perguntas x 5 braços x 3 repetições
+python scripts/summarize.py               # refaz o summary.md a partir do results.jsonl, sem LLM
+```
+
+O `run_benchmark.py` grava cada execução em `data/benchmark/results.jsonl` logo
+depois da chamada. Se cair, `--resume` continua de onde parou. Também aceita
+`--repeats N`, `--arms a,b` e `--questions f01,s02`. Com chaves do Langfuse no
+`.env`, cada execução vira um span `{pergunta}/{braço}/r{n}`.
+
+Para usar Docker também nos scripts, em vez do venv local:
+`docker compose up -d` e `docker compose exec app python scripts/...`.
+
+## Uma pergunta isolada
+
+Não grava nada em `results.jsonl`:
+
+```bash
+python scripts/ask.py --question s01                      # pergunta do benchmark, todos os braços
+python scripts/ask.py --question s01 --arm graph_tools    # um braço só
+python scripts/ask.py "Quem tocou mais na bola?"          # pergunta livre, todos os braços
+python scripts/ask.py "Quem tocou mais na bola?" --arm stats_in_prompt
+python scripts/ask.py --question s01 --show-prompt        # mostra também o prompt enviado
+```
+
+A saída mostra, por braço, a resposta completa, os tokens, as tools chamadas
+(com os argumentos) e a latência. Numa pergunta do benchmark, mostra também o
+gabarito e se a resposta acertou.
+
+## Resultados
+
+**Ainda não executado.** O `results.jsonl` e o `summary.md` da execução
+completa vão para `data/benchmark/`. A tabela principal (acerto por tipo ×
+braço) entra aqui quando a execução for feita.
+
+## Testes
+
+```bash
+pytest     # os testes que dependem do Neo4j ou dos dados são pulados sem eles
+```
+
+## Histórico
+
+Este repositório começou como uma PoC de GraphRAG (API, Graphiti, juízes LLM).
+A documentação daquele sistema está em [docs/legado/](docs/legado/).
