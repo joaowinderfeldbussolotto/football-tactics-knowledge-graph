@@ -1,9 +1,9 @@
 {
-  "frozen_at_commit": "079260ce71a5c684e507be9896b72aa3e3e8557b",
-  "tag": "v2-tools-frozen",
-  "definitions_sha256": "f3d874e941cfa3f11b10b031fc24377cfa6197ae1166319e389df8a36d756f71",
-  "tools_py_sha256": "da4b7ba8151d1b273a6df0e8e91d15e352166c0057523ce879ccdbd26a016e21",
+  "tag": "v2.1-tools-frozen",
+  "definitions_sha256": "f9c756160db0593d6b2cbf83ec5144a9ac8c1d8d892a9bec592350391fdc21c1",
+  "tools_py_sha256": "c0c67edf48c9b25d467766e5b8ba04657bf5b10b224f58b3d74822ebc1877f61",
   "approved_changes": [
-    "list_actions shows the second with 3 decimals and the time filters compare at that precision, so a second read from list_actions keeps its own action (approved by the user at checkpoint 2)"
+    "list_actions shows the second with 3 decimals and the time filters compare at that precision, so a second read from list_actions keeps its own action (approved by the user at checkpoint 2)",
+    "v2.1, after the pilot (approved by the user): period takes a list; pass_network, network_metric, network_edges and pass_paths repeat the team and filters; tool calls are sequential; the shared system prompt forbids approximate answers"
   ]
 }
