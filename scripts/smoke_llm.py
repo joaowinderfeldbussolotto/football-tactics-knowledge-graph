@@ -20,6 +20,7 @@ import sys
 import time
 
 from pydantic_ai import Agent
+from pydantic_ai.usage import RunUsage
 
 from football_graphrag.benchmark.scoring import Answer
 from football_graphrag.config import get_settings
@@ -53,9 +54,13 @@ async def main() -> int:
         calls.append("get_ticket_number")
         return SECRET
 
+    # Same as benchmark/arms.py: our own RunUsage, filled in place by the run.
+    # (``result.usage`` changed from a method to a property across PydanticAI
+    # versions; this works in both.)
+    usage = RunUsage()
     t0 = time.perf_counter()
     try:
-        result = await agent.run("What is the ticket number? Put it in `value`.")
+        result = await agent.run("What is the ticket number? Put it in `value`.", usage=usage)
     except Exception as exc:
         print(f"FAILED: {type(exc).__name__}: {exc}")
         return 1
@@ -63,7 +68,6 @@ async def main() -> int:
 
     tool_ok = bool(calls)
     output_ok = result.output.value == SECRET
-    usage = result.usage()
     print(f"tool calling:      {'ok' if tool_ok else 'FAILED (tool was not called)'}")
     print(f"structured output: {'ok' if output_ok else f'FAILED (value={result.output.value})'}")
     print(f"tokens in/out: {usage.input_tokens}/{usage.output_tokens}  latency: {elapsed:.1f}s")
