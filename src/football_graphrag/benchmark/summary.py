@@ -59,7 +59,14 @@ def summarize(rows: list[dict]) -> str:
     for t in types:
         body.append([t] + [_pct([r["correct"] for r in by_arm[a] if r["type"] == t]) for a in arms])
     body.append(["**all**"] + [f"**{_pct([r['correct'] for r in by_arm[a]])}**" for a in arms])
-    out += ["", "## 1. Accuracy by question type and arm", "", _table(["type"] + arms, body)]
+    body.append(["**all but unanswerable**"] + [
+        f"**{_pct([r['correct'] for r in by_arm[a] if r['type'] != 'unanswerable'])}**" for a in arms])
+    out += [
+        "", "## 1. Accuracy by question type and arm", "",
+        "An arm that always answers \"no data\" gets every unanswerable question right; the last row "
+        "leaves them out.",
+        "", _table(["type"] + arms, body),
+    ]
 
     # 2-3. kinds of error
     body = []
@@ -108,7 +115,7 @@ def summarize(rows: list[dict]) -> str:
     ]
 
     # per-question detail
-    qids = sorted({r["question_id"] for r in rows}, key=lambda q: ("fasc u".index(q[0]), q))
+    qids = sorted({r["question_id"] for r in rows}, key=lambda q: ("fansu".index(q[0]), q))
     body = []
     for q in qids:
         cells = []
@@ -121,9 +128,12 @@ def summarize(rows: list[dict]) -> str:
 
 
 def summary_path_for(results: Path) -> Path:
-    """results.jsonl -> summary.md; anything else -> <stem>_summary.md."""
+    """results.jsonl -> summary.md; <x>_results.jsonl -> <x>_summary.md; anything
+    else -> <stem>_summary.md."""
     if results.name == "results.jsonl":
         return results.with_name("summary.md")
+    if results.stem.endswith("_results"):
+        return results.with_name(f"{results.stem.removesuffix('_results')}_summary.md")
     return results.with_name(f"{results.stem}_summary.md")
 
 

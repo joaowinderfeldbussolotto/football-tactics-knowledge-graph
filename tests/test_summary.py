@@ -21,7 +21,18 @@ def test_summary_counts_accuracy_errors_and_consistency():
     md = summarize(rows)
     assert "| fact | 0% | 100% |" in md  # arms in ARMS order: no_context before graph_tools
     assert "| **all** | **0%** | **50%** |" in md
+    assert "| **all but unanswerable** | **0%** | **100%** |" in md
     assert "| no_context | 0% | 50% | 50% |" in md  # hallucination, abstention, format error
     assert "| graph_tools | 50% | 0% | 0% |" in md
     # f01 same answer twice; u01 two different answers ("Enzo" vs "Messi")
     assert "| graph_tools | 50% | 2 |" in md
+
+
+def test_summary_file_names():
+    from pathlib import Path
+
+    from football_graphrag.benchmark.summary import summary_path_for
+
+    assert summary_path_for(Path("d/results.jsonl")) == Path("d/summary.md")
+    assert summary_path_for(Path("d/pilot_results.jsonl")) == Path("d/pilot_summary.md")
+    assert summary_path_for(Path("d/sample_haiku.jsonl")) == Path("d/sample_haiku_summary.md")

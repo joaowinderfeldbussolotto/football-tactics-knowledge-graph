@@ -2,7 +2,7 @@
 """Run the benchmark: questions x arms x repeats, one results.jsonl line per run.
 
 Usage:
-    python scripts/run_benchmark.py                       # all: 30 questions x 5 arms x 3 repeats
+    python scripts/run_benchmark.py                       # active questions x 5 arms x 3 repeats
     python scripts/run_benchmark.py --repeats 1
     python scripts/run_benchmark.py --arms no_context,stats_in_prompt,graph_tools
     python scripts/run_benchmark.py --questions f01,s02
@@ -26,7 +26,7 @@ from pathlib import Path
 
 from football_graphrag.benchmark import ground_truth
 from football_graphrag.benchmark.arms import ARMS, missing_config
-from football_graphrag.benchmark.questions import QUESTION_TYPES, QUESTIONS, get_question
+from football_graphrag.benchmark.questions import QUESTION_SET, QUESTION_TYPES, QUESTIONS, get_question
 from football_graphrag.benchmark.runner import result_row, run_one
 from football_graphrag.benchmark.summary import load_rows, write_summary
 from football_graphrag.config import get_settings
@@ -37,7 +37,9 @@ logger = logging.getLogger("run_benchmark")
 
 
 def default_output() -> Path:
-    return get_settings().data_dir / "benchmark" / "results.jsonl"
+    """pilot_results.jsonl while only the pilot questions are active, else results.jsonl."""
+    name = "pilot_results.jsonl" if QUESTION_SET.active_stages == ("pilot",) else "results.jsonl"
+    return get_settings().data_dir / "benchmark" / name
 
 
 async def main(args) -> int:
