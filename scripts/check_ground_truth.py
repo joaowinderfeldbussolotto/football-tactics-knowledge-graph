@@ -39,7 +39,7 @@ def top_pair(tb: Toolbox, team: str, filters=None) -> list[str]:
     """network_edges lists passer -> receiver; a pair sums both directions."""
     net = tb.pass_network(team, filters)
     pairs: dict[tuple, int] = {}
-    for e in tb.network_edges(net["network_id"], top=100):
+    for e in tb.network_edges(net["network_id"], top=100)["edges"]:
         key = tuple(sorted((e["passer"], e["receiver"])))
         pairs[key] = pairs.get(key, 0) + e["passes"]
     return list(max(pairs, key=pairs.get))

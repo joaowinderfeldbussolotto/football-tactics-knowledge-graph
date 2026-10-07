@@ -161,12 +161,12 @@ def test_pass_network_summary_and_edges(tb, df):
     assert net["passes"] == n_passes
     assert net["connections"] == directed.number_of_edges()
     assert net["players"] == directed.number_of_nodes()
-    edges = tb.network_edges(net["network_id"], top=100)
+    edges = tb.network_edges(net["network_id"], top=100)["edges"]
     assert len(edges) == 100
     for e in edges:
         assert directed[e["passer"]][e["receiver"]]["n"] == e["passes"]
     assert edges[0]["passes"] == max(d["n"] for _, _, d in directed.edges(data=True))
-    messi = tb.network_edges(net["network_id"], player="Messi", top=100)
+    messi = tb.network_edges(net["network_id"], player="Messi", top=100)["edges"]
     assert all("Lionel Andrés Messi Cuccittini" in (e["passer"], e["receiver"]) for e in messi)
 
 
@@ -267,3 +267,20 @@ def test_the_second_shown_works_as_a_filter_boundary(tb, df):
         first = tb.list_actions({"period": period}, limit=1)["actions"][0]
         same = tb.list_actions({"second_from": first["second"], "second_to": first["second"]})["actions"]
         assert any(a["player"] == first["player"] and a["action"] == first["action"] for a in same)
+
+
+def test_period_takes_a_list(tb, df):
+    both = tb.query_actions({"period": [3, 4]})[0]["count"]
+    assert both == int(df.period_id.isin([3, 4]).sum())
+    net = tb.pass_network("France", {"period": [3, 4]})
+    _, _, n_passes = reference_network(df, "France", lambda p: p.period_id.isin([3, 4]))
+    assert net["passes"] == n_passes
+
+
+def test_network_results_repeat_team_and_filters(tb):
+    net = tb.pass_network("Argentina", {"period": 2, "team": "France"})
+    assert net["team"] == "Argentina" and net["filters"] == {"period": 2}
+    edges = tb.network_edges(net["network_id"], top=1)
+    metric = tb.network_metric(net["network_id"], "degree")
+    assert edges["filters"] == metric["filters"] == {"period": 2}
+    assert edges["team"] == metric["team"] == "Argentina"

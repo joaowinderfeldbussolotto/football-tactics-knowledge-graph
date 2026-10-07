@@ -122,9 +122,9 @@ class ActionFilters(BaseModel):
             "goleiro_encaixa / goleiro_soca / goleiro_recolhe (keeper claim / punch / pick-up), "
             "cartao_por_reclamacao (booking for dissent, without a foul)."))
     success: bool | None = Field(None, description="true: successful actions only; false: failed actions only.")
-    period: Literal[1, 2, 3, 4] | None = Field(
-        None, description="1 and 2: the halves of regular time; 3 and 4: the halves of extra time. "
-                          "The penalty shootout is not in the data.")
+    period: list[Literal[1, 2, 3, 4]] | Literal[1, 2, 3, 4] | None = Field(
+        None, description="One or more periods. 1 and 2: the halves of regular time; 3 and 4: the halves "
+                          "of extra time. The penalty shootout is not in the data.")
     second_from: float | None = Field(
         None, description="Start of a time window, inclusive: elapsed match time in seconds since the "
                           "kickoff, continuous across periods (breaks excluded). list_actions shows the "
@@ -283,8 +283,8 @@ class Toolbox:
             conds.append("x.sucesso = $success")
             params["success"] = f.success
         if f.period is not None:
-            conds.append("x.periodo = $period")
-            params["period"] = f.period
+            conds.append("x.periodo IN $periods")
+            params["periods"] = [f.period] if isinstance(f.period, int) else list(f.period)
         if f.second_from is not None:
             conds.append("round(second, 3) >= $second_from")
             params["second_from"] = f.second_from
@@ -405,10 +405,11 @@ class Toolbox:
         if not edges:
             raise ToolError("no completed pass between teammates matches these filters")
         network_id = f"net{len(self.networks) + 1}"
-        self.networks[network_id] = {"team": team, "edges": edges}
+        used = _as_filters(filters).model_dump(exclude_none=True, exclude={"team", "success"})
+        self.networks[network_id] = {"team": team, "filters": used, "edges": edges}
         players = sorted({e["passer"] for e in edges} | {e["receiver"] for e in edges})
-        return {"network_id": network_id, "team": team, "players": len(players), "player_names": players,
-                "connections": len(edges), "passes": sum(e["passes"] for e in edges)}
+        return {"network_id": network_id, "team": team, "filters": used, "players": len(players),
+                "player_names": players, "connections": len(edges), "passes": sum(e["passes"] for e in edges)}
 
     def _network(self, network_id: str) -> dict:
         try:
@@ -427,7 +428,7 @@ class Toolbox:
         if metric not in ("betweenness", "degree", "pagerank", "bridges", "articulation_points", "communities"):
             raise ToolError(f"unknown metric {metric!r}; valid: betweenness, degree, pagerank, bridges, "
                             "articulation_points, communities")
-        out = {"network_id": network_id, "team": net["team"], "metric": metric}
+        out = {"network_id": network_id, "team": net["team"], "filters": net["filters"], "metric": metric}
         undirected = direction == "undirected" or metric in ("bridges", "articulation_points", "communities")
         with self._projection(net["edges"], undirected) as graph:
             return self._metric(graph, out, metric, weight, direction, top)
@@ -491,14 +492,15 @@ class Toolbox:
         out["ranking"] = rows
         return out
 
-    def network_edges(self, network_id: str, player: str | None = None, top: int = 20) -> list[dict]:
+    def network_edges(self, network_id: str, player: str | None = None, top: int = 20) -> dict:
         net = self._network(network_id)
         edges = net["edges"]
         if player:
             name = self.resolve_player(player)
             edges = [e for e in edges if name in (e["passer"], e["receiver"])]
-        return [{"passer": e["passer"], "receiver": e["receiver"], "passes": e["passes"],
-                 "xt": round(e["xt"], 4)} for e in edges[: _top(top)]]
+        return {"network_id": network_id, "team": net["team"], "filters": net["filters"],
+                "edges": [{"passer": e["passer"], "receiver": e["receiver"], "passes": e["passes"],
+                           "xt": round(e["xt"], 4)} for e in edges[: _top(top)]]}
 
     # ------------------------------------------------------------------ pass chains
 
@@ -547,6 +549,7 @@ class Toolbox:
             else:
                 chains[tuple(seq)] += 1
         ranked = sorted(chains.items(), key=lambda kv: (-kv[1], kv[0]))[: _top(top)]
-        return {"team": team, "length": length, "same_possession": same_possession, "consecutive": consecutive,
+        return {"team": team, "filters": f.model_dump(exclude_none=True, exclude={"team"}),
+                "length": length, "same_possession": same_possession, "consecutive": consecutive,
                 "total_chains": sum(chains.values()), "distinct_sequences": len(chains),
                 "sequences": [{"players": list(s), "count": n} for s, n in ranked]}
