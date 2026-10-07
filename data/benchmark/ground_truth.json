@@ -69,6 +69,50 @@
       }
     }
   },
+  "f05": {
+    "players": [
+      "Randal Kolo Muani"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "raw JSON / every shot": {
+        "players": [
+          "Randal Kolo Muani"
+        ],
+        "value": null
+      },
+      "raw JSON / penalties excluded": {
+        "players": [
+          "Randal Kolo Muani"
+        ],
+        "value": null
+      },
+      "layer 0": {
+        "players": [
+          "Randal Kolo Muani"
+        ],
+        "value": null
+      }
+    }
+  },
+  "f06": {
+    "players": [
+      "Olivier Giroud"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "raw JSON (Bad Behaviour card)": {
+        "players": [
+          "Olivier Giroud"
+        ],
+        "value": null
+      }
+    }
+  },
   "a01": {
     "players": [
       "Lionel Andrés Messi Cuccittini"
@@ -230,6 +274,70 @@
           "Enzo Fernandez"
         ],
         "value": 2
+      }
+    }
+  },
+  "a07": {
+    "players": [
+      "Julián Álvarez"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "raw JSON": {
+        "players": [
+          "Julián Álvarez"
+        ],
+        "value": 4
+      },
+      "layer 0": {
+        "players": [
+          "Julián Álvarez"
+        ],
+        "value": 4
+      }
+    }
+  },
+  "a08": {
+    "players": [
+      "Kylian Mbappé Lottin"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "raw JSON": {
+        "players": [
+          "Kylian Mbappé Lottin"
+        ],
+        "value": 3
+      },
+      "layer 0": {
+        "players": [
+          "Kylian Mbappé Lottin"
+        ],
+        "value": 3
+      }
+    }
+  },
+  "a09": {
+    "players": null,
+    "value": null,
+    "no_data": false,
+    "stable": false,
+    "readings": {
+      "raw JSON (every interception)": {
+        "players": [
+          "Aurélien Djani Tchouaméni"
+        ],
+        "value": 3
+      },
+      "layer 0 (successful only)": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 4
       }
     }
   },
@@ -490,6 +598,272 @@
           "Nicolás Hernán Otamendi"
         ],
         "value": 30
+      }
+    }
+  },
+  "n06": {
+    "players": [
+      "Enzo Fernandez"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / either direction": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 15
+      },
+      "all passes / passed to": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 13
+      },
+      "all passes / received from": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 15
+      },
+      "open-play passes / either direction": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 15
+      },
+      "open-play passes / passed to": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 13
+      },
+      "open-play passes / received from": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 15
+      }
+    }
+  },
+  "n07": {
+    "players": null,
+    "value": null,
+    "no_data": false,
+    "stable": false,
+    "readings": {
+      "all passes / either direction": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 15
+      },
+      "all passes / passed to": {
+        "players": [
+          "Aurélien Djani Tchouaméni"
+        ],
+        "value": 13
+      },
+      "all passes / received from": {
+        "tie": [
+          "Adrien Rabiot",
+          "Jules Koundé"
+        ]
+      },
+      "open-play passes / either direction": {
+        "tie": [
+          "Adrien Rabiot",
+          "Aurélien Djani Tchouaméni",
+          "Jules Koundé"
+        ]
+      },
+      "open-play passes / passed to": {
+        "tie": [
+          "Aurélien Djani Tchouaméni",
+          "Dayotchanculle Upamecano",
+          "Jules Koundé"
+        ]
+      },
+      "open-play passes / received from": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 14
+      }
+    }
+  },
+  "n08": {
+    "players": [
+      "Rodrigo Javier De Paul"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes": {
+        "players": [
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 12
+      },
+      "open-play passes": {
+        "players": [
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 12
+      }
+    }
+  },
+  "n09": {
+    "players": [
+      "Dayotchanculle Upamecano",
+      "Raphaël Varane",
+      "Jules Koundé"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / same possession / consecutive passes": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 6
+      },
+      "all passes / same possession / other passes between allowed": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 6
+      },
+      "all passes / any possession / consecutive passes": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 6
+      },
+      "all passes / any possession / other passes between allowed": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 6
+      },
+      "open-play passes / same possession / consecutive passes": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 6
+      },
+      "open-play passes / same possession / other passes between allowed": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 6
+      },
+      "open-play passes / any possession / consecutive passes": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 6
+      },
+      "open-play passes / any possession / other passes between allowed": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 6
+      }
+    }
+  },
+  "n10": {
+    "players": [
+      "Nicolás Hernán Otamendi",
+      "Cristian Gabriel Romero",
+      "Enzo Fernandez"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / same possession / consecutive passes": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 5
+      },
+      "all passes / same possession / other passes between allowed": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 5
+      },
+      "all passes / any possession / consecutive passes": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 5
+      },
+      "all passes / any possession / other passes between allowed": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 5
+      },
+      "open-play passes / same possession / consecutive passes": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 5
+      },
+      "open-play passes / same possession / other passes between allowed": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 5
+      },
+      "open-play passes / any possession / consecutive passes": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 5
+      },
+      "open-play passes / any possession / other passes between allowed": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 5
       }
     }
   },
@@ -863,6 +1237,215 @@
       }
     }
   },
+  "s05": {
+    "players": [
+      "Nicolás Hernán Otamendi"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / extra time": {
+        "players": [
+          "Nicolás Hernán Otamendi"
+        ],
+        "value": null
+      },
+      "open-play passes / extra time": {
+        "players": [
+          "Nicolás Hernán Otamendi"
+        ],
+        "value": null
+      }
+    }
+  },
+  "s06": {
+    "players": [
+      "Rodrigo Javier De Paul"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / 2nd half": {
+        "players": [
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 9
+      },
+      "open-play passes / 2nd half": {
+        "players": [
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 9
+      }
+    }
+  },
+  "s07": {
+    "players": [
+      "Nicolás Hernán Otamendi",
+      "Cristian Gabriel Romero",
+      "Enzo Fernandez"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / same possession / consecutive passes": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 3
+      },
+      "all passes / same possession / other passes between allowed": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 3
+      },
+      "all passes / any possession / consecutive passes": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 3
+      },
+      "all passes / any possession / other passes between allowed": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 3
+      },
+      "open-play passes / same possession / consecutive passes": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 3
+      },
+      "open-play passes / same possession / other passes between allowed": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 3
+      },
+      "open-play passes / any possession / consecutive passes": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 3
+      },
+      "open-play passes / any possession / other passes between allowed": {
+        "players": [
+          "Nicolás Hernán Otamendi",
+          "Cristian Gabriel Romero",
+          "Enzo Fernandez"
+        ],
+        "value": 3
+      }
+    }
+  },
+  "s08": {
+    "players": null,
+    "value": null,
+    "no_data": false,
+    "stable": false,
+    "readings": {
+      "all passes / either direction / 1st half": {
+        "players": [
+          "Aurélien Djani Tchouaméni"
+        ],
+        "value": 10
+      },
+      "all passes / passed to / 1st half": {
+        "players": [
+          "Aurélien Djani Tchouaméni"
+        ],
+        "value": 9
+      },
+      "all passes / received from / 1st half": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 8
+      },
+      "open-play passes / either direction / 1st half": {
+        "players": [
+          "Aurélien Djani Tchouaméni"
+        ],
+        "value": 10
+      },
+      "open-play passes / passed to / 1st half": {
+        "players": [
+          "Aurélien Djani Tchouaméni"
+        ],
+        "value": 9
+      },
+      "open-play passes / received from / 1st half": {
+        "tie": [
+          "Aurélien Djani Tchouaméni",
+          "Dayotchanculle Upamecano",
+          "Jules Koundé"
+        ]
+      }
+    }
+  },
+  "s09": {
+    "players": null,
+    "value": null,
+    "no_data": false,
+    "stable": false,
+    "readings": {
+      "all passes / either direction / extra time": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 11
+      },
+      "all passes / passed to / extra time": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 9
+      },
+      "all passes / received from / extra time": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 9
+      },
+      "open-play passes / either direction / extra time": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 11
+      },
+      "open-play passes / passed to / extra time": {
+        "tie": [
+          "Enzo Fernandez",
+          "Nicolás Hernán Otamendi"
+        ]
+      },
+      "open-play passes / received from / extra time": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 9
+      }
+    }
+  },
   "u01": {
     "players": [],
     "value": null,
@@ -894,5 +1477,21 @@
     "stable": true,
     "readings": {},
     "detail": "O StatsBomb registra local, parte do corpo e desfecho do chute, não a velocidade da bola."
+  },
+  "u05": {
+    "players": [],
+    "value": null,
+    "no_data": true,
+    "stable": true,
+    "readings": {},
+    "detail": "Os eventos só registram o impedimento marcado; impedimento passivo não vira evento. Os dados 360 mostram posições só no instante de cada ação, e não dizem se o jogador participou. Escrita depois do congelamento da v2.2."
+  },
+  "u06": {
+    "players": [],
+    "value": null,
+    "no_data": true,
+    "stable": true,
+    "readings": {},
+    "detail": "Pedido de bola não é registrado em dados de eventos."
   }
 }

@@ -49,6 +49,19 @@ def top(rows: list[dict], field: str = "player") -> list[str]:
     return [rows[0][field]]
 
 
+def top_trio(tb: Toolbox, team: str, filters=None) -> list[str]:
+    """pass_paths may repeat a player (A -> B -> A); a trio has three different ones."""
+    seqs = tb.pass_paths(team, 2, True, True, filters, top=100)["sequences"]
+    return next(s["players"] for s in seqs if len(set(s["players"])) == 3)
+
+
+def top_receiver(tb: Toolbox, team: str, passer: str, filters=None) -> list[str]:
+    net = tb.pass_network(team, filters)
+    edges = [e for e in tb.network_edges(net["network_id"], player=passer, top=100)["edges"]
+             if e["passer"] == tb.resolve_player(passer)]
+    return [edges[0]["receiver"]]
+
+
 # One recipe per question: the tool calls, in order, that answer it.
 RECIPES = {
     "f01": lambda tb: [tb.list_actions({"yellow_card": True}, limit=1)["actions"][0]["player"]],
@@ -77,6 +90,21 @@ RECIPES = {
                                             "betweenness", "none", "directed", top=1)["ranking"]),
     "s03": lambda tb: top_pair(tb, "France", {"second_from": goal_second(tb, 4)}),
     "s04": lambda tb: top_pair(tb, "Argentina", {"period": 2}),
+    "f05": lambda tb: [tb.list_actions({"team": "France", "action": SHOTS}, 100)["actions"][-1]["player"]],
+    "f06": lambda tb: [a["player"] for a in tb.list_actions({"yellow_card": True})["actions"]
+                       if a["action"] != "falta_cometida"],
+    "a07": lambda tb: top(tb.query_actions({"action": "falta_cometida", "period": 2}, ["player"], top=1)),
+    "a08": lambda tb: top(tb.query_actions({"action": "drible", "success": True, "period": [3, 4]},
+                                           ["player"], top=1)),
+    "n06": lambda tb: top(tb.network_metric(tb.pass_network("Argentina")["network_id"], "degree", "none",
+                                            "undirected", top=1)["ranking"]),
+    "n08": lambda tb: top_receiver(tb, "Argentina", "Messi"),
+    "n09": lambda tb: top_trio(tb, "France"),
+    "n10": lambda tb: top_trio(tb, "Argentina"),
+    "s05": lambda tb: tb.network_metric(tb.pass_network("Argentina", {"period": [3, 4]})["network_id"],
+                                        "articulation_points")["articulation_points"],
+    "s06": lambda tb: top_receiver(tb, "Argentina", "Enzo Fernández", {"period": 2}),
+    "s07": lambda tb: top_trio(tb, "Argentina", {"period": [3, 4]}),
 }
 
 

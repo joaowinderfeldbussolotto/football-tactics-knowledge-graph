@@ -6,29 +6,46 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 
 | pergunta | tipo | estágio | estável | leituras |
 |---|---|---|---|---|
-| [f01](#f01) | fact | candidate | sim | 1 |
+| [f01](#f01) | fact | full | sim | 1 |
 | [f02](#f02) | fact | pilot | sim | 1 |
 | [f03](#f03) | fact | pilot | sim | 1 |
-| [f04](#f04) | fact | candidate | sim | 2 |
-| [a01](#a01) | filtered_aggregation | candidate | sim | 4 |
+| [f04](#f04) | fact | full | sim | 2 |
+| [f05](#f05) | fact | full | sim | 3 |
+| [f06](#f06) | fact | candidate | sim | 1 |
+| [a01](#a01) | filtered_aggregation | full | sim | 4 |
 | [a02](#a02) | filtered_aggregation | removed | **não** | 4 |
 | [a03](#a03) | filtered_aggregation | pilot | sim | 4 |
 | [a04](#a04) | filtered_aggregation | removed | **não** | 4 |
 | [a05](#a05) | filtered_aggregation | pilot | sim | 4 |
-| [a06](#a06) | filtered_aggregation | candidate | sim | 1 |
+| [a06](#a06) | filtered_aggregation | full | sim | 1 |
+| [a07](#a07) | filtered_aggregation | full | sim | 2 |
+| [a08](#a08) | filtered_aggregation | candidate | sim | 2 |
+| [a09](#a09) | filtered_aggregation | removed | **não** | 2 |
 | [n01](#n01) | network | removed | **não** | 12 |
 | [n02](#n02) | network | removed | **não** | 12 |
 | [n03](#n03) | network | pilot | sim | 2 |
 | [n04](#n04) | network | pilot | sim | 4 |
-| [n05](#n05) | network | candidate | sim | 4 |
+| [n05](#n05) | network | full | sim | 4 |
+| [n06](#n06) | network | full | sim | 6 |
+| [n07](#n07) | network | removed | **não** | 6 |
+| [n08](#n08) | network | candidate | sim | 2 |
+| [n09](#n09) | network | full | sim | 8 |
+| [n10](#n10) | network | candidate | sim | 8 |
 | [s01](#s01) | network_slice | pilot | sim | 12 |
 | [s02](#s02) | network_slice | removed | **não** | 24 |
-| [s03](#s03) | network_slice | candidate | sim | 8 |
+| [s03](#s03) | network_slice | full | sim | 8 |
 | [s04](#s04) | network_slice | pilot | sim | 4 |
+| [s05](#s05) | network_slice | candidate | sim | 2 |
+| [s06](#s06) | network_slice | full | sim | 2 |
+| [s07](#s07) | network_slice | full | sim | 8 |
+| [s08](#s08) | network_slice | removed | **não** | 6 |
+| [s09](#s09) | network_slice | removed | **não** | 6 |
 | [u01](#u01) | unanswerable | pilot | sim | – |
-| [u02](#u02) | unanswerable | candidate | sim | – |
+| [u02](#u02) | unanswerable | full | sim | – |
 | [u03](#u03) | unanswerable | pilot | sim | – |
-| [u04](#u04) | unanswerable | candidate | sim | – |
+| [u04](#u04) | unanswerable | full | sim | – |
+| [u05](#u05) | unanswerable | full | sim | – |
+| [u06](#u06) | unanswerable | candidate | sim | – |
 
 ## fact
 
@@ -36,7 +53,7 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 
 > Quem recebeu o primeiro cartão amarelo da final?
 
-Estágio: **candidate** · conferência: `player` · estável: **sim**
+Estágio: **full** · conferência: `player` · estável: **sim**
 
 | leitura | resposta |
 |---|---|
@@ -70,12 +87,38 @@ Nota: Lautaro Martínez (108'); Messi marcou no rebote.
 
 > Quem deu o passe para o gol que deixou o placar em 2 a 2 no tempo normal?
 
-Estágio: **candidate** · conferência: `player` · estável: **sim**
+Estágio: **full** · conferência: `player` · estável: **sim**
 
 | leitura | resposta |
 |---|---|
 | raw JSON (goal_assist) | Marcus Thuram |
 | layer 0 (last pass to the scorer) | Marcus Thuram |
+
+### f05
+
+> Quem fez a última finalização da França na final, antes da disputa de pênaltis?
+
+Estágio: **full** · conferência: `player` · estável: **sim**
+
+Nota: Kolo Muani (122'), defendida por Emiliano Martínez. Escrita depois do congelamento da v2.2.
+
+| leitura | resposta |
+|---|---|
+| raw JSON / every shot | Randal Kolo Muani |
+| raw JSON / penalties excluded | Randal Kolo Muani |
+| layer 0 | Randal Kolo Muani |
+
+### f06
+
+> Quem levou cartão amarelo na final sem ter cometido falta?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: Giroud (94'), por reclamação.
+
+| leitura | resposta |
+|---|---|
+| raw JSON (Bad Behaviour card) | Olivier Giroud |
 
 ## filtered_aggregation
 
@@ -83,7 +126,7 @@ Estágio: **candidate** · conferência: `player` · estável: **sim**
 
 > Quem deu mais passes certos no terço final do campo pela Argentina?
 
-Estágio: **candidate** · conferência: `player` · estável: **sim**
+Estágio: **full** · conferência: `player` · estável: **sim**
 
 | leitura | resposta |
 |---|---|
@@ -152,11 +195,48 @@ Estágio: **pilot** · conferência: `player_and_value` · estável: **sim**
 
 > Na prorrogação, quem fez mais desarmes certos pela Argentina?
 
-Estágio: **candidate** · conferência: `player` · estável: **sim**
+Estágio: **full** · conferência: `player` · estável: **sim**
 
 | leitura | resposta |
 |---|---|
 | layer 0 (tackles won) | Enzo Fernandez · 2 |
+
+### a07
+
+> No segundo tempo, quem cometeu mais faltas?
+
+Estágio: **full** · conferência: `player` · estável: **sim**
+
+Nota: Julián Álvarez (4). Escrita depois do congelamento da v2.2.
+
+| leitura | resposta |
+|---|---|
+| raw JSON | Julián Álvarez · 4 |
+| layer 0 | Julián Álvarez · 4 |
+
+### a08
+
+> Na prorrogação, quem completou mais dribles?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+| leitura | resposta |
+|---|---|
+| raw JSON | Kylian Mbappé Lottin · 3 |
+| layer 0 | Kylian Mbappé Lottin · 3 |
+
+### a09
+
+> No primeiro tempo, quem fez mais interceptações?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a fonte: no JSON bruto (toda interceptação) é Tchouaméni; na camada 0 (só as certas) é Rabiot.
+
+| leitura | resposta |
+|---|---|
+| raw JSON (every interception) | Aurélien Djani Tchouaméni · 3 |
+| layer 0 (successful only) | Adrien Rabiot · 4 |
 
 ## network
 
@@ -236,7 +316,7 @@ Estágio: **pilot** · conferência: `set` · estável: **sim**
 
 > Qual dupla da Argentina mais trocou passes entre si na final?
 
-Estágio: **candidate** · conferência: `set` · estável: **sim**
+Estágio: **full** · conferência: `set` · estável: **sim**
 
 | leitura | resposta |
 |---|---|
@@ -244,6 +324,87 @@ Estágio: **candidate** · conferência: `set` · estável: **sim**
 | all passes / undirected | Cristian Gabriel Romero e Nicolás Hernán Otamendi · 30 |
 | open-play passes / directed | Cristian Gabriel Romero e Nicolás Hernán Otamendi · 18 |
 | open-play passes / undirected | Cristian Gabriel Romero e Nicolás Hernán Otamendi · 30 |
+
+### n06
+
+> Qual jogador da Argentina trocou passes com o maior número de companheiros diferentes na final?
+
+Estágio: **full** · conferência: `player` · estável: **sim**
+
+Nota: Enzo Fernández, em qualquer direção e conjunto de passes. Escrita depois do congelamento da v2.2.
+
+| leitura | resposta |
+|---|---|
+| all passes / either direction | Enzo Fernandez · 15 |
+| all passes / passed to | Enzo Fernandez · 13 |
+| all passes / received from | Enzo Fernandez · 15 |
+| open-play passes / either direction | Enzo Fernandez · 15 |
+| open-play passes / passed to | Enzo Fernandez · 13 |
+| open-play passes / received from | Enzo Fernandez · 15 |
+
+### n07
+
+> Qual jogador da França trocou passes com o maior número de companheiros diferentes na final?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a leitura: Koundé (nas duas direções), Tchouaméni (só para quem passou), empate Rabiot e Koundé (só de quem recebeu).
+
+| leitura | resposta |
+|---|---|
+| all passes / either direction | Jules Koundé · 15 |
+| all passes / passed to | Aurélien Djani Tchouaméni · 13 |
+| all passes / received from | **empate:** Adrien Rabiot; Jules Koundé |
+| open-play passes / either direction | **empate:** Adrien Rabiot; Aurélien Djani Tchouaméni; Jules Koundé |
+| open-play passes / passed to | **empate:** Aurélien Djani Tchouaméni; Dayotchanculle Upamecano; Jules Koundé |
+| open-play passes / received from | Adrien Rabiot · 14 |
+
+### n08
+
+> Qual companheiro mais recebeu passes de Messi na final?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+| leitura | resposta |
+|---|---|
+| all passes | Rodrigo Javier De Paul · 12 |
+| open-play passes | Rodrigo Javier De Paul · 12 |
+
+### n09
+
+> Qual sequência de três jogadores da França, com a bola passando de um para o outro, mais se repetiu na final?
+
+Estágio: **full** · conferência: `set` · estável: **sim**
+
+Nota: Upamecano, Varane e Koundé (6 vezes) em todas as leituras. A conferência é por conjunto: a ordem não é conferida. Escrita depois do congelamento da v2.2.
+
+| leitura | resposta |
+|---|---|
+| all passes / same possession / consecutive passes | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 6 |
+| all passes / same possession / other passes between allowed | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 6 |
+| all passes / any possession / consecutive passes | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 6 |
+| all passes / any possession / other passes between allowed | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 6 |
+| open-play passes / same possession / consecutive passes | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 6 |
+| open-play passes / same possession / other passes between allowed | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 6 |
+| open-play passes / any possession / consecutive passes | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 6 |
+| open-play passes / any possession / other passes between allowed | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 6 |
+
+### n10
+
+> Qual sequência de três jogadores da Argentina, com a bola passando de um para o outro, mais se repetiu na final?
+
+Estágio: **candidate** · conferência: `set` · estável: **sim**
+
+| leitura | resposta |
+|---|---|
+| all passes / same possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
+| all passes / same possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
+| all passes / any possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
+| all passes / any possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
+| open-play passes / same possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
+| open-play passes / same possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
+| open-play passes / any possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
+| open-play passes / any possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
 
 ## network_slice
 
@@ -307,7 +468,7 @@ Nota: Estável em peso e direção (Tchouaméni), mas muda quando só os passes 
 
 > Depois do gol que deixou o placar em 2 a 2 no tempo normal, qual dupla da França mais trocou passes entre si?
 
-Estágio: **candidate** · conferência: `set` · estável: **sim**
+Estágio: **full** · conferência: `set` · estável: **sim**
 
 | leitura | resposta |
 |---|---|
@@ -344,6 +505,85 @@ Premissa que a pergunta afirma (também tem de ser estável):
 | open-play passes / directed / 1st half | Cristian Gabriel Romero e Nicolás Hernán Otamendi · 12 |
 | open-play passes / undirected / 1st half | Cristian Gabriel Romero e Nicolás Hernán Otamendi · 21 |
 
+### s05
+
+> Na prorrogação, qual jogador da Argentina, se não estivesse em campo, deixaria algum companheiro sem trocar passes com ninguém do time?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: Mesma resposta da n03 (Otamendi): fica na reserva para não repetir o conceito.
+
+| leitura | resposta |
+|---|---|
+| all passes / extra time | Nicolás Hernán Otamendi |
+| open-play passes / extra time | Nicolás Hernán Otamendi |
+
+### s06
+
+> No segundo tempo, qual companheiro mais recebeu passes de Enzo Fernández?
+
+Estágio: **full** · conferência: `player` · estável: **sim**
+
+Nota: De Paul (9). Escrita depois do congelamento da v2.2.
+
+| leitura | resposta |
+|---|---|
+| all passes / 2nd half | Rodrigo Javier De Paul · 9 |
+| open-play passes / 2nd half | Rodrigo Javier De Paul · 9 |
+
+### s07
+
+> Na prorrogação, qual sequência de três jogadores da Argentina, com a bola passando de um para o outro, mais se repetiu?
+
+Estágio: **full** · conferência: `set` · estável: **sim**
+
+Nota: Otamendi, Romero e Enzo Fernández (3 vezes) em todas as leituras. Conferência por conjunto. Escrita depois do congelamento da v2.2.
+
+| leitura | resposta |
+|---|---|
+| all passes / same possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 3 |
+| all passes / same possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 3 |
+| all passes / any possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 3 |
+| all passes / any possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 3 |
+| open-play passes / same possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 3 |
+| open-play passes / same possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 3 |
+| open-play passes / any possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 3 |
+| open-play passes / any possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 3 |
+
+### s08
+
+> No primeiro tempo, qual jogador da França trocou passes com o maior número de companheiros diferentes?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a leitura: Tchouaméni, Koundé, ou empate de três quando conta só de quem recebeu.
+
+| leitura | resposta |
+|---|---|
+| all passes / either direction / 1st half | Aurélien Djani Tchouaméni · 10 |
+| all passes / passed to / 1st half | Aurélien Djani Tchouaméni · 9 |
+| all passes / received from / 1st half | Jules Koundé · 8 |
+| open-play passes / either direction / 1st half | Aurélien Djani Tchouaméni · 10 |
+| open-play passes / passed to / 1st half | Aurélien Djani Tchouaméni · 9 |
+| open-play passes / received from / 1st half | **empate:** Aurélien Djani Tchouaméni; Dayotchanculle Upamecano; Jules Koundé |
+
+### s09
+
+> Na prorrogação, qual jogador da Argentina trocou passes com o maior número de companheiros diferentes?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Empate entre Enzo Fernández e Otamendi numa leitura (só passes de bola rolando, para quem passou).
+
+| leitura | resposta |
+|---|---|
+| all passes / either direction / extra time | Enzo Fernandez · 11 |
+| all passes / passed to / extra time | Enzo Fernandez · 9 |
+| all passes / received from / extra time | Enzo Fernandez · 9 |
+| open-play passes / either direction / extra time | Enzo Fernandez · 11 |
+| open-play passes / passed to / extra time | **empate:** Enzo Fernandez; Nicolás Hernán Otamendi |
+| open-play passes / received from / extra time | Enzo Fernandez · 9 |
+
 ## unanswerable
 
 ### u01
@@ -360,7 +600,7 @@ Sem leituras: a resposta esperada é "sem dados".
 
 > Qual foi a distância total percorrida por Rodrigo De Paul na final?
 
-Estágio: **candidate** · conferência: `no_data` · estável: **sim**
+Estágio: **full** · conferência: `no_data` · estável: **sim**
 
 Nota: Distância percorrida exige rastreamento contínuo, que o StatsBomb aberto não tem.
 
@@ -380,8 +620,28 @@ Sem leituras: a resposta esperada é "sem dados".
 
 > A que velocidade saiu o chute de Mbappé no gol que deixou o placar em 2 a 2?
 
-Estágio: **candidate** · conferência: `no_data` · estável: **sim**
+Estágio: **full** · conferência: `no_data` · estável: **sim**
 
 Nota: O StatsBomb registra local, parte do corpo e desfecho do chute, não a velocidade da bola.
+
+Sem leituras: a resposta esperada é "sem dados".
+
+### u05
+
+> Em quantos lances Mbappé ficou em posição de impedimento sem participar da jogada?
+
+Estágio: **full** · conferência: `no_data` · estável: **sim**
+
+Nota: Os eventos só registram o impedimento marcado; impedimento passivo não vira evento. Os dados 360 mostram posições só no instante de cada ação, e não dizem se o jogador participou. Escrita depois do congelamento da v2.2.
+
+Sem leituras: a resposta esperada é "sem dados".
+
+### u06
+
+> Quantas vezes Messi pediu a bola a um companheiro e não a recebeu?
+
+Estágio: **candidate** · conferência: `no_data` · estável: **sim**
+
+Nota: Pedido de bola não é registrado em dados de eventos.
 
 Sem leituras: a resposta esperada é "sem dados".

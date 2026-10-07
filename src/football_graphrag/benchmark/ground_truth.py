@@ -195,6 +195,89 @@ def isolating_player_readings(team: str, cuts: dict | None = None) -> dict:
     return out
 
 
+def partners_readings(team: str, cuts: dict | None = None) -> dict:
+    """'Exchanged passes with the most different teammates': distinct partners
+    in either direction, as passer only, or as receiver only."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, partners=("either direction", "passed to", "received from"),
+                                     **({"cut": list(cuts)} if cuts else {})):
+        mask = cuts[r["cut"]] if cuts else None
+        if r["partners"] == "either direction":
+            g = pass_network(team, "undirected", PASS_SETS[r["passes"]], mask)
+            degree = dict(g.degree())
+        else:
+            g = pass_network(team, "directed", PASS_SETS[r["passes"]], mask)
+            degree = dict(g.out_degree() if r["partners"] == "passed to" else g.in_degree())
+        out[label] = leader(degree)
+    return out
+
+
+def receiver_readings(passer: str, cuts: dict | None = None) -> dict:
+    """'The teammate who received the most passes from X'."""
+    out = {}
+    df = actions()
+    for label, r in readings_product(passes=PASS_SETS, **({"cut": list(cuts)} if cuts else {})):
+        p = df[df.acao.isin(PASS_SETS[r["passes"]]) & (df.player_name == passer) & df.receiver.notna()
+               & (df.receiver_team == df.team_name)]
+        if cuts:
+            p = p[cuts[r["cut"]](p)]
+        out[label] = leader(Counter(p.receiver))
+    return out
+
+
+def chains(team: str, length: int, same_possession: bool, consecutive: bool, pass_set=PASS_ACTIONS,
+           first=None) -> Counter:
+    """Sequences of completed passes A -> B -> C ...: after receiving, the link
+    is the receiver's next pass attempt; the chain stops if it is not
+    completed. same_possession: whole chain in one possession; consecutive:
+    no other pass attempt, by anyone, between two linked passes. ``first``
+    selects the passes that may start a chain."""
+    df = actions()
+    attempts = df[df.acao.isin(pass_set)].reset_index(drop=True)
+    ok = (attempts.receiver.notna() & (attempts.receiver_team == attempts.team_name)
+          & (attempts.receiver != attempts.player_name))
+    by_passer: dict[str, list[int]] = {}
+    for i, name in enumerate(attempts.player_name):
+        by_passer.setdefault(name, []).append(i)
+    starts = attempts.index if first is None else attempts.index[first(attempts)]
+    counts: Counter = Counter()
+    for i in starts:
+        if attempts.team_name[i] != team or not ok[i]:
+            continue
+        seq, cur = [attempts.player_name[i], attempts.receiver[i]], i
+        for _ in range(length - 1):
+            later = [k for k in by_passer.get(attempts.receiver[cur], []) if k > cur]
+            if not later or not ok[later[0]]:
+                break
+            nxt = later[0]
+            if same_possession and attempts.possession_id[nxt] != attempts.possession_id[cur]:
+                break
+            if consecutive and nxt != cur + 1:
+                break
+            seq.append(attempts.receiver[nxt])
+            cur = nxt
+        else:
+            counts[tuple(seq)] += 1
+    return counts
+
+
+def trio_readings(team: str, first=None) -> dict:
+    """'The sequence of three different players, one passing to the next, that
+    repeated the most'."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, possession=("same possession", "any possession"),
+                                     link=("consecutive passes", "other passes between allowed")):
+        c = chains(team, 2, r["possession"] == "same possession", r["link"] == "consecutive passes",
+                   PASS_SETS[r["passes"]], first)
+        c = Counter({s: n for s, n in c.items() if len(set(s)) == 3})
+        ranked = c.most_common()
+        if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+            out[label] = tie(*[s for s, n in ranked if n == ranked[0][1]])
+        else:
+            out[label] = answer(ranked[0][0], ranked[0][1])
+    return out
+
+
 # --------------------------------------------------------------------------- the questions
 
 def f01() -> dict:
@@ -325,6 +408,83 @@ def s03() -> dict:
 
 def s04() -> dict:
     return pair_readings("Argentina", {"2nd half": periods(2)})
+
+
+def f05() -> dict:
+    shots = [e for e in raw_events() if _type(e) == "Shot" and e["team"]["name"] == "France"]
+    open_play = [e for e in shots if e["shot"]["type"]["name"] != "Penalty"]
+    df = actions()
+    l0 = df[(df.team_name == "France") & (df.grupo_acao == "finalizacao")]
+    return {"raw JSON / every shot": answer([_player(shots[-1])]),
+            "raw JSON / penalties excluded": answer([_player(open_play[-1])]),
+            "layer 0": answer([l0.player_name.iloc[-1]])}
+
+
+def f06() -> dict:
+    cards = [e for e in raw_events() if e.get("bad_behaviour", {}).get("card", {}).get("name") == "Yellow Card"]
+    return {"raw JSON (Bad Behaviour card)": answer([_player(e) for e in cards])}
+
+
+def a07() -> dict:
+    raw = Counter(_player(e) for e in raw_events() if _type(e) == "Foul Committed" and e["period"] == 2)
+    df = actions()
+    l0 = Counter(df[(df.period_id == 2) & (df.acao == "falta_cometida")].player_name)
+    return {"raw JSON": leader(raw), "layer 0": leader(l0)}
+
+
+def a08() -> dict:
+    raw = Counter(_player(e) for e in raw_events() if _type(e) == "Dribble" and e["period"] >= 3
+                  and e["dribble"]["outcome"]["name"] == "Complete")
+    df = actions()
+    l0 = Counter(df[periods(3, 4)(df) & (df.acao == "drible") & df.sucesso].player_name)
+    return {"raw JSON": leader(raw), "layer 0": leader(l0)}
+
+
+def a09() -> dict:
+    raw = Counter(_player(e) for e in raw_events() if _type(e) == "Interception" and e["period"] == 1)
+    df = actions()
+    l0 = Counter(df[(df.period_id == 1) & (df.acao == "interceptacao")].player_name)
+    return {"raw JSON (every interception)": leader(raw), "layer 0 (successful only)": leader(l0)}
+
+
+def n06() -> dict:
+    return partners_readings("Argentina")
+
+
+def n07() -> dict:
+    return partners_readings("France")
+
+
+def n08() -> dict:
+    return receiver_readings("Lionel Andrés Messi Cuccittini")
+
+
+def n09() -> dict:
+    return trio_readings("France")
+
+
+def n10() -> dict:
+    return trio_readings("Argentina")
+
+
+def s05() -> dict:
+    return isolating_player_readings("Argentina", {"extra time": periods(3, 4)})
+
+
+def s06() -> dict:
+    return receiver_readings("Enzo Fernandez", {"2nd half": periods(2)})
+
+
+def s07() -> dict:
+    return trio_readings("Argentina", periods(3, 4))
+
+
+def s08() -> dict:
+    return partners_readings("France", {"1st half": periods(1)})
+
+
+def s09() -> dict:
+    return partners_readings("Argentina", {"extra time": periods(3, 4)})
 
 
 ANSWERS = {name: fn for name, fn in globals().items() if callable(fn) and name[:1] in "fansu"
