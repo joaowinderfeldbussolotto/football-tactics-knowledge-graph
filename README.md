@@ -64,6 +64,37 @@ perguntas isoladas (`python scripts/ask.py --question s03`).
 
 ## Resultados
 
-**Ainda não executado.** O `results.jsonl` e o `summary.md` da execução
-completa vão para `data/benchmark/`, e a tabela principal (acerto por tipo ×
-braço) entra aqui.
+Primeira execução: **Claude Haiku 5.5** (via OpenRouter), **1 repetição** (150
+execuções), com cache de prompt. Custo real ~US$ 0,25. Relatório completo em
+[`data/benchmark/summary.md`](data/benchmark/summary.md); cada resposta em
+[`data/benchmark/results.jsonl`](data/benchmark/results.jsonl).
+
+| Tipo | `no_context` | `vector` | `events_in_prompt` | `stats_in_prompt` | `graph_tools` |
+|---|---|---|---|---|---|
+| factual | 0% | 33% | **100%** | 33% | **100%** |
+| aggregation | 0% | 17% | 33% | 50% | **100%** |
+| structural | 0% | 0% | 17% | 0% | **100%** |
+| composite | 0% | 0% | 0% | 17% | **83%** |
+| unanswerable | 100% | 100% | 100% | 100% | 100% |
+| **total** | 20% | 30% | 50% | 40% | **97%** |
+
+| Braço | Alucinação | Abstenção |
+|---|---|---|
+| `no_context` | 0% | 80% |
+| `vector` | **47%** | 23% |
+| `events_in_prompt` | 37% | 13% |
+| `stats_in_prompt` | 17% | 43% |
+| `graph_tools` | 3% | 0% |
+
+Como ler, com cuidado:
+
+- **Uma repetição só, 6 perguntas por tipo**: cada célula de tipo é 1 a 6
+  acertos. As tendências são claras, mas os números ainda não medem
+  consistência (a tabela de repetições fica vazia com 1 execução).
+- **Um modelo, sem raciocínio estendido.** Na amostra com o DeepSeek V4 Pro,
+  que raciocina, o `events_in_prompt` acertou contagens que o Haiku errou.
+- **Dois defeitos conhecidos do benchmark**, achados nesta execução:
+  - **c05**: nenhuma ferramenta conta passes entre dois jogadores específicos,
+    então o `graph_tools` não tinha como responder (é o seu único erro);
+  - **c06** confere só o número: o `stats_in_prompt` acertou com o jogador
+    errado, por coincidência (Tchouaméni e Koundé fizeram 2 faltas cada).
