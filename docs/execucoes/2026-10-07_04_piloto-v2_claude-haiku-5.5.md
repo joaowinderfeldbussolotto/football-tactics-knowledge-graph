@@ -82,7 +82,7 @@ um piloto para validar a ideia, não um resultado.
 Para separar erro sistemático de variação, as 5 perguntas que o
 `graph_tools` errou rodaram mais 2 vezes cada, só nesse braço
 ([`pilot_rerun_graph_tools.jsonl`](../../data/benchmark/pilot_rerun_graph_tools.jsonl),
-US$ 0,07). Resultado: 0 de 10 acertos. Com a primeira rodada, cada pergunta
+US$ 0,13: o `graph_tools` lê de 47 mil a 137 mil tokens por pergunta, sem cache). Resultado: 0 de 10 acertos. Com a primeira rodada, cada pergunta
 tem 3 tentativas.
 
 | Pergunta | Respostas nas 3 tentativas | A causa se repete? |
