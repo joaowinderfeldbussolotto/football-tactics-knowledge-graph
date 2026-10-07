@@ -170,7 +170,7 @@ Para cada time, monta-se uma **rede de passes**:
 - cada seta guarda quantos passes houve e quanto xT eles geraram somados.
 
 A seta Mac Allister → Di María, por exemplo, inclui o passe do gol, que gerou
-0,070 de xT.
+0,184 de xT.
 
 ### "Por quem passam as rotas": a betweenness, sem fórmula
 
