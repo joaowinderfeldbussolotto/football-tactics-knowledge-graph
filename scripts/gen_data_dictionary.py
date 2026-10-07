@@ -2,7 +2,7 @@
 """Gera a tabela do dicionário de dados (Markdown) a partir dos schema.json.
 
 O dicionário nasce do código (SCHEMA_DOC + dtypes reais do parquet), não é
-escrito à mão. Saída no stdout, para colar/incluir em docs/legado/01-pipeline.md.
+escrito à mão. Saída no stdout.
 """
 
 import json

@@ -1,6 +1,6 @@
 """Configuração central, lida do .env via pydantic-settings.
 
-Regra do projeto (docs/legado/05-decisoes.md): trocar de provedor de LLM é
+Regra do projeto: trocar de provedor de LLM é
 editar LLM_PROVIDER no .env, nada mais. Nenhum outro módulo lê os.environ direto.
 """
 

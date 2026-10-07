@@ -12,7 +12,6 @@ NATIVOS de cada SDK, configurados aqui uma única vez a partir do .env:
     free-tier do Gemini, cujo retryDelay chega a ~50 s);
   - mistralai: ``RetryConfig(strategy="backoff")``.
 
-Validações ao vivo registradas no ADR-5/ADR-7 de docs/legado/05-decisoes.md.
 """
 
 import logging
