@@ -1,0 +1,248 @@
+{
+  "f01": {
+    "source": "raw_json",
+    "players": [
+      "Lionel Andrés Messi Cuccittini"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "goal at StatsBomb minute 22"
+  },
+  "f02": {
+    "source": "raw_json",
+    "players": [],
+    "value": 6,
+    "no_data": false,
+    "detail": "[(22, 'Lionel Andrés Messi Cuccittini'), (35, 'Ángel Fabián Di María Hernández'), (79, 'Kylian Mbappé Lottin'), (80, 'Kylian Mbappé Lottin'), (107, 'Lionel Andrés Messi Cuccittini'), (117, 'Kylian Mbappé Lottin')]"
+  },
+  "f03": {
+    "source": "raw_json",
+    "players": [
+      "Marcus Thuram"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "France's 2nd goal, StatsBomb minute 80"
+  },
+  "f04": {
+    "source": "raw_json",
+    "players": [
+      "Enzo Fernandez"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "StatsBomb minute 51"
+  },
+  "f05": {
+    "source": "raw_json",
+    "players": [
+      "Olivier Giroud"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "the only yellow card from a Bad Behaviour event"
+  },
+  "f06": {
+    "source": "raw_json",
+    "players": [],
+    "value": 4,
+    "no_data": false,
+    "detail": ""
+  },
+  "a01": {
+    "source": "parquet",
+    "players": [
+      "Enzo Fernandez",
+      "Nicolás Alejandro Tagliafico",
+      "Eduardo Camavinga"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "[('Enzo Fernandez', 5), ('Nicolás Alejandro Tagliafico', 4), ('Eduardo Camavinga', 4)]"
+  },
+  "a02": {
+    "source": "raw_json",
+    "players": [
+      "Enzo Fernandez"
+    ],
+    "value": 79,
+    "no_data": false,
+    "detail": ""
+  },
+  "a03": {
+    "source": "raw_json",
+    "players": [
+      "Kylian Mbappé Lottin"
+    ],
+    "value": 6,
+    "no_data": false,
+    "detail": ""
+  },
+  "a04": {
+    "source": "raw_json",
+    "players": [],
+    "value": 10,
+    "no_data": false,
+    "detail": ""
+  },
+  "a05": {
+    "source": "raw_json",
+    "players": [
+      "Julián Álvarez"
+    ],
+    "value": 8,
+    "no_data": false,
+    "detail": ""
+  },
+  "a06": {
+    "source": "raw_json",
+    "players": [
+      "Adrien Rabiot",
+      "Marcus Thuram",
+      "Olivier Giroud"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": ""
+  },
+  "s01": {
+    "source": "parquet",
+    "players": [
+      "Nicolás Hernán Otamendi"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "betweenness 50.0"
+  },
+  "s02": {
+    "source": "parquet",
+    "players": [
+      "Jules Koundé"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "betweenness 40.0"
+  },
+  "s03": {
+    "source": "parquet",
+    "players": [
+      "Enzo Fernandez"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "betweenness 25.0"
+  },
+  "s04": {
+    "source": "parquet",
+    "players": [
+      "Adrien Rabiot"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "betweenness 25.0"
+  },
+  "s05": {
+    "source": "parquet",
+    "players": [
+      "Jules Koundé",
+      "Raphaël Varane",
+      "Dayotchanculle Upamecano"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "Jules Koundé -> Raphaël Varane -> Dayotchanculle Upamecano, 3x"
+  },
+  "s06": {
+    "source": "parquet",
+    "players": [],
+    "value": 6,
+    "no_data": false,
+    "detail": "['Rodrigo Javier De Paul -> Lionel Andrés Messi Cuccittini -> Ángel Fabián Di María Hernández', 'Nicolás Hernán Otamendi -> Enzo Fernandez -> Rodrigo Javier De Paul', 'Cristian Gabriel Romero -> Enzo Fernandez -> Gonzalo Ariel Montiel', 'Nicolás Hernán Otamendi -> Nicolás Alejandro Tagliafico -> Alexis Mac Allister', 'Enzo Fernandez -> Nicolás Hernán Otamendi -> Nicolás Alejandro Tagliafico', 'Nicolás Hernán Otamendi -> Cristian Gabriel Romero -> Enzo Fernandez']"
+  },
+  "c01": {
+    "source": "parquet+raw_json",
+    "players": [],
+    "value": 6,
+    "no_data": false,
+    "detail": "pivot: Nicolás Hernán Otamendi"
+  },
+  "c02": {
+    "source": "parquet+raw_json",
+    "players": [],
+    "value": 52,
+    "no_data": false,
+    "detail": "pivot: Jules Koundé"
+  },
+  "c03": {
+    "source": "parquet",
+    "players": [],
+    "value": 5,
+    "no_data": false,
+    "detail": "2nd: Enzo Fernandez"
+  },
+  "c04": {
+    "source": "parquet+raw_json",
+    "players": [
+      "Raphaël Varane"
+    ],
+    "value": null,
+    "no_data": false,
+    "detail": "{'Jules Koundé': 52, 'Raphaël Varane': 55, 'Dayotchanculle Upamecano': 51}"
+  },
+  "c05": {
+    "source": "parquet+raw_json",
+    "players": [],
+    "value": 14,
+    "no_data": false,
+    "detail": "Nicolás Hernán Otamendi -> Enzo Fernandez"
+  },
+  "c06": {
+    "source": "parquet+raw_json",
+    "players": [],
+    "value": 3,
+    "no_data": false,
+    "detail": "2nd: Adrien Rabiot"
+  },
+  "u01": {
+    "source": "none",
+    "players": [],
+    "value": null,
+    "no_data": true,
+    "detail": "StatsBomb event data has no tracking, physiological or venue data"
+  },
+  "u02": {
+    "source": "none",
+    "players": [],
+    "value": null,
+    "no_data": true,
+    "detail": "StatsBomb event data has no tracking, physiological or venue data"
+  },
+  "u03": {
+    "source": "none",
+    "players": [],
+    "value": null,
+    "no_data": true,
+    "detail": "StatsBomb event data has no tracking, physiological or venue data"
+  },
+  "u04": {
+    "source": "none",
+    "players": [],
+    "value": null,
+    "no_data": true,
+    "detail": "StatsBomb event data has no tracking, physiological or venue data"
+  },
+  "u05": {
+    "source": "none",
+    "players": [],
+    "value": null,
+    "no_data": true,
+    "detail": "StatsBomb event data has no tracking, physiological or venue data"
+  },
+  "u06": {
+    "source": "none",
+    "players": [],
+    "value": null,
+    "no_data": true,
+    "detail": "StatsBomb event data has no tracking, physiological or venue data"
+  }
+}

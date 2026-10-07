@@ -227,3 +227,7 @@ plugins-cache/
 # backup do índice do Graphiti (dump binário de embeddings, regenerável via
 # scripts/backup_graphiti.py — ver docs/09-a-avaliacao-por-dentro.md)
 backup_graphiti*.json.gz
+
+# benchmark: ground truth, results and summary are versioned; the embedding
+# cache of the "vector" arm is regenerable and paid for once
+data/benchmark/cache/
