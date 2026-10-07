@@ -36,3 +36,13 @@ def test_summary_file_names():
     assert summary_path_for(Path("d/results.jsonl")) == Path("d/summary.md")
     assert summary_path_for(Path("d/pilot_results.jsonl")) == Path("d/pilot_summary.md")
     assert summary_path_for(Path("d/sample_haiku.jsonl")) == Path("d/sample_haiku_summary.md")
+
+
+def test_summary_splits_seen_and_unseen_questions():
+    from football_graphrag.benchmark.questions import ALL_QUESTIONS
+
+    seen = next(q.id for q in ALL_QUESTIONS if q.stage == "pilot" and q.type == "fact")
+    unseen = next(q.id for q in ALL_QUESTIONS if q.stage == "full" and q.type == "fact")
+    md = summarize([row(seen, "graph_tools", 1, True), row(unseen, "graph_tools", 1, False)])
+    assert "| pilot questions (seen while fixing the tools) | 100% |" in md
+    assert "| new and reserve questions (unseen) | 0% |" in md

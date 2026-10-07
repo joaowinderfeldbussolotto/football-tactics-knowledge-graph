@@ -6,7 +6,7 @@ from pathlib import Path
 from statistics import mean
 
 from football_graphrag.benchmark.arms import ARMS
-from football_graphrag.benchmark.questions import QUESTION_TYPES
+from football_graphrag.benchmark.questions import BY_ID, QUESTION_TYPES
 from football_graphrag.benchmark.scoring import canonical_name
 
 
@@ -67,6 +67,24 @@ def summarize(rows: list[dict]) -> str:
         "leaves them out.",
         "", _table(["type"] + arms, body),
     ]
+
+    # 1b. seen vs unseen: the pilot questions inspired the v2.1/v2.2 tool fixes
+    stages = {r["question_id"]: BY_ID[r["question_id"]].stage if r["question_id"] in BY_ID else "?" for r in rows}
+    if {"pilot", "full"} <= set(stages.values()):
+        body = []
+        for label, stage in (("pilot questions (seen while fixing the tools)", "pilot"),
+                             ("new and reserve questions (unseen)", "full")):
+            for only_answerable in (False, True):
+                name = label + (", without unanswerable" if only_answerable else "")
+                body.append([name] + [_pct([r["correct"] for r in by_arm[a] if stages[r["question_id"]] == stage
+                                            and not (only_answerable and r["type"] == "unanswerable")])
+                                      for a in arms])
+        out += [
+            "", "## 1b. Seen and unseen questions", "",
+            "The tool fixes after the pilot were made looking at the pilot questions' errors; only the "
+            "unseen questions measure them without that bias.",
+            "", _table(["questions"] + arms, body),
+        ]
 
     # 2-3. kinds of error
     body = []
