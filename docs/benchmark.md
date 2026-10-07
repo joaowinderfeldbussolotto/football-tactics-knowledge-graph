@@ -34,9 +34,9 @@ tokenizador do modelo real pode diferir uns 10–20%):
 | Braço | Tokens |
 |---|---|
 | `no_context` | ~340 |
-| `graph_tools` | ~1.200 (inclui as definições das 8 tools; cada chamada de tool soma um novo pedido) |
 | `vector` | ~1.300 |
-| `stats_in_prompt` | ~3.200 |
+| `graph_tools` | ~2.400 (inclui as descrições das 8 tools, ~2.000; cada chamada de tool soma um novo pedido) |
+| `stats_in_prompt` | ~3.700 (inclui o glossário dos campos) |
 | `events_in_prompt` | ~63.000 |
 
 O `events_in_prompt` cabe em modelos com contexto de 128k. Para trocar para
@@ -59,6 +59,15 @@ na hora, com as mesmas projeções do GDS que a camada 2 usa.
 | `three_player_sequences(team, top=5)` | trios A→B→C progressivos mais frequentes |
 | `pass_network_bridges(team)` | pontes e comunidades Louvain da rede não direcionada |
 
+Cada tool tem uma descrição escrita para o modelo: o que calcula, quando usar,
+como ler o resultado e o que cada argumento aceita. A de
+`pass_network_centrality`, por exemplo, explica que o ranking mostra de quem
+a circulação de bola do time dependia para ligar os outros jogadores, e que
+isso não é o mesmo que dar mais passes. O significado de cada campo da súmula
+vem de um glossário único (`tools.STAT_GLOSSARY`). O mesmo glossário vai na
+descrição de `stat_ranking` e no cabeçalho do braço `stats_in_prompt`, para os
+dois braços que leem esses números receberem a mesma explicação.
+
 Argumento ruim (time inexistente, nome ambíguo como "Martínez", estatística
 desconhecida) volta como mensagem de erro para o modelo corrigir, não como
 exceção. Da 9ª chamada em diante, a tool responde "limite atingido, responda
@@ -75,15 +84,42 @@ está em `src/football_graphrag/benchmark/questions.py`; as respostas, em
 |---|---|---|
 | `factual` | achar um fato | f03: "Quem deu a assistência para o segundo gol da França?" → Marcus Thuram |
 | `aggregation` | contar e ordenar | a01: "Quem fez mais desarmes certos? Top 3" → Enzo, Tagliafico, Camavinga |
-| `structural` | algoritmo de grafo | s03: "Quem tinha a 2ª maior betweenness da Argentina?" → Enzo Fernandez |
-| `composite` | estrutural + agregação | c05: "Quantos passes certos o pivô da Argentina deu ao 2º de betweenness?" → 14 |
+| `structural` | algoritmo de grafo | s03: "Quem foi o segundo jogador da Argentina por quem passavam mais rotas de passe entre os companheiros?" → Enzo Fernandez |
+| `composite` | estrutural + agregação | c05: "Quantos passes certos o principal elo de ligação da Argentina deu para o segundo?" → 14 |
 | `unanswerable` | perceber que o dado não existe | u03: "Quem foi eleito o melhor jogador da final?" → `no_data` |
 
 Só f01 (primeiro gol) e f02 (número de gols) têm resposta amplamente
-conhecida. As perguntas estruturais e compostas trazem a definição do
-conceito no próprio texto ("o jogador com maior betweenness centrality na
-rede de passes certos do time, ponderada pelo xT"), para que todos os braços
-recebam a mesma pergunta autoexplicativa.
+conhecida.
+
+**As perguntas falam futebol, não o vocabulário das tools.** Uma versão
+anterior dizia "o jogador com maior betweenness centrality na rede de passes,
+ponderada pelo xT", praticamente a descrição da tool `pass_network_centrality`.
+Isso dava ao braço `graph_tools` um atalho de vocabulário: a pergunta nomeava a
+tool. Agora as perguntas descrevem o conceito em palavras de futebol ("o
+jogador por quem passava o maior número de rotas de passe entre os
+companheiros, o principal elo de ligação na circulação de bola"). Cabe ao
+modelo ligar isso à tool certa, que é justamente o que se quer medir.
+`tests/test_questions.py` falha se uma pergunta usar nome de tool ou de
+algoritmo ("betweenness", "xT", "Louvain", "grafo" etc.).
+
+Tirar o jargão só é seguro quando a resposta não depende da leitura exata do
+conceito. Por isso a robustez foi medida antes:
+
+| Pergunta | Pesado por xT (gabarito) | Sem peso | Rede não direcionada | Peso = nº de passes |
+|---|---|---|---|---|
+| Principal elo, Argentina | Otamendi | Otamendi | Otamendi | Otamendi |
+| Principal elo, França | Koundé | Koundé | Koundé | Varane (83,5 x 83,0) |
+| 2º elo, Argentina | Enzo | Enzo | Enzo | Enzo |
+| 2º elo, França | Rabiot | Tchouaméni | Rabiot | Koundé |
+
+O 2º elo da França muda com a leitura e saiu do benchmark, junto com a
+composta que dependia dele. As combinações de três jogadores mudam muito com a
+definição: sem a exigência de chegar a um terço mais avançado do campo, a
+Argentina passa de 6 combinações repetidas para 58. Por isso essas perguntas
+trazem a regra por extenso ("A passa para B e B passa para C, na mesma posse e
+sem outro passe no meio, terminando num terço mais avançado"). A regra confere
+com o Cypher da camada 2: entre os dois passes das 119 ocorrências só há uma
+condução de B ou nada.
 
 ## 3. Como o gabarito é calculado
 
@@ -211,9 +247,11 @@ contra si mesmo.
   perguntas.** Elas são genéricas, mas `pass_network_centrality` e
   `three_player_sequences` existem porque há perguntas estruturais. Um
   usuário real não teria tools sob medida.
-- **As perguntas estruturais e compostas explicam o conceito** (betweenness,
-  trio progressivo). Isso ajuda todos os braços igualmente, mas é uma ajuda
-  que uma pergunta espontânea não teria.
+- **As perguntas estruturais e compostas explicam o conceito** em palavras
+  de futebol. Isso vale para todos os braços, mas é uma ajuda que uma pergunta
+  espontânea não teria. A regra das combinações de três jogadores coincide,
+  por necessidade, com a descrição da tool `three_player_sequences`, porque
+  "combinação de três" não tem definição única no futebol.
 - **Um único modelo de LLM.** O resultado vale para o modelo do `.env` no
   dia da execução (registrado em cada linha do `results.jsonl`).
 - **Tokens aproximados.** Os tamanhos da seção 1 usam um tokenizador

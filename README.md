@@ -29,8 +29,8 @@ mesma saída estruturada. Só muda o que o LLM recebe.
 |---|---|---|
 | `factual` | achar um fato | "Quem deu a assistência para o segundo gol da França?" |
 | `aggregation` | contar e ordenar | "Quem fez mais desarmes certos? Top 3." |
-| `structural` | algoritmo de grafo | "Quem era o pivô (maior betweenness) da rede de passes da Argentina?" |
-| `composite` | estrutural + agregação | "Quantos passes errou o pivô da Argentina?" |
+| `structural` | algoritmo de grafo | "Quem foi o jogador da Argentina por quem passavam mais rotas de passe entre os companheiros?" |
+| `composite` | estrutural + agregação | "Quantos passes errou esse jogador?" |
 | `unanswerable` | perceber que o dado não existe | "Qual a velocidade máxima do Mbappé?" |
 
 O gabarito é calculado **sem o Neo4j**: do JSON bruto do StatsBomb, e com
