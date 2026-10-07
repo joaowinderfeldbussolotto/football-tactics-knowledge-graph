@@ -10,6 +10,14 @@ vêm sempre do arquivo de resultados da execução, nunca do Langfuse.
 | [02](2026-10-07_02_amostra_claude-haiku-5.5.md) | 2026-10-07 | amostra | Claude Haiku 5.5 | 25 | 5/5 | ~US$ 0,27 |
 | [03](2026-10-07_03_completa_claude-haiku-5.5_r1.md) | 2026-10-07 | completa, 1 repetição | Claude Haiku 5.5 + cache | 150 | 29/30 | ~US$ 0,23 |
 
+> **As três execuções acima usaram dados com um erro na camada 0**, corrigido
+> depois: em 44% das ações o lado do ataque estava invertido, o que deixava
+> errados terço, corredor, xT e VAEP dessas ações (capítulo 7, seção 7.2).
+> Contagens simples, gols, cartões e assistências não mudam. As respostas
+> estruturais da v1 mudam (o 2º elo da Argentina passa a ser Messi; o trio
+> mais repetido da França vira empate). Servem como registro, não como
+> resultado.
+
 ## Sobre os links dos traces
 
 Cada símbolo nas tabelas (✅ certo, ❌ alucinação, 🟡 abstenção, ⚠️ erro de

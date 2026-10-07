@@ -137,6 +137,29 @@ encontrar divergências. A regra do projeto nesta etapa é **não alterar as
 camadas 0 a 2**, então os problemas abaixo foram registrados e contornados,
 não corrigidos nas camadas.
 
+### O lado do ataque invertido em 44% das ações (corrigido)
+
+Toda ação da camada 0 deveria estar "vista do time que age", atacando da
+esquerda para a direita. Não estava: a conversão do kloppy para SPADL deixa
+o mandante (Argentina) atacando para a direita só nos períodos ímpares, e os
+lados trocam a cada período. Sem uma correção, as ações da Argentina no 2º
+tempo e na 2ª prorrogação, e as da França no 1º tempo e na 1ª prorrogação,
+ficavam espelhadas: 1.146 de 2.585. O gol de Messi aos 108' aparecia chutado
+de cima da própria linha de gol, no terço de defesa.
+
+O erro passava por terço, corredor, zonas, xT, VAEP, passe progressivo,
+PPDA e field tilt, e daí para a súmula e os padrões da camada 2. O gabarito
+não o pegou porque lia o mesmo Parquet que o grafo (seção 7.3). Foi achado
+ao testar os filtros de terço das ferramentas da v2.
+
+**O que foi feito:** a camada 0 desvira essas ações logo após a conversão; o
+VAEP recebe as ações na orientação que ele espera; e a grade de xT foi
+reajustada, porque o ajuste também misturava as duas direções (ela dava
+valor alto à área do próprio time). Dois testes garantem que cada ação está
+no mesmo lugar que no JSON bruto e que toda finalização está no terço de
+ataque. As camadas 0 a 2 foram refeitas. As execuções da v1 registradas em
+`docs/execucoes/` usaram os dados antigos.
+
 ### Defesas do goleiro: 7 ou 8?
 
 O JSON bruto tem 7 defesas de Hugo Lloris (eventos "Shot Saved"). A camada 0

@@ -60,12 +60,33 @@ def convert_to_spadl(dataset: EventDataset, match_id: int) -> pd.DataFrame:
         Cada linha vira uma aresta factual (PASSOU_PARA etc.) na camada 1.
     """
     actions = spadl_kloppy.convert_to_actions(dataset, game_id=match_id)
+    actions = _play_left_to_right(actions, dataset.metadata.teams[0].team_id)
     actions = spadl.add_names(actions)
     # kloppy expõe ids como string; StatsBomb usa ids inteiros — normalizamos
     # aqui para casar com os loaders do socceraction (players/teams/games).
     for col in ("game_id", "team_id", "player_id"):
         actions[col] = pd.to_numeric(actions[col], errors="coerce").astype("Int64")
     return actions.reset_index(drop=True)
+
+
+def _play_left_to_right(actions: pd.DataFrame, home_team_id: str) -> pd.DataFrame:
+    """Make every action attack left to right.
+
+    socceraction's kloppy converter leaves the coordinates in kloppy's
+    ``HOME_AWAY`` orientation: the home team attacks left to right in odd
+    periods (1st half, 1st half of extra time) and the teams switch sides
+    every period. Without this flip, the away team's actions in odd periods
+    and the home team's in even periods were mirrored (e.g. Messi's 108'
+    goal in the 2022 final sat on his own goal line).
+    """
+    out = actions.copy()
+    home = out["team_id"].astype(str) == str(home_team_id)
+    odd_period = out["period_id"] % 2 == 1
+    flip = (home & ~odd_period) | (~home & odd_period)
+    for col, length in (("start_x", spadl.config.field_length), ("end_x", spadl.config.field_length),
+                        ("start_y", spadl.config.field_width), ("end_y", spadl.config.field_width)):
+        out.loc[flip, col] = length - out.loc[flip, col]
+    return out
 
 
 def _fit_xt_on_matches(training_actions: pd.DataFrame, models_dir: Path) -> xthreat.ExpectedThreat:
@@ -185,7 +206,10 @@ def load_or_train_vaep(
 
 def add_vaep(actions: pd.DataFrame, model: VAEP, game: pd.Series) -> pd.DataFrame:
     """Passo 0.3b: adiciona colunas vaep_offensive, vaep_defensive, vaep_value."""
-    ratings = model.rate(game, actions)
+    # VAEP expects SPADL's native orientation (home team left to right, away
+    # team right to left) and turns it left to right itself; our actions are
+    # already left to right, so the away team's go back first.
+    ratings = model.rate(game, spadl.play_left_to_right(actions, game.home_team_id))
     out = actions.copy()
     out["vaep_offensive"] = ratings["offensive_value"].to_numpy()
     out["vaep_defensive"] = ratings["defensive_value"].to_numpy()
