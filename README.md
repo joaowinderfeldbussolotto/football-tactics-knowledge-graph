@@ -25,6 +25,7 @@ A documentação foi escrita para ser lida em ordem, sem conhecimento prévio:
 | [6. Como rodar](docs/06-como-rodar.md) | passo a passo do zero, local ou Docker, e solução de problemas |
 | [7. Decisões e limitações](docs/07-decisoes-e-limitacoes.md) | por que cada escolha, problemas achados nos dados, o que o benchmark não diz |
 | [8. Glossário](docs/08-glossario.md) | todos os termos técnicos em linguagem simples |
+| [Registro das execuções](docs/execucoes/README.md) | cada execução do benchmark: configuração, custo real, resultado, achados e links para os traces |
 
 ## Em uma tabela
 
@@ -67,7 +68,8 @@ perguntas isoladas (`python scripts/ask.py --question s03`).
 Primeira execução: **Claude Haiku 5.5** (via OpenRouter), **1 repetição** (150
 execuções), com cache de prompt. Custo real ~US$ 0,25. Relatório completo em
 [`data/benchmark/summary.md`](data/benchmark/summary.md); cada resposta em
-[`data/benchmark/results.jsonl`](data/benchmark/results.jsonl).
+[`data/benchmark/results.jsonl`](data/benchmark/results.jsonl); análise e links para os
+traces em [`docs/execucoes/`](docs/execucoes/README.md).
 
 | Tipo | `no_context` | `vector` | `events_in_prompt` | `stats_in_prompt` | `graph_tools` |
 |---|---|---|---|---|---|

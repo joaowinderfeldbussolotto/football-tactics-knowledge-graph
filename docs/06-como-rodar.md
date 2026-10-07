@@ -265,6 +265,10 @@ python scripts/summarize.py
 Os dois arquivos são versionados no Git: o resultado do benchmark faz parte
 do projeto.
 
+Para registrar a execução, siga o roteiro de
+[`docs/execucoes/`](execucoes/README.md). Ele inclui uma tabela de links
+para os traces, gerada por `python scripts/trace_links.py --results <arquivo>`.
+
 ---
 
 ## 6.7 Fazer uma pergunta isolada

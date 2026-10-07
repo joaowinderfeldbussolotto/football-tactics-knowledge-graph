@@ -177,6 +177,8 @@ JSON Lines: um objeto JSON por linha. Os campos:
 | `input_tokens`, `output_tokens` | `2817`, `95` | tokens consumidos, informados pelo provedor |
 | `n_tool_calls`, `tool_calls` | `1`, `[{"tool": "stat_ranking", "args": {...}}]` | ferramentas chamadas (só no `graph_tools`) |
 | `latency_s` | `3.2` | tempo da execução, em segundos |
+| `cache_read_tokens`, `cache_write_tokens` | `100945`, `0` | tokens lidos e gravados no cache de prompt (capítulo 7) |
+| `trace_url` | `"https://us.cloud.langfuse.com/project/.../traces/..."` | link do trace no Langfuse (`null` sem Langfuse) |
 | `model`, `timestamp` | `"openrouter:..."`, `"2026-10-07T14:43:00+00:00"` | modelo usado e quando |
 
 Esse arquivo é a **fonte única dos números**. Tudo no relatório sai dele.
@@ -236,6 +238,10 @@ Langfuse como um bloco nomeado `{pergunta}/{braço}/r{n}` (por exemplo,
 `s03/graph_tools/r2`). Dentro dele está a conversa inteira: o prompt
 enviado, cada chamada de ferramenta com o resultado e a resposta final.
 Isso é muito útil para entender um erro.
+
+Cada linha do `results.jsonl` guarda o link do próprio trace (`trace_url`),
+e o `ask.py` o imprime. O [registro das execuções](execucoes/README.md) usa
+esses links numa tabela por pergunta e braço.
 
 Mas **os números do benchmark saem do `results.jsonl`, nunca do Langfuse.**
 O Langfuse é um serviço externo e pode perder ou atrasar registros. O arquivo
