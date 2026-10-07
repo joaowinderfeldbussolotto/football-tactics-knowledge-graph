@@ -11,6 +11,7 @@ vêm sempre do arquivo de resultados da execução, nunca do Langfuse.
 | [03](2026-10-07_03_completa_claude-haiku-5.5_r1.md) | 2026-10-07 | completa, 1 repetição | Claude Haiku 5.5 + cache | 150 | 29/30 | ~US$ 0,23 |
 | [04](2026-10-07_04_piloto-v2_claude-haiku-5.5.md) | 2026-10-07 | **v2**, piloto, 1 repetição | Claude Haiku 5.5 + cache | 50 | 5/10 | US$ 0,10 |
 | [05](2026-10-07_05_piloto-v2.1_claude-haiku-5.5.md) | 2026-10-07 | **v2.1**, piloto, 1 repetição + 2 nas perguntas-alvo | Claude Haiku 5.5 + cache | 56 | 6/10 | US$ 0,24 |
+| [06](2026-10-07_06_placar-list-actions_v2.2.md) | 2026-10-07 | **v2.2**, só `graph_tools` em a03, a05, f03 | Claude Haiku 5.5 | 3 | 2/3 | ~US$ 0,04 |
 
 > **As execuções 01 a 03 usaram dados com um erro na camada 0**, corrigido
 > depois: em 44% das ações o lado do ataque estava invertido, o que deixava
