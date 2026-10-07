@@ -8,7 +8,7 @@ tool output mode). The only difference between arms is what the LLM gets:
 - ``vector``: the 30 event lines most similar to the question;
 - ``events_in_prompt``: the compact table of every event of the match;
 - ``stats_in_prompt``: per-player and per-team stats read from Neo4j (layer 1b);
-- ``graph_tools``: tools that query Neo4j (``benchmark/tools.py``).
+- ``graph_tools``: seven primitive tools that query Neo4j (``benchmark/tools.py``).
 """
 
 import hashlib
@@ -17,10 +17,12 @@ import os
 import time
 from dataclasses import dataclass, field
 from functools import lru_cache
+from typing import Literal
 
 import numpy as np
 import pandas as pd
-from pydantic_ai import Agent, RunContext
+from pydantic import BaseModel
+from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai.messages import CachePoint
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.usage import RunUsage, UsageLimits
@@ -54,6 +56,8 @@ MAX_TOOL_CALLS = 8
 # to 2 output retries. Beyond this, the run is stopped (counted as no answer).
 REQUEST_LIMIT = MAX_TOOL_CALLS + 4
 OUTPUT_RETRIES = 2
+# Retries after a tool argument fails validation (e.g. a value outside a closed list).
+TOOL_RETRIES = 2
 
 
 @dataclass
@@ -223,23 +227,26 @@ def plain_agent() -> Agent[None, Answer]:
 
 @dataclass
 class GraphDeps:
-    driver: object
+    toolbox: tools.Toolbox
     calls: list[dict] = field(default_factory=list)
+
+
+def _jsonable(value):
+    if isinstance(value, BaseModel):
+        return value.model_dump(exclude_none=True)
+    return value
 
 
 def _call(ctx: RunContext[GraphDeps], tool_name: str, fn, **kwargs):
     """Run one tool, log it, enforce the 8-call limit, and turn bad arguments
     into a message the model can act on (instead of an exception)."""
-    ctx.deps.calls.append({"tool": tool_name, "args": kwargs})
+    ctx.deps.calls.append({"tool": tool_name, "args": {k: _jsonable(v) for k, v in kwargs.items()}})
     if len(ctx.deps.calls) > MAX_TOOL_CALLS:
         return {"error": f"tool call limit ({MAX_TOOL_CALLS}) reached; answer now with the data you have"}
     try:
-        return fn(ctx.deps.driver, **kwargs)
+        return fn(**kwargs)
     except tools.ToolError as exc:
         return {"error": str(exc)}
-
-
-_TEAM_ARG = '"Argentina" or "France" (Portuguese names such as "França" also work).'
 
 
 def _describe(doc: str):
@@ -251,142 +258,179 @@ def _describe(doc: str):
     return wrap
 
 
+# Each tool description has two parts: what the tool computes (mechanics) and
+# what that usually means in football. Neither may carry a rule or a hint
+# meant for a specific question.
+
+@_describe(f"""Lists the players who took part in the match (everyone with at least one
+on-ball action), with team and nominal position. Names come exactly as the other tools
+expect them.
+
+In football terms: the squad sheet of the final, starters and substitutes who played.
+
+Args:
+    team: Optional. {tools.TEAM_HELP} Omit it for both teams.
+""")
+def list_players(ctx: RunContext[GraphDeps], team: str | None = None) -> list[dict]:
+    return _call(ctx, "list_players", ctx.deps.toolbox.list_players, team=team)
+
+
+@_describe(f"""Counts the on-ball actions that match the filters, or sums the expected
+threat (xT) they added, grouped by the fields chosen, largest first. Without group_by it
+returns a single total. Both teams, every period; the penalty shootout is not in the data.
+
+In football terms: how many times something happened and who or which team did it most
+(passes, tackles, shots, fouls, ...), in the whole match or in any slice of it: a team, a
+player, a period, a stretch of time, an area of the pitch. xT measures how much an action
+moved the ball toward dangerous areas.
+
+Args:
+    filters: Which actions to count. Omit it for every action.
+    group_by: Fields to group by, in order: player (who acted), receiver (who received a
+        completed pass), team, action, period, third, corridor. Omit it for a single total.
+    metric: count (number of actions) or xt_sum (sum of the xT added).
+    top: How many rows to return, 1 to {tools.MAX_TOP}.
+""")
+def query_actions(ctx: RunContext[GraphDeps], filters: tools.ActionFilters | None = None,
+                  group_by: list[tools.GroupBy] | None = None, metric: Literal["count", "xt_sum"] = "count",
+                  top: int = 10) -> list[dict]:
+    return _call(ctx, "query_actions", ctx.deps.toolbox.query_actions,
+                 filters=filters, group_by=group_by, metric=metric, top=top)
+
+
+@_describe(f"""Lists the individual actions that match the filters, in match order: period,
+broadcast minute, second (elapsed time since kickoff, the scale of the time filters), team,
+player, action, success, receiver, third, corridor and outcome (goal, yellow_card, shot
+result). Returns at most `limit` actions and the total that matched.
+
+In football terms: the play-by-play of the match. It shows when and how something
+happened, in what order, and locates a moment of the match in time.
+
+Args:
+    filters: Which actions to list. Omit it for every action.
+    limit: How many actions to return, 1 to {tools.MAX_LIST}, from the start of the match.
+""")
+def list_actions(ctx: RunContext[GraphDeps], filters: tools.ActionFilters | None = None,
+                 limit: int = 20) -> dict:
+    return _call(ctx, "list_actions", ctx.deps.toolbox.list_actions, filters=filters, limit=limit)
+
+
+@_describe(f"""Builds a team's pass network from the completed passes between teammates that
+match the filters: each player is a node, and each passer -> receiver pair is a connection
+carrying the number of passes and the xT they added. Returns a network_id, used by
+network_metric and network_edges, and a summary (players, connections, passes). Networks
+last until the end of the question.
+
+In football terms: the map of who passes to whom, for the whole match or for a slice of
+it (a period, a stretch of time, an area of the pitch).
+
+Args:
+    team: {tools.TEAM_HELP}
+    filters: Which passes to include. The team is the one above, and only completed passes
+        count. Omit it for every completed pass of the team.
+""")
+def pass_network(ctx: RunContext[GraphDeps], team: str, filters: tools.ActionFilters | None = None) -> dict:
+    return _call(ctx, "pass_network", ctx.deps.toolbox.pass_network, team=team, filters=filters)
+
+
+@_describe(f"""Computes a graph metric on a network built by pass_network (Neo4j GDS):
+- betweenness: for every pair of other players, counts how many shortest passing routes
+  go through each player. Unweighted, every connection has length 1; weighted, a
+  connection is shorter the more passes (length 1/passes) or the more xT (length
+  1/(1+xT)) it carries.
+- degree: number of teammates a player passes to and receives from; weighted, the number
+  of passes or the xT on those connections. Directed gives outgoing and incoming apart.
+- pagerank: a player scores high when receiving the ball from players who themselves
+  score high; weighted by passes or xT.
+- bridges: connections whose removal would split the network in two.
+- articulation_points: players whose removal would split the network in two.
+- communities: groups of players connected mostly among themselves (Louvain; groups can
+  change between calls).
+Directed keeps passer -> receiver; undirected merges both directions of a pair. bridges
+and articulation_points are always unweighted and undirected; communities, undirected.
+xT on a connection can be negative (passes backward); degree, pagerank and communities
+count a negative total as zero.
+
+In football terms: betweenness marks a player who connects teammates in ball
+circulation, a link or hub of the build-up; degree, how involved a player was in the
+passing and with how many partners; pagerank, the reference players the ball tends to
+flow to; bridges and articulation points, fragile links whose absence would cut the team
+in two; communities, the sub-groups of the team that combine most with each other.
+
+Args:
+    network_id: The id returned by pass_network.
+    metric: betweenness, degree, pagerank, bridges, articulation_points or communities.
+    weight: none, passes or xt.
+    direction: directed or undirected.
+    top: How many players to return in a ranking, 1 to {tools.MAX_TOP}.
+""")
+def network_metric(ctx: RunContext[GraphDeps], network_id: str, metric: tools.NetworkMetric,
+                   weight: tools.Weight = "none", direction: tools.Direction = "directed",
+                   top: int = 10) -> dict:
+    return _call(ctx, "network_metric", ctx.deps.toolbox.network_metric,
+                 network_id=network_id, metric=metric, weight=weight, direction=direction, top=top)
+
+
+@_describe(f"""Lists the connections of a network built by pass_network: passer, receiver,
+number of completed passes and the xT they added, most passes first. With a player, only
+the connections where that player passes or receives.
+
+In football terms: the passing partnerships of a team or of one player, and which of
+them moved the ball toward danger.
+
+Args:
+    network_id: The id returned by pass_network.
+    player: Optional. Full name, nickname or a surname that is unique in the match.
+    top: How many connections to return, 1 to {tools.MAX_TOP}.
+""")
+def network_edges(ctx: RunContext[GraphDeps], network_id: str, player: str | None = None,
+                  top: int = 20) -> list[dict]:
+    return _call(ctx, "network_edges", ctx.deps.toolbox.network_edges,
+                 network_id=network_id, player=player, top=top)
+
+
+@_describe(f"""Finds chains of completed passes in which each pass is made by the receiver
+of the previous one (A -> B -> C ...) and counts the most frequent sequences of players.
+After receiving, the link is the receiver's next pass attempt; the chain stops if that
+pass is not completed. same_possession: all passes of a chain in the same possession of
+the ball. consecutive: no other pass, by anyone, between two linked passes. Players may
+repeat (A -> B -> A). The filters select the first pass of each chain.
+
+In football terms: a team's recurring passing combinations, who tends to find whom and
+through whom when the ball moves from player to player.
+
+Args:
+    team: {tools.TEAM_HELP}
+    length: Number of passes in a chain, 2 to 4 (2 is A -> B -> C).
+    same_possession: Require the whole chain within one possession.
+    consecutive: Require no other pass between two linked passes.
+    filters: Which passes may start a chain. Omit it for every completed pass of the team.
+    top: How many sequences to return, 1 to {tools.MAX_TOP}.
+""")
+def pass_paths(ctx: RunContext[GraphDeps], team: str, length: int = 2, same_possession: bool = True,
+               consecutive: bool = True, filters: tools.ActionFilters | None = None, top: int = 10) -> dict:
+    return _call(ctx, "pass_paths", ctx.deps.toolbox.pass_paths, team=team, length=length,
+                 same_possession=same_possession, consecutive=consecutive, filters=filters, top=top)
+
+
+TOOLS = {f.__name__: f for f in (list_players, query_actions, list_actions, pass_network,
+                                 network_metric, network_edges, pass_paths)}
+# An arm with tools is an agent plus a list of tools. A future arm without the
+# network tools would be one line: "tools_no_graph": tuple(TOOLS)[:3].
+TOOL_ARMS = {"graph_tools": tuple(TOOLS)}
+
+
 @lru_cache
-def graph_agent() -> Agent[GraphDeps, Answer]:
-    agent = Agent(
+def tool_agent(arm: str = "graph_tools") -> Agent[GraphDeps, Answer]:
+    return Agent(
         pydantic_ai_model(get_settings()),
         deps_type=GraphDeps,
         output_type=Answer,
-        retries={"output": OUTPUT_RETRIES},
+        retries={"output": OUTPUT_RETRIES, "tools": TOOL_RETRIES},
         model_settings=_model_settings(),
         system_prompt=SYSTEM_PROMPT,
+        tools=[Tool(TOOLS[name], takes_ctx=True) for name in TOOL_ARMS[arm]],
     )
-
-    @agent.tool
-    @_describe(f"""List the players of one team who took part in the match (starters and
-substitutes who touched the ball), with nominal position and number of on-ball actions.
-Use it to get exact player names before calling other tools.
-
-Args:
-    team: {_TEAM_ARG}
-""")
-    def list_players(ctx: RunContext[GraphDeps], team: str) -> list[dict]:
-        return _call(ctx, "list_players", tools.list_players, team=team)
-
-    @agent.tool
-    @_describe("""All aggregated statistics of one player in the match: passes, crosses,
-take-ons, tackles, interceptions, clearances, fouls, cards, shots, goals, assists,
-pressures, xT and VAEP. Field meanings are listed in stat_ranking.
-
-Args:
-    name: Full name, nickname or a surname that is unique in the match (e.g. "Messi",
-        "Enzo Fernández"). An ambiguous name (e.g. "Martínez") returns the candidates.
-""")
-    def player_stats(ctx: RunContext[GraphDeps], name: str) -> dict:
-        return _call(ctx, "player_stats", tools.player_stats, name=name)
-
-    @agent.tool
-    @_describe(f"""Aggregated statistics of one team in the match: goals, shots and shots on
-target, passes and pass accuracy, tackles, interceptions, fouls, yellow cards, possession
-by time, PPDA per half, field tilt and total xT. Field meanings are listed in stat_ranking.
-
-Args:
-    team: {_TEAM_ARG}
-""")
-    def team_stats(ctx: RunContext[GraphDeps], team: str) -> dict:
-        return _call(ctx, "team_stats", tools.team_stats, team=team)
-
-    @agent.tool
-    @_describe(f"""Rank players by one statistic, highest first. Use it for "who had the most
-...?" and top-N questions. Equal values are listed alphabetically, so look at the values
-before naming a single leader.
-
-Statistics (field: meaning):
-{tools.glossary(tools.PLAYER_STATS)}
-
-Args:
-    stat: One field name from the list above.
-    team: Optional. {_TEAM_ARG} Omit it to rank both teams together.
-    top: How many players to return, 1 to {tools.MAX_TOP}.
-""")
-    def stat_ranking(ctx: RunContext[GraphDeps], stat: str, team: str | None = None, top: int = 5) -> list[dict]:
-        return _call(ctx, "stat_ranking", tools.stat_ranking, stat=stat, team=team, top=top)
-
-    @agent.tool
-    @_describe(f"""List every event of one type in match order, with broadcast minute, period
-(1 and 2: regular time; 3 and 4: extra time; the penalty shootout is not included), team
-and player. Use it for "who" and "when" questions about specific moments: who scored
-first, who was booked, who assisted a goal.
-
-Event types:
-- goal: goals, penalties included
-- assist: the pass that set up a goal, with assister and scorer
-- yellow_card: yellow cards; `action` tells what caused it: falta_cometida is a foul,
-  anything else (e.g. cartao_por_reclamacao) is a card without a foul
-- shot (with `outcome`), foul, tackle, interception, dribble, clearance, keeper_save
-
-Args:
-    event_type: One of {", ".join(tools.EVENT_TYPES)}.
-    team: Optional. {_TEAM_ARG} Omit it for both teams.
-""")
-    def events(ctx: RunContext[GraphDeps], event_type: str, team: str | None = None) -> list[dict]:
-        return _call(ctx, "events", tools.events, event_type=event_type, team=team)
-
-    @agent.tool
-    @_describe(f"""Find who held a team's passing together. Ranks the team's players by
-betweenness centrality in its pass network, computed live with Neo4j GDS.
-
-How it works: each player is a node and each passer -> receiver pair with at least one
-completed pass is a directed edge. For every pair of teammates, the algorithm finds the
-shortest passing routes between them and counts how many go through each player. An
-edge's length is 1 / (1 + xT of the passes on it), so routes that moved the ball into
-more dangerous areas count as shorter.
-
-How to read it: the higher the score, the more the team's ball circulation depended on
-that player to connect the others (the hub, link or bottleneck of the build-up). It is
-not the same as making the most passes or having the most touches.
-
-Args:
-    team: {_TEAM_ARG}
-    top: How many players to return, 1 to {tools.MAX_TOP}.
-""")
-    def pass_network_centrality(ctx: RunContext[GraphDeps], team: str, top: int = 5) -> list[dict]:
-        return _call(ctx, "pass_network_centrality", tools.pass_network_centrality, team=team, top=top)
-
-    @agent.tool
-    @_describe(f"""Find a team's most repeated three-player passing combinations A -> B -> C
-(third-man combinations), most frequent first.
-
-A combination is counted when A completes a pass to B and B completes a pass to C in the
-same possession, with no other pass in between (B may carry the ball), A, B and C are
-three different players, and the ball ends in a more advanced third of the pitch
-(defensive, middle, attacking) than the third where A's pass started.
-
-Returns each combination (a, b, c) with how many times it happened (`occurrences`) and
-the xT it added. To count combinations above a frequency, ask for a large `top`.
-
-Args:
-    team: {_TEAM_ARG}
-    top: How many combinations to return, 1 to {tools.MAX_TOP}.
-""")
-    def three_player_sequences(ctx: RunContext[GraphDeps], team: str, top: int = 5) -> list[dict]:
-        return _call(ctx, "three_player_sequences", tools.three_player_sequences, team=team, top=top)
-
-    @agent.tool
-    @_describe(f"""Find weak points in a team's passing structure, computed live with Neo4j
-GDS on the undirected pass network:
-- bridges: passing connections whose removal would split the team into two disconnected
-  groups (a well-connected team may have none);
-- communities: groups of players who passed mostly among themselves (Louvain, weighted
-  by number of passes). Louvain is not deterministic: groups can change between calls.
-
-Args:
-    team: {_TEAM_ARG}
-""")
-    def pass_network_bridges(ctx: RunContext[GraphDeps], team: str) -> dict:
-        return _call(ctx, "pass_network_bridges", tools.pass_network_bridges, team=team)
-
-    return agent
 
 
 @lru_cache
@@ -409,7 +453,7 @@ def missing_config(arms: list[str]) -> list[str]:
 
 async def build_prompt(arm: str, question_text: str) -> str:
     """The user message of an arm (the system prompt is the same for all)."""
-    if arm in ("no_context", "graph_tools"):
+    if arm == "no_context" or arm in TOOL_ARMS:
         return question_text
     if arm == "events_in_prompt":
         return f"Match events:\n{events_table()}\n\nQuestion: {question_text}"
@@ -447,8 +491,8 @@ async def run_arm(arm: str, question_text: str) -> ArmResult:
     """Ask one question to one arm. Never raises for a bad model answer."""
     prompt = await build_prompt(arm, question_text)
     usage = RunUsage()
-    deps = GraphDeps(driver=_driver()) if arm == "graph_tools" else None
-    agent = graph_agent() if arm == "graph_tools" else plain_agent()
+    deps = GraphDeps(toolbox=tools.Toolbox(_driver())) if arm in TOOL_ARMS else None
+    agent = tool_agent(arm) if arm in TOOL_ARMS else plain_agent()
     t0 = time.perf_counter()
     answer, error = None, None
     try:
@@ -459,6 +503,9 @@ async def run_arm(arm: str, question_text: str) -> ArmResult:
         error = f"format: {exc}"
     except UsageLimitExceeded as exc:
         error = f"usage_limit: {exc}"
+    finally:
+        if deps:
+            deps.toolbox.close()  # drop this run's GDS projections
     return ArmResult(
         arm=arm,
         answer=answer,

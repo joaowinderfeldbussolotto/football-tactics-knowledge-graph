@@ -70,42 +70,38 @@ async def test_stats_arm_reads_layer_1b_from_neo4j():
 
 
 @requires_neo4j
-async def test_graph_tools_arm_logs_calls_and_turns_bad_arguments_into_messages():
-    # TestModel calls every tool once with dummy arguments ("a"): every
-    # call must come back as an error message, not an exception.
-    with arms.graph_agent().override(model=TestModel()):
-        result = await arms.run_arm("graph_tools", "Quem foi o pivô da Argentina?")
+async def test_graph_tools_arm_logs_calls_and_drops_its_networks():
+    # TestModel calls every tool once with dummy arguments: each call must
+    # come back as data or as an error message, never as an exception.
+    with arms.tool_agent("graph_tools").override(model=TestModel()):
+        result = await arms.run_arm("graph_tools", "Quem foi o elo da Argentina?")
     assert result.answer is not None
-    assert {c["tool"] for c in result.tool_calls} == {
-        "list_players", "player_stats", "team_stats", "stat_ranking", "events",
-        "pass_network_centrality", "three_player_sequences", "pass_network_bridges",
+    assert {c["tool"] for c in result.tool_calls} == set(arms.TOOL_ARMS["graph_tools"]) == {
+        "list_players", "query_actions", "list_actions", "pass_network", "network_metric",
+        "network_edges", "pass_paths",
     }
-
-
-@requires_neo4j
-def test_tool_call_limit_returns_a_message_after_8_calls():
-    class Ctx:
-        deps = arms.GraphDeps(driver=None, calls=[{}] * arms.MAX_TOOL_CALLS)
-    assert "limit" in arms._call(Ctx(), "team_stats", tools.team_stats, team="Argentina")["error"]
-
-
-@requires_neo4j
-def test_tools_answer_from_the_graph():
-    from football_graphrag.config import get_settings
     from football_graphrag.graph import db
+    from football_graphrag.config import get_settings
 
     d = db.make_driver(get_settings())
-    try:
-        assert tools.player_stats(d, "Enzo Fernández")["desarmes_certos"] == 5
-        assert tools.pass_network_centrality(d, "Argentina", 2)[1] == {"player": "Enzo Fernandez", "betweenness": 25.0}
-        trio = tools.three_player_sequences(d, "França", 1)[0]
-        assert (trio["a"], trio["b"], trio["c"], trio["occurrences"]) == (
-            "Jules Koundé", "Raphaël Varane", "Dayotchanculle Upamecano", 3)
-        assert len(tools.events(d, "yellow_card")) == 7
-        with pytest.raises(tools.ToolError, match="ambiguous"):
-            tools.player_stats(d, "Martínez")
-    finally:
-        d.close()
+    with d.session() as session:
+        left = session.run("CALL gds.graph.list() YIELD graphName WHERE graphName STARTS WITH 'bench_' "
+                           "RETURN count(*) AS n").single()["n"]
+    d.close()
+    assert left == 0
+
+
+def test_tool_call_limit_returns_a_message_after_8_calls():
+    class Ctx:
+        deps = arms.GraphDeps(toolbox=None, calls=[{}] * arms.MAX_TOOL_CALLS)
+    assert "limit" in arms._call(Ctx(), "list_players", lambda **kw: [], team="Argentina")["error"]
+
+
+def test_tool_calls_are_logged_as_plain_data():
+    class Ctx:
+        deps = arms.GraphDeps(toolbox=None)
+    arms._call(Ctx(), "query_actions", lambda **kw: [], filters=tools.ActionFilters(period=3, success=True))
+    assert Ctx.deps.calls == [{"tool": "query_actions", "args": {"filters": {"period": 3, "success": True}}}]
 
 
 @requires_data
