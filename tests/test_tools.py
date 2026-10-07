@@ -258,3 +258,12 @@ def test_pass_paths_longer_chains_and_filters(tb, df):
     got = tb.pass_paths("Argentina", 3, True, False, {"period": 1}, top=100)
     assert got["total_chains"] == sum(expected.values())
     assert all(len(s["players"]) == 4 for s in got["sequences"])
+
+
+def test_the_second_shown_works_as_a_filter_boundary(tb, df):
+    # The second list_actions shows, fed back as a time filter, keeps the
+    # action itself on both sides of the window (approved fix after the freeze).
+    for period in (2, 3, 4):
+        first = tb.list_actions({"period": period}, limit=1)["actions"][0]
+        same = tb.list_actions({"second_from": first["second"], "second_to": first["second"]})["actions"]
+        assert any(a["player"] == first["player"] and a["action"] == first["action"] for a in same)

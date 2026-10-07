@@ -32,10 +32,7 @@ def goal_second(tb: Toolbox, n: int) -> float:
 
 
 def first_second(tb: Toolbox, period: int) -> float:
-    # list_actions shows the second rounded to 0.1; when it rounds up, using it
-    # as second_from leaves out the action itself. Half the rounding step
-    # keeps it in (frozen tools: the rounding itself awaits approval to change).
-    return tb.list_actions({"period": period}, limit=1)["actions"][0]["second"] - 0.05
+    return tb.list_actions({"period": period}, limit=1)["actions"][0]["second"]
 
 
 def top_pair(tb: Toolbox, team: str, filters=None) -> list[str]:

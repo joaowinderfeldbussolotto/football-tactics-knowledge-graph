@@ -286,10 +286,10 @@ class Toolbox:
             conds.append("x.periodo = $period")
             params["period"] = f.period
         if f.second_from is not None:
-            conds.append("second >= $second_from")
+            conds.append("round(second, 3) >= $second_from")
             params["second_from"] = f.second_from
         if f.second_to is not None:
-            conds.append("second <= $second_to")
+            conds.append("round(second, 3) <= $second_to")
             params["second_to"] = f.second_to
         if f.third:
             conds.append("x.terco = $third")
@@ -341,7 +341,7 @@ class Toolbox:
     def list_actions(self, filters=None, limit: int = 20) -> dict:
         where, params = self._where(filters)
         rows = self._rows(f"""{_ACTIONS} WHERE {where}
-                              RETURN x.periodo AS period, x.minuto AS minute, round(second, 1) AS second,
+                              RETURN x.periodo AS period, x.minuto AS minute, round(second, 3) AS second,
                                      j.time AS team, j.nome AS player, x.acao AS action,
                                      x.sucesso AS success, rc.nome AS receiver, x.terco AS third,
                                      x.corredor AS corridor, x.gol AS gol, x.cartao_amarelo AS cartao_amarelo,

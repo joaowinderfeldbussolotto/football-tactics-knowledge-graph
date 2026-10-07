@@ -2,5 +2,8 @@
   "frozen_at_commit": "079260ce71a5c684e507be9896b72aa3e3e8557b",
   "tag": "v2-tools-frozen",
   "definitions_sha256": "f3d874e941cfa3f11b10b031fc24377cfa6197ae1166319e389df8a36d756f71",
-  "tools_py_sha256": "00d1936bf030b60c04fcf48cc773cce77e2b39bce72474a1b5c8d83a7e43609e"
+  "tools_py_sha256": "da4b7ba8151d1b273a6df0e8e91d15e352166c0057523ce879ccdbd26a016e21",
+  "approved_changes": [
+    "list_actions shows the second with 3 decimals and the time filters compare at that precision, so a second read from list_actions keeps its own action (approved by the user at checkpoint 2)"
+  ]
 }
