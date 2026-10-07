@@ -47,6 +47,21 @@ def span(name: str, *, active: bool, **metadata):
         yield
 
 
+def current_trace_url(active: bool) -> str | None:
+    """Langfuse URL of the trace being recorded, or None when inactive.
+
+    Call inside ``span(...)``. The URL opens the trace in the Langfuse UI (it
+    needs a login to the project).
+    """
+    if not active:
+        return None
+    from langfuse import get_client
+
+    client = get_client()
+    trace_id = client.get_current_trace_id()
+    return client.get_trace_url(trace_id=trace_id) if trace_id else None
+
+
 def flush(active: bool) -> None:
     """Send buffered spans. Short-lived scripts exit before the batch exporter fires."""
     if not active:

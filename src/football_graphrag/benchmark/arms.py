@@ -68,6 +68,7 @@ class ArmResult:
     latency_s: float = 0.0
     prompt_preview: str = ""
     error: str | None = None  # why there is no answer (format or usage limit)
+    trace_url: str | None = None  # Langfuse trace, when instrumentation is on
 
 
 # --------------------------------------------------------------------------- data views

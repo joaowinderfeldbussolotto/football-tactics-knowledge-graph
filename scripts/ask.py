@@ -49,6 +49,8 @@ async def main(args) -> int:
     for arm in [args.arm] if args.arm else ARMS:
         r = await run_one(text, arm, f"ask/{question.id if question else 'adhoc'}/{arm}", observed=observed)
         print(f"\n=== {arm}  ({r.latency_s}s, tokens in/out {r.input_tokens}/{r.output_tokens})")
+        if r.trace_url:
+            print(f"  trace: {r.trace_url}")
         if args.show_prompt:
             print(f"--- user prompt ---\n{r.prompt_preview}\n---")
         for c in r.tool_calls:

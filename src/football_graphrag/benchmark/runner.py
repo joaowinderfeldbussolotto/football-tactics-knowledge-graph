@@ -10,12 +10,14 @@ from football_graphrag.benchmark.arms import ArmResult, run_arm
 from football_graphrag.benchmark.questions import Question
 from football_graphrag.benchmark.scoring import Score, score
 from football_graphrag.config import get_settings
-from football_graphrag.observability.langfuse_setup import span
+from football_graphrag.observability.langfuse_setup import current_trace_url, span
 
 
 async def run_one(question_text: str, arm: str, span_name: str, *, observed: bool, **metadata) -> ArmResult:
     with span(span_name, active=observed, arm=arm, **metadata):
-        return await run_arm(arm, question_text)
+        result = await run_arm(arm, question_text)
+        result.trace_url = current_trace_url(observed)
+    return result
 
 
 def result_row(question: Question, arm: str, repeat: int, result: ArmResult, expected: dict) -> dict:
@@ -39,6 +41,7 @@ def result_row(question: Question, arm: str, repeat: int, result: ArmResult, exp
         "n_tool_calls": len(result.tool_calls),
         "tool_calls": result.tool_calls,
         "latency_s": result.latency_s,
+        "trace_url": result.trace_url,
         "model": f"{settings.llm_provider}:{settings.llm_model}",
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
