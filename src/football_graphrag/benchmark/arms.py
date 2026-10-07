@@ -292,6 +292,17 @@ def _driver():
 
 # --------------------------------------------------------------------------- entry point
 
+def missing_config(arms: list[str]) -> list[str]:
+    """What .env lacks to run these arms (empty list: ready)."""
+    s = get_settings()
+    problems = []
+    if not (s.llm_api_key and s.llm_model):
+        problems.append("LLM_API_KEY and LLM_MODEL must be set in .env (every arm uses the LLM)")
+    if "vector" in arms and not (s.embedder_api_key and s.embedder_model):
+        problems.append("EMBEDDER_API_KEY and EMBEDDER_MODEL must be set in .env (the vector arm embeds events)")
+    return problems
+
+
 async def build_prompt(arm: str, question_text: str) -> str:
     """The user message of an arm (the system prompt is the same for all)."""
     if arm in ("no_context", "graph_tools"):

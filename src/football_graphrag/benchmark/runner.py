@@ -1,0 +1,42 @@
+"""One benchmark run = one question x one arm x one repeat.
+
+Shared by ``scripts/ask.py`` and ``scripts/run_benchmark.py`` so both go
+through exactly the same code: ``run_arm`` -> ``score`` -> result row.
+"""
+
+from datetime import datetime, timezone
+
+from football_graphrag.benchmark.arms import ArmResult, run_arm
+from football_graphrag.benchmark.questions import Question
+from football_graphrag.benchmark.scoring import Score, score
+from football_graphrag.config import get_settings
+from football_graphrag.observability.langfuse_setup import span
+
+
+async def run_one(question_text: str, arm: str, span_name: str, *, observed: bool, **metadata) -> ArmResult:
+    with span(span_name, active=observed, arm=arm, **metadata):
+        return await run_arm(arm, question_text)
+
+
+def result_row(question: Question, arm: str, repeat: int, result: ArmResult, expected: dict) -> dict:
+    s: Score = score(question, expected, result.answer)
+    settings = get_settings()
+    return {
+        "question_id": question.id,
+        "type": question.type,
+        "arm": arm,
+        "repeat": repeat,
+        "answer": result.answer.model_dump() if result.answer else None,
+        "expected": {k: expected[k] for k in ("players", "value", "no_data")},
+        "correct": s.correct,
+        "abstention": s.abstention,
+        "format_error": s.format_error,
+        "error": result.error,
+        "input_tokens": result.input_tokens,
+        "output_tokens": result.output_tokens,
+        "n_tool_calls": len(result.tool_calls),
+        "tool_calls": result.tool_calls,
+        "latency_s": result.latency_s,
+        "model": f"{settings.llm_provider}:{settings.llm_model}",
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
