@@ -9,14 +9,16 @@ Each tool runs fixed, parameterized Cypher (and Neo4j GDS for network
 metrics): the LLM never writes Cypher. The tools never read the
 ``PadraoTatico`` nodes of layer 2, which hold answers already computed.
 
-``Toolbox`` holds the state of one run (the pass networks it built, as GDS
-projections) and drops it in ``close()``. Every method returns plain
+``Toolbox`` holds the state of one run: the pass networks it built, kept as
+edge lists. Each network metric projects its network into GDS, computes and
+drops the projection. Every method returns plain
 JSON-able data, so it can be tested and called without an LLM.
 """
 
 import bisect
 import uuid
 from collections import Counter
+from contextlib import contextmanager
 from typing import Literal
 
 from neo4j import Driver
@@ -214,10 +216,7 @@ class Toolbox:
         self._rows("CALL gds.graph.drop($name, false) YIELD graphName RETURN graphName", name=name)
 
     def close(self) -> None:
-        """Drop the GDS projections this run created."""
-        for net in self.networks.values():
-            for name in (net["directed"], net["undirected"]):
-                self._drop(name)
+        """Forget this run's networks (their GDS projections never outlive a call)."""
         self.networks.clear()
 
     def clock(self) -> dict:
@@ -367,7 +366,11 @@ class Toolbox:
                                      count(*) AS passes, sum(x.xt_gerado) AS xt
                               ORDER BY passes DESC, xt DESC, passer, receiver""", **params)
 
-    def _project(self, name: str, edges: list[dict], undirected: bool) -> None:
+    @contextmanager
+    def _projection(self, edges: list[dict], undirected: bool):
+        """A GDS projection of the edges, dropped on exit. Each projection takes
+        ~100 MiB of heap however small the network, so none is kept."""
+        name = f"bench_{uuid.uuid4().hex[:12]}"
         if undirected:
             pairs: dict[tuple, dict] = {}
             for e in edges:
@@ -376,7 +379,6 @@ class Toolbox:
                 p["passes"] += e["passes"]
                 p["xt"] += e["xt"]
             edges = list(pairs.values())
-        self._drop(name)
         self._rows("""
             UNWIND $edges AS e
             MATCH (a:Jogador) WHERE elementId(a) = e.a_id
@@ -390,6 +392,10 @@ class Toolbox:
             RETURN g.graphName AS name""",
                    edges=edges, name=name,
                    config={"undirectedRelationshipTypes": ["*"]} if undirected else {})
+        try:
+            yield name
+        finally:
+            self._drop(name)
 
     def pass_network(self, team: str, filters=None) -> dict:
         team = resolve_team(team)
@@ -399,11 +405,7 @@ class Toolbox:
         if not edges:
             raise ToolError("no completed pass between teammates matches these filters")
         network_id = f"net{len(self.networks) + 1}"
-        base = f"bench_{network_id}_{uuid.uuid4().hex[:8]}"
-        net = {"team": team, "directed": f"{base}_d", "undirected": f"{base}_u", "edges": edges}
-        self._project(net["directed"], edges, undirected=False)
-        self._project(net["undirected"], edges, undirected=True)
-        self.networks[network_id] = net
+        self.networks[network_id] = {"team": team, "edges": edges}
         players = sorted({e["passer"] for e in edges} | {e["receiver"] for e in edges})
         return {"network_id": network_id, "team": team, "players": len(players), "player_names": players,
                 "connections": len(edges), "passes": sum(e["passes"] for e in edges)}
@@ -422,12 +424,18 @@ class Toolbox:
             raise ToolError("weight must be 'none', 'passes' or 'xt'")
         if direction not in ("directed", "undirected"):
             raise ToolError("direction must be 'directed' or 'undirected'")
-        graph = net[direction]
+        if metric not in ("betweenness", "degree", "pagerank", "bridges", "articulation_points", "communities"):
+            raise ToolError(f"unknown metric {metric!r}; valid: betweenness, degree, pagerank, bridges, "
+                            "articulation_points, communities")
         out = {"network_id": network_id, "team": net["team"], "metric": metric}
+        undirected = direction == "undirected" or metric in ("bridges", "articulation_points", "communities")
+        with self._projection(net["edges"], undirected) as graph:
+            return self._metric(graph, out, metric, weight, direction, top)
 
+    def _metric(self, graph: str, out: dict, metric: str, weight: str, direction: str, top: int) -> dict:
         if metric in ("bridges", "articulation_points"):
             out["note"] = "always unweighted and undirected"
-            g = net["undirected"]
+            g = graph
             if metric == "bridges":
                 rows = self._rows("""CALL gds.bridges.stream($g) YIELD from, to
                                      RETURN gds.util.asNode(from).nome AS a, gds.util.asNode(to).nome AS b""", g=g)
@@ -474,15 +482,12 @@ class Toolbox:
             out |= {"direction": "undirected", "note": "always undirected; groups can vary between calls"}
             rows = self._rows("""CALL gds.louvain.stream($g, $config) YIELD nodeId, communityId
                                  RETURN communityId AS community, gds.util.asNode(nodeId).nome AS player""",
-                              g=net["undirected"], config=config)
+                              g=graph, config=config)
             groups: dict[int, list[str]] = {}
             for r in rows:
                 groups.setdefault(r["community"], []).append(r["player"])
             out["communities"] = sorted((sorted(g) for g in groups.values()), key=lambda g: (-len(g), g))
             return out
-        else:
-            raise ToolError(f"unknown metric {metric!r}; valid: betweenness, degree, pagerank, bridges, "
-                            "articulation_points, communities")
         out["ranking"] = rows
         return out
 
