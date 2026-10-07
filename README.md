@@ -88,7 +88,7 @@ execuções), com cache de prompt. Custo real ~US$ 0,25. Relatório completo em
 
 Como ler, com cuidado:
 
-- **Uma repetição só, 6 perguntas por tipo**: cada célula de tipo é 1 a 6
+- **Uma repetição só, 6 perguntas por tipo**: cada célula de tipo é de 0 a 6
   acertos. As tendências são claras, mas os números ainda não medem
   consistência (a tabela de repetições fica vazia com 1 execução).
 - **Um modelo, sem raciocínio estendido.** Na amostra com o DeepSeek V4 Pro,
