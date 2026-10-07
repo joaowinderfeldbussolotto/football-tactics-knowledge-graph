@@ -9,6 +9,9 @@ from pydantic_ai.models.test import TestModel
 from football_graphrag.benchmark import arms, tools
 from tests.conftest import requires_data, requires_neo4j
 
+# TestModel would fill the answer with empty fields, which Answer refuses.
+ANSWER = {"rationale": "test", "players": ["Lionel Andrés Messi Cuccittini"], "value": None, "no_data": False}
+
 
 def fake_embeddings(texts, settings):
     """Deterministic bag-of-words vectors: similar text, similar vector."""
@@ -44,7 +47,7 @@ def test_event_table_has_one_line_per_action_with_cards_and_goals():
 
 @requires_data
 async def test_vector_arm_sends_the_30_most_similar_events(fake_vector_store):
-    with arms.plain_agent().override(model=TestModel()):
+    with arms.plain_agent().override(model=TestModel(custom_output_args=ANSWER)):
         result = await arms.run_arm("vector", "Quem recebeu cartão amarelo? Olivier Giroud yellow_card")
     assert result.answer is not None
     rows = result.prompt_preview.split("possession,outcome\n")[1].split("\n\nQuestion:")[0].split("\n")
@@ -73,7 +76,7 @@ async def test_stats_arm_reads_layer_1b_from_neo4j():
 async def test_graph_tools_arm_logs_calls_and_drops_its_networks():
     # TestModel calls every tool once with dummy arguments: each call must
     # come back as data or as an error message, never as an exception.
-    with arms.tool_agent("graph_tools").override(model=TestModel()):
+    with arms.tool_agent("graph_tools").override(model=TestModel(custom_output_args=ANSWER)):
         result = await arms.run_arm("graph_tools", "Quem foi o elo da Argentina?")
     assert result.answer is not None
     assert {c["tool"] for c in result.tool_calls} == set(arms.TOOL_ARMS["graph_tools"]) == {

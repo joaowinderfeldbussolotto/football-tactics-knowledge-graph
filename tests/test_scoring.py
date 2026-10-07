@@ -64,13 +64,13 @@ def test_player_checks_only_the_first_name():
     exp = expected(["Lionel Andrés Messi Cuccittini"])
     assert score(q("player"), exp, ans(["Messi", "Enzo Fernandez"]), ALIASES).correct
     assert not score(q("player"), exp, ans(["Enzo Fernandez", "Messi"]), ALIASES).correct
-    assert not score(q("player"), exp, ans([]), ALIASES).correct
+    assert not score(q("player"), exp, ans(value=3), ALIASES).correct  # no player at all
 
 
 def test_value_exact_and_with_tolerance():
     assert score(q("value"), expected(value=6), ans(value=6.0), ALIASES).correct
     assert not score(q("value"), expected(value=6), ans(value=7), ALIASES).correct
-    assert not score(q("value"), expected(value=6), ans(value=None), ALIASES).correct
+    assert not score(q("value"), expected(value=6), ans(["Messi"]), ALIASES).correct  # no number at all
     assert score(q("value", tolerance=0.5), expected(value=84.0), ans(value=84.4), ALIASES).correct
     assert not score(q("value", tolerance=0.5), expected(value=84.0), ans(value=84.6), ALIASES).correct
 
@@ -125,3 +125,36 @@ def test_the_ground_truth_scores_30_of_30_against_itself():
         e = truth[question.id]
         a = ans(e["players"], e["value"], e["no_data"])
         assert score(question, e, a).correct, question.id
+
+
+def test_an_empty_answer_is_refused():
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="empty answer"):
+        Answer(rationale="não sei")
+    Answer(rationale="", no_data=True)
+    Answer(rationale="", value=0)  # zero is a value
+    Answer(rationale="", players=["Messi"])
+
+
+async def test_an_empty_answer_ends_as_a_format_error_after_the_retries(monkeypatch):
+    """The model keeps answering nothing: the run ends without an Answer,
+    which is scored as a format error, not as a wrong answer."""
+    from pydantic_ai.messages import ModelResponse, ToolCallPart
+    from pydantic_ai.models.function import AgentInfo, FunctionModel
+
+    from football_graphrag.benchmark import arms
+
+    calls = []
+
+    def empty(messages, info: AgentInfo):
+        calls.append(1)
+        return ModelResponse(parts=[ToolCallPart(info.output_tools[0].name, {"rationale": "?"})])
+
+    with arms.plain_agent().override(model=FunctionModel(empty)):
+        result = await arms.run_arm("no_context", "Quem marcou o primeiro gol?")
+    assert result.answer is None and result.error.startswith("format")
+    assert len(calls) == 1 + arms.OUTPUT_RETRIES
+    s = score(q("player"), expected(["Lionel Andrés Messi Cuccittini"]), result.answer)
+    assert s.format_error and not s.correct and not s.abstention
