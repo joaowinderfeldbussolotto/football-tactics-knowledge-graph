@@ -1,34 +1,50 @@
-"""The questions must not hand the graph_tools arm a lexical shortcut."""
+"""The questions file: football language, valid structure, stable answers."""
 
 import re
 
 import pytest
 
-from football_graphrag.benchmark.questions import QUESTIONS
+from football_graphrag.benchmark.questions import ALL_QUESTIONS, QUESTIONS
 
 # Tool names, algorithm names and graph jargon: a question that uses them
 # names the tool for the model instead of asking about football.
 FORBIDDEN = [
     "betweenness", "centralidade", "centrality", "pagerank", "louvain", "gds", "cypher",
-    "grafo", "graph", "xt", "vaep", "spadl", "ponderad", "pivô", "trio progressivo",
-    "list_players", "player_stats", "team_stats", "stat_ranking", "events",
-    "pass_network", "three_player", "sequences", "bridges",
+    "grafo", "graph", "xt", "vaep", "spadl", "ponderad", "pivô", "trio progressivo", "rede",
+    "ponto de articulação", "articulation", "aresta", "nó", "grau", "degree", "intermediação",
+    "list_players", "query_actions", "list_actions", "pass_network", "network", "pass_paths",
+    "same_possession", "consecutive",
 ]
 
 
-@pytest.mark.parametrize("question", QUESTIONS, ids=lambda q: q.id)
+@pytest.mark.parametrize("question", ALL_QUESTIONS, ids=lambda q: q.id)
 def test_question_uses_football_language_not_tool_vocabulary(question):
     words = question.text.lower()
-    found = [w for w in FORBIDDEN if re.search(rf"\b{re.escape(w)}", words)]
+    found = [w for w in FORBIDDEN if re.search(rf"\b{re.escape(w)}\b", words)]
     assert not found, f"{question.id} uses tool vocabulary: {found}"
 
 
 def test_the_yaml_file_is_the_source_and_is_validated(tmp_path):
     from football_graphrag.benchmark.questions import QUESTIONS_FILE, load
 
-    match_id, questions = load(QUESTIONS_FILE)
-    assert match_id == 3869685 and len(questions) == 30
+    qs = load(QUESTIONS_FILE)
+    assert qs.match_id == 3869685
+    assert len(qs.active) == 5 * qs.per_type
+    text = QUESTIONS_FILE.read_text()
     broken = tmp_path / "questions.yaml"
-    broken.write_text(QUESTIONS_FILE.read_text().replace("check: set", "check: sett", 1))
+    broken.write_text(text.replace("check: set", "check: sett", 1))
     with pytest.raises(ValueError, match="unknown check 'sett'"):
         load(broken)
+    broken.write_text(text.replace("stage: pilot", "stage: candidate", 1))
+    with pytest.raises(ValueError, match="active questions of type 'fact', expected"):
+        load(broken)
+
+
+def test_active_questions_have_stable_ground_truth():
+    from football_graphrag.benchmark import ground_truth
+
+    gt = ground_truth.load()
+    unstable = [q.id for q in QUESTIONS if not gt[q.id]["stable"]]
+    assert not unstable, f"active questions whose answer changes with the reading: {unstable}"
+    removed_but_stable = [q.id for q in ALL_QUESTIONS if q.stage == "removed" and gt[q.id]["stable"]]
+    assert not removed_but_stable, f"removed questions that are stable: {removed_but_stable}"

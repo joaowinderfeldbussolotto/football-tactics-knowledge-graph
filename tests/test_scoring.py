@@ -18,7 +18,7 @@ ALIASES = build_aliases(LINEUP)
 
 
 def q(check: str, tolerance: float = 0.0) -> Question:
-    return Question("x01", "factual", "?", check, tolerance)
+    return Question("x01", "fact", "?", check, tolerance=tolerance)
 
 
 def expected(players=(), value=None) -> dict:
