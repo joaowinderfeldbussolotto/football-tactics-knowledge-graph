@@ -88,7 +88,9 @@ receiver: who received a completed pass. zone_from/zone_to: cell of a 12x8 grid,
 zone = column*8 + row, column 0-11 from the acting team's own goal to the
 opponent's goal; third = zone // 32 (0 defensive, 1 middle, 2 attacking).
 possession: id of the possession phase. outcome: goal, yellow_card, and the
-shot result (defendida, bloqueada, para_fora) when there is one."""
+shot result (defendida, bloqueada, para_fora) when there is one. score: the
+score Argentina-France when the action starts, before it (2-1: Argentina 2,
+France 1)."""
 
 
 def _int(value) -> str:
@@ -117,14 +119,16 @@ def event_lines(match_id: int = MATCH_ID) -> tuple[str, list[str]]:
     )
     names = df.dropna(subset=["player_id"]).groupby("player_id").player_name.first()
     receiver = df.receiver_player_id.map(lambda r: names.get(int(r), "") if pd.notna(r) else "")
-    header = "period,minute,team,player,action,success,receiver,zone_from,zone_to,possession,outcome"
-    lines = [
-        ",".join([
+    header = "period,minute,team,player,action,success,receiver,zone_from,zone_to,possession,outcome,score"
+    lines, goals = [], {"Argentina": 0, "France": 0}
+    for r, rec in zip(df.itertuples(), receiver):
+        score = f"{goals['Argentina']}-{goals['France']}"  # before this action
+        lines.append(",".join([
             str(r.period_id), str(r.minuto), r.team_name, r.player_name, r.acao, str(int(r.sucesso)), rec,
-            _int(r.zone_start), _int(r.zone_end), _int(r.possession_id), _outcome(r),
-        ])
-        for r, rec in zip(df.itertuples(), receiver)
-    ]
+            _int(r.zone_start), _int(r.zone_end), _int(r.possession_id), _outcome(r), score,
+        ]))
+        if r.gol:
+            goals[r.team_name] += 1
     return header, lines
 
 

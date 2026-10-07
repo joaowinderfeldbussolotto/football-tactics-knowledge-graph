@@ -37,12 +37,14 @@ def test_event_table_has_one_line_per_action_with_cards_and_goals():
     header, lines = arms.event_lines()
     assert header.split(",") == [
         "period", "minute", "team", "player", "action", "success", "receiver",
-        "zone_from", "zone_to", "possession", "outcome",
+        "zone_from", "zone_to", "possession", "outcome", "score",
     ]
     assert len(lines) == 2585
     giroud = [ln for ln in lines if "Olivier Giroud" in ln and "yellow_card" in ln]
     assert len(giroud) == 1 and "cartao_por_reclamacao" in giroud[0]
-    assert sum("goal" in ln.split(",")[-1].split("+") for ln in lines) == 6
+    goals = [ln.split(",") for ln in lines if "goal" in ln.split(",")[-2].split("+")]
+    assert [g[-1] for g in goals] == ["0-0", "1-0", "2-0", "2-1", "2-2", "3-2"]  # score before each goal
+    assert lines[-1].split(",")[-1] == "3-3"
 
 
 @requires_data
@@ -50,7 +52,7 @@ async def test_vector_arm_sends_the_30_most_similar_events(fake_vector_store):
     with arms.plain_agent().override(model=TestModel(custom_output_args=ANSWER)):
         result = await arms.run_arm("vector", "Quem recebeu cartão amarelo? Olivier Giroud yellow_card")
     assert result.answer is not None
-    rows = result.prompt_preview.split("possession,outcome\n")[1].split("\n\nQuestion:")[0].split("\n")
+    rows = result.prompt_preview.split("possession,outcome,score\n")[1].split("\n\nQuestion:")[0].split("\n")
     assert len(rows) == arms.VECTOR_TOP_K
     assert any("Olivier Giroud" in r and "yellow_card" in r for r in rows)
 
