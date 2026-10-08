@@ -302,7 +302,8 @@ Neo4j e devolvem dados.
 - **Mesmo modelo,** com temperatura 0.
 - **Mesmo formato de resposta:** raciocínio, jogadores, número e "sem
   dados". O formato recusa resposta vazia.
-- **Mesma instrução de sistema.** Ela manda responder só com os dados
+- **Mesma instrução de sistema.** Ela diz que as perguntas são sobre uma
+  partida, sem dizer qual. Manda responder só com os dados
   fornecidos e marcar "sem dados" quando eles não têm **exatamente** o que a
   pergunta pede, sem trocar por outra medida aproximada.
 

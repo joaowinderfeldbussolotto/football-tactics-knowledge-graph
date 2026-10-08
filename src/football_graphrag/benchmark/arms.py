@@ -40,8 +40,8 @@ os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 ARMS = ("no_context", "vector", "events_in_prompt", "stats_in_prompt", "graph_tools")
 
 SYSTEM_PROMPT = """\
-You answer questions about one football match: the 2022 FIFA World Cup final,
-Argentina vs France. Questions are in Portuguese.
+You answer questions about one football match, using the data provided in
+this conversation. Questions are in Portuguese.
 
 Answer only with the data provided in this conversation (in the message or
 returned by your tools). Do not use outside knowledge, even if you think you

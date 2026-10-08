@@ -25,8 +25,8 @@ A **instrução de sistema** (o texto que o modelo recebe antes de qualquer
 pergunta) é esta, em inglês como todo o código:
 
 ```text
-You answer questions about one football match: the 2022 FIFA World Cup final,
-Argentina vs France. Questions are in Portuguese.
+You answer questions about one football match, using the data provided in
+this conversation. Questions are in Portuguese.
 
 Answer only with the data provided in this conversation (in the message or
 returned by your tools). Do not use outside knowledge, even if you think you
@@ -36,6 +36,11 @@ approximate measure in its place.
 
 Write player names exactly as they appear in the data.
 ```
+
+A instrução não diz **qual** é a partida: diz só que as perguntas são sobre
+uma partida, a dos dados. Assim o prompt não ajuda o modelo a responder de
+memória. (As perguntas e os dados ainda permitem reconhecer o jogo; a regra
+abaixo é o que impede o uso da memória.)
 
 Em português: "Responda **só com os dados fornecidos**, mesmo que ache que
 sabe a resposta. Se os dados não têm **exatamente** o que a pergunta pede,
