@@ -255,7 +255,7 @@ def test_pass_paths_match_brute_force(tb, df, same_possession, consecutive):
 
 def test_pass_paths_longer_chains_and_filters(tb, df):
     expected = reference_chains(df, "Argentina", 3, True, False, first=lambda p: p.period_id == 1)
-    got = tb.pass_paths("Argentina", 4, True, False, {"period": 1}, top=100)
+    got = tb.pass_paths("Argentina", 4, True, False, filters={"period": 1}, top=100)
     assert got["total_chains"] == sum(expected.values())
     assert all(len(s["players"]) == 4 for s in got["sequences"])
 
@@ -302,3 +302,83 @@ def test_list_actions_shows_the_score_before_each_action(tb, df):
         before = scored[scored.second < r["second"] - 1e-6]
         arg, fra = (before.team_name == "Argentina").sum(), (before.team_name == "France").sum()
         assert r["score"] == f"Argentina {arg}-{fra} France"
+
+
+# --------------------------------------------------------------------------- v3: graph-heavy features
+
+def test_pass_network_without_players_matches_removing_the_node(tb, df):
+    net = tb.pass_network("Argentina", without_players=["Enzo Fernández"])
+    assert net["without_players"] == ["Enzo Fernandez"]
+    directed, _, _ = reference_network(df, "Argentina")
+    directed.remove_node("Enzo Fernandez")
+    got = tb.network_metric(net["network_id"], "betweenness", "none", "directed", top=100)
+    assert got["without_players"] == ["Enzo Fernandez"]
+    expected = nx.betweenness_centrality(directed, normalized=False)
+    assert as_dict(got["ranking"], value="score") == pytest.approx(expected, abs=1e-3)
+
+
+def test_triangles_match_networkx(tb, df):
+    net = tb.pass_network("France", {"period": 1})
+    directed, undirected, _ = reference_network(df, "France", lambda p: p.period_id == 1)
+    got = tb.network_metric(net["network_id"], "triangles", top=100)
+    expected = [sorted(t) for t in nx.enumerate_all_cliques(undirected) if len(t) == 3]
+    assert got["total_triangles"] == len(expected)
+    for t in got["triangles"]:
+        pairs = [(a, b) for a in t["players"] for b in t["players"] if a != b]
+        assert t["passes"] == sum(directed[a][b]["n"] for a, b in pairs if directed.has_edge(a, b))
+        assert t["all_directions"] == all(directed.has_edge(a, b) for a, b in pairs)
+    assert [t["passes"] for t in got["triangles"]] == sorted((t["passes"] for t in got["triangles"]), reverse=True)
+
+
+def reference_then(df, team, then_actions):
+    """Single passes A -> B after which B keeps the ball (carries, take-ons) and does a then-action."""
+    log = df.sort_values(["period_id", "time_seconds", "action_id"]).reset_index(drop=True)
+    counts = {}
+    for i, a in log.iterrows():
+        if not (a.acao in tools.PASS_ACTIONS and a.team_name == team and a.receiver is not None
+                and a.receiver_team == team and a.receiver != a.player_name):
+            continue
+        for _, b in log.iloc[i + 1:].iterrows():
+            if b.possession_id != a.possession_id:
+                break
+            if b.player_name == a.receiver and b.acao in ("conducao", "drible"):
+                continue
+            if b.player_name == a.receiver and b.acao in then_actions:
+                counts[(a.player_name, a.receiver)] = counts.get((a.player_name, a.receiver), 0) + 1
+            break
+    return counts
+
+
+def test_pass_paths_then_action(tb, df):
+    shots = ["finalizacao", "penalti", "falta_direta"]
+    got = tb.pass_paths("Argentina", 2, then_action=shots, top=100)
+    expected = reference_then(df, "Argentina", shots)
+    assert got["total_chains"] == sum(expected.values())
+    assert {tuple(s["players"]): s["count"] for s in got["sequences"]} == expected
+    plain = tb.pass_paths("Argentina", 2, top=100)
+    assert plain["total_chains"] == len(completed_passes(df, "Argentina"))
+
+
+def test_query_possessions_matches_the_parquet(tb, df):
+    known = df.dropna(subset=["possession_id"])
+    phases = known.sort_values(["period_id", "time_seconds", "action_id"]).groupby("possession_id")
+    first, last = phases.first(), phases.last()
+    players = phases.player_name.agg(set)
+    arg_from_defense_to_shot = [
+        pid for pid in first.index
+        if first.team_name[pid] == "Argentina" and first.terco[pid] == "defesa" and last.acao[pid] == "finalizacao"
+    ]
+    got = tb.query_possessions("Argentina", starts_in_third="defensive", ends_with=["finalizacao"], group_by="player",
+                               top=100)
+    assert got["possessions"] == len(arg_from_defense_to_shot)
+    expected = {}
+    for pid in arg_from_defense_to_shot:
+        for p in players[pid]:
+            expected[p] = expected.get(p, 0) + 1
+    assert as_dict(got["ranking"], value="possessions") == expected
+    reached = [pid for pid in first.index if first.team_name[pid] == "France"
+               and "ataque" in set(known[known.possession_id == pid].terco)]
+    assert tb.query_possessions("France", reaches_third="attacking")["possessions"] == len(reached)
+    pair = tb.query_possessions("Argentina", includes_players=["Messi", "Enzo Fernández"])["possessions"]
+    assert pair == sum(1 for pid in first.index if first.team_name[pid] == "Argentina"
+                       and {"Lionel Andrés Messi Cuccittini", "Enzo Fernandez"} <= players[pid])
