@@ -46,6 +46,36 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [u04](#u04) | unanswerable | full | sim | – |
 | [u05](#u05) | unanswerable | full | sim | – |
 | [u06](#u06) | unanswerable | candidate | sim | – |
+| [t01](#t01) | structure | graph | sim | 4 |
+| [t02](#t02) | structure | graph | sim | 4 |
+| [t03](#t03) | structure | graph | sim | 4 |
+| [t04](#t04) | structure | graph | sim | 4 |
+| [t05](#t05) | structure | graph | sim | 4 |
+| [t06](#t06) | structure | graph | sim | 2 |
+| [t07](#t07) | structure | removed | **não** | 4 |
+| [c01](#c01) | counterfactual | graph | sim | 12 |
+| [c02](#c02) | counterfactual | graph | sim | 2 |
+| [c03](#c03) | counterfactual | removed | **não** | 12 |
+| [c04](#c04) | counterfactual | removed | **não** | 12 |
+| [c05](#c05) | counterfactual | removed | **não** | 12 |
+| [q01](#q01) | sequence | graph | sim | 4 |
+| [q02](#q02) | sequence | removed | **não** | 4 |
+| [q03](#q03) | sequence | removed | **não** | 4 |
+| [q04](#q04) | sequence | removed | **não** | 4 |
+| [p01](#p01) | play | graph | sim | 1 |
+| [p02](#p02) | play | graph | sim | 4 |
+| [p03](#p03) | play | graph | sim | 2 |
+| [p04](#p04) | play | graph | sim | 2 |
+| [p05](#p05) | play | graph | sim | 2 |
+| [p06](#p06) | play | graph | sim | 2 |
+| [p07](#p07) | play | removed | **não** | 1 |
+| [b01](#b01) | substitution | graph | sim | 8 |
+| [b02](#b02) | substitution | graph | sim | 4 |
+| [b03](#b03) | substitution | graph | sim | 4 |
+| [b04](#b04) | substitution | graph | sim | 8 |
+| [b05](#b05) | substitution | graph | sim | 4 |
+| [b06](#b06) | substitution | removed | **não** | 8 |
+| [b07](#b07) | substitution | removed | **não** | 4 |
 
 ## fact
 
@@ -645,3 +675,483 @@ Estágio: **candidate** · conferência: `no_data` · estável: **sim**
 Nota: Pedido de bola não é registrado em dados de eventos.
 
 Sem leituras: a resposta esperada é "sem dados".
+
+## structure
+
+### t01
+
+> No primeiro tempo, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+Nota: Romero, Enzo Fernández e Otamendi: a saída de bola por baixo.
+
+| leitura | resposta |
+|---|---|
+| all passes / each pair in some direction / 1st half | Cristian Gabriel Romero e Enzo Fernandez e Nicolás Hernán Otamendi · 51 |
+| all passes / all six directions / 1st half | Cristian Gabriel Romero e Enzo Fernandez e Nicolás Hernán Otamendi · 51 |
+| open-play passes / each pair in some direction / 1st half | Cristian Gabriel Romero e Enzo Fernandez e Nicolás Hernán Otamendi · 51 |
+| open-play passes / all six directions / 1st half | Cristian Gabriel Romero e Enzo Fernandez e Nicolás Hernán Otamendi · 51 |
+
+### t02
+
+> Qual trio da França mais trocou passes entre si na final, com os três passando a bola uns para os outros?
+
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+| leitura | resposta |
+|---|---|
+| all passes / each pair in some direction | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 66 |
+| all passes / all six directions | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 66 |
+| open-play passes / each pair in some direction | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 63 |
+| open-play passes / all six directions | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 63 |
+
+### t03
+
+> No segundo tempo, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+Nota: Enzo Fernández, Messi e De Paul: o eixo de passes sobe para o meio-campo.
+
+| leitura | resposta |
+|---|---|
+| all passes / each pair in some direction / 2nd half | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 30 |
+| all passes / all six directions / 2nd half | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 30 |
+| open-play passes / each pair in some direction / 2nd half | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 30 |
+| open-play passes / all six directions / 2nd half | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 30 |
+
+### t04
+
+> No primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
+
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+| leitura | resposta |
+|---|---|
+| all passes / each pair in some direction / 1st half | Aurélien Djani Tchouaméni e Dayotchanculle Upamecano e Raphaël Varane · 32 |
+| all passes / all six directions / 1st half | Aurélien Djani Tchouaméni e Dayotchanculle Upamecano e Raphaël Varane · 32 |
+| open-play passes / each pair in some direction / 1st half | Aurélien Djani Tchouaméni e Dayotchanculle Upamecano e Raphaël Varane · 31 |
+| open-play passes / all six directions / 1st half | Aurélien Djani Tchouaméni e Dayotchanculle Upamecano e Raphaël Varane · 31 |
+
+### t05
+
+> Na prorrogação, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+| leitura | resposta |
+|---|---|
+| all passes / each pair in some direction / extra time | Enzo Fernandez e Gonzalo Ariel Montiel e Leandro Daniel Paredes · 17 |
+| all passes / all six directions / extra time | Enzo Fernandez e Gonzalo Ariel Montiel e Leandro Daniel Paredes · 17 |
+| open-play passes / each pair in some direction / extra time | Enzo Fernandez e Gonzalo Ariel Montiel e Leandro Daniel Paredes · 16 |
+| open-play passes / all six directions / extra time | Enzo Fernandez e Gonzalo Ariel Montiel e Leandro Daniel Paredes · 16 |
+
+### t06
+
+> Na prorrogação, qual jogador da França, se não estivesse em campo, deixaria algum companheiro sem trocar passes com ninguém do time?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Koundé: Coman só trocou passes com ele na prorrogação.
+
+| leitura | resposta |
+|---|---|
+| all passes / extra time | Jules Koundé |
+| open-play passes / extra time | Jules Koundé |
+
+### t07
+
+> Na prorrogação, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
+
+Estágio: **removed** · conferência: `set` · estável: **não**
+
+Nota: Muda com a leitura: empate de três trios contando todos os passes, outro trio quando só contam passes de bola rolando ou as seis direções.
+
+| leitura | resposta |
+|---|---|
+| all passes / each pair in some direction / extra time | **empate:** Aurélien Djani Tchouaméni e Dayotchanculle Upamecano e Eduardo Camavinga; Aurélien Djani Tchouaméni e Jules Koundé e Youssouf Fofana; Jules Koundé e Raphaël Varane e Youssouf Fofana |
+| all passes / all six directions / extra time | Aurélien Djani Tchouaméni e Eduardo Camavinga e Youssouf Fofana · 8 |
+| open-play passes / each pair in some direction / extra time | Jules Koundé e Raphaël Varane e Youssouf Fofana · 10 |
+| open-play passes / all six directions / extra time | **empate:**  |
+
+## counterfactual
+
+### c01
+
+> Se Enzo Fernández não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da Argentina?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Otamendi em todas as leituras.
+
+| leitura | resposta |
+|---|---|
+| all passes / directed / none | Nicolás Hernán Otamendi · 44.5 |
+| all passes / directed / passes | Nicolás Hernán Otamendi · 85.5 |
+| all passes / directed / xt | Nicolás Hernán Otamendi · 35.0 |
+| all passes / undirected / none | Nicolás Hernán Otamendi · 20.74 |
+| all passes / undirected / passes | Nicolás Hernán Otamendi · 46.0 |
+| all passes / undirected / xt | Nicolás Hernán Otamendi · 17.0 |
+| open-play passes / directed / none | Nicolás Hernán Otamendi · 47.29 |
+| open-play passes / directed / passes | Nicolás Hernán Otamendi · 92.5 |
+| open-play passes / directed / xt | Nicolás Hernán Otamendi · 36.0 |
+| open-play passes / undirected / none | Nicolás Hernán Otamendi · 23.65 |
+| open-play passes / undirected / passes | Nicolás Hernán Otamendi · 55.0 |
+| open-play passes / undirected / xt | Nicolás Hernán Otamendi · 18.0 |
+
+### c02
+
+> Sem Otamendi em campo, algum companheiro da Argentina ficaria sem trocar passes com ninguém do time? Quem?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Pezzella, que entrou no fim da prorrogação e só trocou passes com Otamendi.
+
+| leitura | resposta |
+|---|---|
+| all passes | Germán Alejandro Pezzella |
+| open-play passes | Germán Alejandro Pezzella |
+
+### c03
+
+> Se Messi não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da Argentina?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a leitura: Enzo Fernández na maioria, Otamendi sem peso e sem direção, empate Acuña e Otamendi com peso de xT.
+
+| leitura | resposta |
+|---|---|
+| all passes / directed / none | Enzo Fernandez · 48.5 |
+| all passes / directed / passes | Enzo Fernandez · 89.5 |
+| all passes / directed / xt | Enzo Fernandez · 44.0 |
+| all passes / undirected / none | Nicolás Hernán Otamendi · 18.24 |
+| all passes / undirected / passes | Enzo Fernandez · 45.5 |
+| all passes / undirected / xt | **empate:** Marcos Javier Acuña; Nicolás Hernán Otamendi |
+| open-play passes / directed / none | Enzo Fernandez · 49.27 |
+| open-play passes / directed / passes | Enzo Fernandez · 94.5 |
+| open-play passes / directed / xt | Enzo Fernandez · 49.0 |
+| open-play passes / undirected / none | Nicolás Hernán Otamendi · 19.64 |
+| open-play passes / undirected / passes | Enzo Fernandez · 58.5 |
+| open-play passes / undirected / xt | **empate:** Marcos Javier Acuña; Nicolás Hernán Otamendi |
+
+### c04
+
+> Se Varane não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da França?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a leitura: Koundé em 10 de 12, Rabiot com peso de xT sem direção.
+
+| leitura | resposta |
+|---|---|
+| all passes / directed / none | Jules Koundé · 33.06 |
+| all passes / directed / passes | Jules Koundé · 78.5 |
+| all passes / directed / xt | Jules Koundé · 35.0 |
+| all passes / undirected / none | Jules Koundé · 14.57 |
+| all passes / undirected / passes | Jules Koundé · 47.0 |
+| all passes / undirected / xt | Adrien Rabiot · 14.0 |
+| open-play passes / directed / none | Jules Koundé · 32.84 |
+| open-play passes / directed / passes | Jules Koundé · 91.0 |
+| open-play passes / directed / xt | Jules Koundé · 34.0 |
+| open-play passes / undirected / none | Jules Koundé · 15.41 |
+| open-play passes / undirected / passes | Jules Koundé · 46.0 |
+| open-play passes / undirected / xt | Adrien Rabiot · 16.0 |
+
+### c05
+
+> Se Koundé não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da França?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a leitura: Rabiot, Tchouaméni, Kolo Muani ou Upamecano.
+
+| leitura | resposta |
+|---|---|
+| all passes / directed / none | Adrien Rabiot · 24.34 |
+| all passes / directed / passes | Aurélien Djani Tchouaméni · 55.0 |
+| all passes / directed / xt | Adrien Rabiot · 29.0 |
+| all passes / undirected / none | Randal Kolo Muani · 14.21 |
+| all passes / undirected / passes | Aurélien Djani Tchouaméni · 31.0 |
+| all passes / undirected / xt | Adrien Rabiot · 15.0 |
+| open-play passes / directed / none | Adrien Rabiot · 25.24 |
+| open-play passes / directed / passes | Dayotchanculle Upamecano · 50.0 |
+| open-play passes / directed / xt | Adrien Rabiot · 27.0 |
+| open-play passes / undirected / none | Randal Kolo Muani · 14.11 |
+| open-play passes / undirected / passes | Dayotchanculle Upamecano · 38.0 |
+| open-play passes / undirected / xt | Adrien Rabiot · 16.0 |
+
+## sequence
+
+### q01
+
+> Qual jogador argentino mais vezes finalizou logo depois de receber um passe de um companheiro?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Lautaro Martínez.
+
+| leitura | resposta |
+|---|---|
+| all passes / anything | Lautaro Javier Martínez · 4 |
+| all passes / only his carries and take-ons | Lautaro Javier Martínez · 4 |
+| open-play passes / anything | Lautaro Javier Martínez · 3 |
+| open-play passes / only his carries and take-ons | Lautaro Javier Martínez · 3 |
+
+### q02
+
+> Quem deu mais vezes o último passe antes de uma finalização da Argentina?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a leitura: Di María contando todos os passes; Messi, ou empate Messi e Acuña, só com passes de bola rolando.
+
+| leitura | resposta |
+|---|---|
+| all passes / receiver shoots | Ángel Fabián Di María Hernández · 4 |
+| all passes / any pass in the possession | Ángel Fabián Di María Hernández · 4 |
+| open-play passes / receiver shoots | **empate:** Lionel Andrés Messi Cuccittini; Marcos Javier Acuña |
+| open-play passes / any pass in the possession | Lionel Andrés Messi Cuccittini · 4 |
+
+### q03
+
+> Quem deu mais vezes o penúltimo passe nas jogadas da Argentina que terminaram em finalização?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Empate entre Julián Álvarez e Mac Allister quando só contam passes de bola rolando.
+
+| leitura | resposta |
+|---|---|
+| all passes / receiver shoots | Julián Álvarez · 4 |
+| all passes / any pass in the possession | Julián Álvarez · 4 |
+| open-play passes / receiver shoots | **empate:** Alexis Mac Allister; Julián Álvarez |
+| open-play passes / any pass in the possession | **empate:** Alexis Mac Allister; Julián Álvarez |
+
+### q04
+
+> Qual jogador francês mais vezes finalizou logo depois de receber um passe de um companheiro?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Empate entre Mbappé e Kolo Muani numa leitura.
+
+| leitura | resposta |
+|---|---|
+| all passes / anything | **empate:** Kylian Mbappé Lottin; Randal Kolo Muani |
+| all passes / only his carries and take-ons | Randal Kolo Muani · 2 |
+| open-play passes / anything | Kylian Mbappé Lottin · 2 |
+| open-play passes / only his carries and take-ons | **empate:** Adrien Rabiot; Kylian Mbappé Lottin; Randal Kolo Muani |
+
+## play
+
+### p01
+
+> Quais dois jogadores argentinos mais vezes participaram juntos das mesmas jogadas que chegaram ao terço final?
+
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+Nota: Enzo Fernández e Messi.
+
+| leitura | resposta |
+|---|---|
+| reaches the attacking third | Enzo Fernandez e Lionel Andrés Messi Cuccittini · 23 |
+
+### p02
+
+> Qual jogador participou de mais jogadas da Argentina que começaram no próprio campo de defesa e terminaram em finalização?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Messi.
+
+| leitura | resposta |
+|---|---|
+| defensive third / last action is a shot | Lionel Andrés Messi Cuccittini · 3 |
+| defensive third / a shot in the possession | Lionel Andrés Messi Cuccittini · 3 |
+| own half / last action is a shot | Lionel Andrés Messi Cuccittini · 6 |
+| own half / a shot in the possession | Lionel Andrés Messi Cuccittini · 6 |
+
+### p03
+
+> Qual jogador participou de mais jogadas da Argentina que terminaram em finalização?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Messi.
+
+| leitura | resposta |
+|---|---|
+| last action is a shot | Lionel Andrés Messi Cuccittini · 12 |
+| a shot in the possession | Lionel Andrés Messi Cuccittini · 12 |
+
+### p04
+
+> Qual jogador participou de mais jogadas da França que terminaram em finalização?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Mbappé.
+
+| leitura | resposta |
+|---|---|
+| last action is a shot | Kylian Mbappé Lottin · 6 |
+| a shot in the possession | Kylian Mbappé Lottin · 6 |
+
+### p05
+
+> Nas jogadas da Argentina que terminaram em finalização e em que Messi tocou na bola, qual companheiro mais participou junto com ele?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Enzo Fernández.
+
+| leitura | resposta |
+|---|---|
+| last action is a shot | Enzo Fernandez · 6 |
+| a shot in the possession | Enzo Fernandez · 6 |
+
+### p06
+
+> Nas jogadas da França que terminaram em finalização e em que Mbappé tocou na bola, qual companheiro mais participou junto com ele?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Rabiot.
+
+| leitura | resposta |
+|---|---|
+| last action is a shot | Adrien Rabiot · 2 |
+| a shot in the possession | Adrien Rabiot · 2 |
+
+### p07
+
+> Quais dois jogadores franceses mais vezes participaram juntos das mesmas jogadas que chegaram ao terço final?
+
+Estágio: **removed** · conferência: `set` · estável: **não**
+
+Nota: Empate entre Rabiot e Tchouaméni e Rabiot e Mbappé.
+
+| leitura | resposta |
+|---|---|
+| reaches the attacking third | **empate:** Adrien Rabiot e Aurélien Djani Tchouaméni; Adrien Rabiot e Kylian Mbappé Lottin |
+
+## substitution
+
+### b01
+
+> Depois que Di María foi substituído, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+Nota: Enzo Fernández, Messi e De Paul.
+
+| leitura | resposta |
+|---|---|
+| all passes / each pair in some direction / after the substitution (raw JSON) | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 34 |
+| all passes / each pair in some direction / after the player's last action | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 35 |
+| all passes / all six directions / after the substitution (raw JSON) | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 34 |
+| all passes / all six directions / after the player's last action | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 35 |
+| open-play passes / each pair in some direction / after the substitution (raw JSON) | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 33 |
+| open-play passes / each pair in some direction / after the player's last action | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 34 |
+| open-play passes / all six directions / after the substitution (raw JSON) | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 33 |
+| open-play passes / all six directions / after the player's last action | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 34 |
+
+### b02
+
+> Depois que Di María foi substituído, qual companheiro mais passou a bola para Messi?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Enzo Fernández.
+
+| leitura | resposta |
+|---|---|
+| all passes / after the substitution (raw JSON) | Enzo Fernandez · 6 |
+| all passes / after the player's last action | Enzo Fernandez · 6 |
+| open-play passes / after the substitution (raw JSON) | Enzo Fernandez · 6 |
+| open-play passes / after the player's last action | Enzo Fernandez · 6 |
+
+### b03
+
+> Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Rabiot. O recorte usa a saída de Dembélé, e não a de Giroud (no mesmo minuto), porque o amarelo de Giroud foi dado com ele já no banco e aparece como uma ação dele aos 95'.
+
+| leitura | resposta |
+|---|---|
+| all passes / after the substitution (raw JSON) | Adrien Rabiot · 6 |
+| all passes / after the player's last action | Adrien Rabiot · 6 |
+| open-play passes / after the substitution (raw JSON) | Adrien Rabiot · 6 |
+| open-play passes / after the player's last action | Adrien Rabiot · 6 |
+
+### b04
+
+> Depois que Dembélé foi substituído no primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
+
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+Nota: Upamecano, Koundé e Varane.
+
+| leitura | resposta |
+|---|---|
+| all passes / each pair in some direction / after the substitution (raw JSON) | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 44 |
+| all passes / each pair in some direction / after the player's last action | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 46 |
+| all passes / all six directions / after the substitution (raw JSON) | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 44 |
+| all passes / all six directions / after the player's last action | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 46 |
+| open-play passes / each pair in some direction / after the substitution (raw JSON) | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 43 |
+| open-play passes / each pair in some direction / after the player's last action | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 45 |
+| open-play passes / all six directions / after the substitution (raw JSON) | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 43 |
+| open-play passes / all six directions / after the player's last action | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 45 |
+
+### b05
+
+> Depois que Dembélé foi substituído no primeiro tempo, para qual companheiro Mbappé mais passou a bola?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Kolo Muani, que entrou no lugar de Dembélé.
+
+| leitura | resposta |
+|---|---|
+| all passes / after the substitution (raw JSON) | Randal Kolo Muani · 3 |
+| all passes / after the player's last action | Randal Kolo Muani · 3 |
+| open-play passes / after the substitution (raw JSON) | Randal Kolo Muani · 3 |
+| open-play passes / after the player's last action | Randal Kolo Muani · 3 |
+
+### b06
+
+> Depois que Dembélé foi substituído no primeiro tempo, qual dupla francesa mais trocou passes entre si?
+
+Estágio: **removed** · conferência: `set` · estável: **não**
+
+Nota: Empate entre Koundé e Varane e Upamecano e Varane quando as duas direções se somam.
+
+| leitura | resposta |
+|---|---|
+| all passes / directed / after the substitution (raw JSON) | Jules Koundé e Raphaël Varane · 10 |
+| all passes / directed / after the player's last action | Jules Koundé e Raphaël Varane · 11 |
+| all passes / undirected / after the substitution (raw JSON) | **empate:** Jules Koundé e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane |
+| all passes / undirected / after the player's last action | Jules Koundé e Raphaël Varane · 20 |
+| open-play passes / directed / after the substitution (raw JSON) | Jules Koundé e Raphaël Varane · 10 |
+| open-play passes / directed / after the player's last action | Jules Koundé e Raphaël Varane · 11 |
+| open-play passes / undirected / after the substitution (raw JSON) | **empate:** Jules Koundé e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane |
+| open-play passes / undirected / after the player's last action | Jules Koundé e Raphaël Varane · 20 |
+
+### b07
+
+> Depois que Di María foi substituído, qual companheiro mais recebeu passes de Messi?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Empate entre Enzo Fernández e De Paul quando só contam passes de bola rolando.
+
+| leitura | resposta |
+|---|---|
+| all passes / after the substitution (raw JSON) | Enzo Fernandez · 6 |
+| all passes / after the player's last action | Enzo Fernandez · 6 |
+| open-play passes / after the substitution (raw JSON) | **empate:** Enzo Fernandez; Rodrigo Javier De Paul |
+| open-play passes / after the player's last action | **empate:** Enzo Fernandez; Rodrigo Javier De Paul |

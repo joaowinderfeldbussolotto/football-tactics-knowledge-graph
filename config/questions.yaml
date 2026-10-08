@@ -5,10 +5,13 @@
 #
 # Campos de cada pergunta:
 #   id         prefixo pelo tipo + número: f (fact), a (filtered_aggregation),
-#              n (network), s (network_slice), u (unanswerable)
-#   type       fact | filtered_aggregation | network | network_slice | unanswerable
-#   stage      pilot     entra na rodada piloto
-#              full      entra só na rodada completa (junto com as pilot)
+#              n (network), s (network_slice), u (unanswerable), t (structure),
+#              c (counterfactual), q (sequence), p (play), b (substitution)
+#   type       fact | filtered_aggregation | network | network_slice | unanswerable |
+#              structure | counterfactual | sequence | play | substitution
+#   stage      pilot     entra no benchmark principal
+#              full      entra no benchmark principal (junto com as pilot)
+#              graph     perguntas que exploram relações do grafo
 #              candidate escrita e estável, mas fora das rodadas
 #              removed   a resposta muda conforme a leitura: fica só como registro
 #   check      como a resposta é conferida:
@@ -39,9 +42,10 @@
 match_id: 3869685
 
 # Quais estágios estão ativos e quantas perguntas por tipo eles têm de somar.
-# Piloto: [pilot] e 2 por tipo. Rodada completa: [pilot, full] e 5 por tipo.
-active_stages: [pilot, full]
-per_type: 5
+# Benchmark principal: [pilot, full] e 5 por tipo. Perguntas de grafo: [graph],
+# sem número fixo por tipo (per_type vazio). As duas juntas: [pilot, full, graph].
+active_stages: [graph]
+per_type:
 
 questions:
 
@@ -364,3 +368,247 @@ questions:
       Quantas vezes Messi pediu a bola a um companheiro e não a recebeu?
     note: >-
       Pedido de bola não é registrado em dados de eventos.
+
+  # ---- structure: estrutura da rede de passes: triângulos e jogadores que isolariam um companheiro
+  - id: t01
+    type: structure
+    stage: graph
+    check: set
+    text: >-
+      No primeiro tempo, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+    note: >-
+      Romero, Enzo Fernández e Otamendi: a saída de bola por baixo.
+  - id: t02
+    type: structure
+    stage: graph
+    check: set
+    text: >-
+      Qual trio da França mais trocou passes entre si na final, com os três passando a bola uns para os outros?
+  - id: t03
+    type: structure
+    stage: graph
+    check: set
+    text: >-
+      No segundo tempo, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+    note: >-
+      Enzo Fernández, Messi e De Paul: o eixo de passes sobe para o meio-campo.
+  - id: t04
+    type: structure
+    stage: graph
+    check: set
+    text: >-
+      No primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
+  - id: t05
+    type: structure
+    stage: graph
+    check: set
+    text: >-
+      Na prorrogação, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+  - id: t06
+    type: structure
+    stage: graph
+    check: player
+    text: >-
+      Na prorrogação, qual jogador da França, se não estivesse em campo, deixaria algum companheiro sem trocar passes com ninguém do time?
+    note: >-
+      Koundé: Coman só trocou passes com ele na prorrogação.
+  - id: t07
+    type: structure
+    stage: removed
+    check: set
+    text: >-
+      Na prorrogação, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
+    note: >-
+      Muda com a leitura: empate de três trios contando todos os passes, outro trio quando só contam passes de bola rolando ou as seis direções.
+
+  # ---- counterfactual: contrafactual: a rede recalculada sem um jogador
+  - id: c01
+    type: counterfactual
+    stage: graph
+    check: player
+    text: >-
+      Se Enzo Fernández não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da Argentina?
+    note: >-
+      Otamendi em todas as leituras.
+  - id: c02
+    type: counterfactual
+    stage: graph
+    check: player
+    text: >-
+      Sem Otamendi em campo, algum companheiro da Argentina ficaria sem trocar passes com ninguém do time? Quem?
+    note: >-
+      Pezzella, que entrou no fim da prorrogação e só trocou passes com Otamendi.
+  - id: c03
+    type: counterfactual
+    stage: removed
+    check: player
+    text: >-
+      Se Messi não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da Argentina?
+    note: >-
+      Muda com a leitura: Enzo Fernández na maioria, Otamendi sem peso e sem direção, empate Acuña e Otamendi com peso de xT.
+  - id: c04
+    type: counterfactual
+    stage: removed
+    check: player
+    text: >-
+      Se Varane não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da França?
+    note: >-
+      Muda com a leitura: Koundé em 10 de 12, Rabiot com peso de xT sem direção.
+  - id: c05
+    type: counterfactual
+    stage: removed
+    check: player
+    text: >-
+      Se Koundé não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da França?
+    note: >-
+      Muda com a leitura: Rabiot, Tchouaméni, Kolo Muani ou Upamecano.
+
+  # ---- sequence: sequências de passes que terminam em finalização
+  - id: q01
+    type: sequence
+    stage: graph
+    check: player
+    text: >-
+      Qual jogador argentino mais vezes finalizou logo depois de receber um passe de um companheiro?
+    note: >-
+      Lautaro Martínez.
+  - id: q02
+    type: sequence
+    stage: removed
+    check: player
+    text: >-
+      Quem deu mais vezes o último passe antes de uma finalização da Argentina?
+    note: >-
+      Muda com a leitura: Di María contando todos os passes; Messi, ou empate Messi e Acuña, só com passes de bola rolando.
+  - id: q03
+    type: sequence
+    stage: removed
+    check: player
+    text: >-
+      Quem deu mais vezes o penúltimo passe nas jogadas da Argentina que terminaram em finalização?
+    note: >-
+      Empate entre Julián Álvarez e Mac Allister quando só contam passes de bola rolando.
+  - id: q04
+    type: sequence
+    stage: removed
+    check: player
+    text: >-
+      Qual jogador francês mais vezes finalizou logo depois de receber um passe de um companheiro?
+    note: >-
+      Empate entre Mbappé e Kolo Muani numa leitura.
+
+  # ---- play: jogadas inteiras (fases de posse) e quem participou delas
+  - id: p01
+    type: play
+    stage: graph
+    check: set
+    text: >-
+      Quais dois jogadores argentinos mais vezes participaram juntos das mesmas jogadas que chegaram ao terço final?
+    note: >-
+      Enzo Fernández e Messi.
+  - id: p02
+    type: play
+    stage: graph
+    check: player
+    text: >-
+      Qual jogador participou de mais jogadas da Argentina que começaram no próprio campo de defesa e terminaram em finalização?
+    note: >-
+      Messi.
+  - id: p03
+    type: play
+    stage: graph
+    check: player
+    text: >-
+      Qual jogador participou de mais jogadas da Argentina que terminaram em finalização?
+    note: >-
+      Messi.
+  - id: p04
+    type: play
+    stage: graph
+    check: player
+    text: >-
+      Qual jogador participou de mais jogadas da França que terminaram em finalização?
+    note: >-
+      Mbappé.
+  - id: p05
+    type: play
+    stage: graph
+    check: player
+    text: >-
+      Nas jogadas da Argentina que terminaram em finalização e em que Messi tocou na bola, qual companheiro mais participou junto com ele?
+    note: >-
+      Enzo Fernández.
+  - id: p06
+    type: play
+    stage: graph
+    check: player
+    text: >-
+      Nas jogadas da França que terminaram em finalização e em que Mbappé tocou na bola, qual companheiro mais participou junto com ele?
+    note: >-
+      Rabiot.
+  - id: p07
+    type: play
+    stage: removed
+    check: set
+    text: >-
+      Quais dois jogadores franceses mais vezes participaram juntos das mesmas jogadas que chegaram ao terço final?
+    note: >-
+      Empate entre Rabiot e Tchouaméni e Rabiot e Mbappé.
+
+  # ---- substitution: antes e depois de uma substituição
+  - id: b01
+    type: substitution
+    stage: graph
+    check: set
+    text: >-
+      Depois que Di María foi substituído, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+    note: >-
+      Enzo Fernández, Messi e De Paul.
+  - id: b02
+    type: substitution
+    stage: graph
+    check: player
+    text: >-
+      Depois que Di María foi substituído, qual companheiro mais passou a bola para Messi?
+    note: >-
+      Enzo Fernández.
+  - id: b03
+    type: substitution
+    stage: graph
+    check: player
+    text: >-
+      Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé?
+    note: >-
+      Rabiot. O recorte usa a saída de Dembélé, e não a de Giroud (no mesmo minuto), porque o amarelo de Giroud foi dado com ele já no banco e aparece como uma ação dele aos 95'.
+  - id: b04
+    type: substitution
+    stage: graph
+    check: set
+    text: >-
+      Depois que Dembélé foi substituído no primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
+    note: >-
+      Upamecano, Koundé e Varane.
+  - id: b05
+    type: substitution
+    stage: graph
+    check: player
+    text: >-
+      Depois que Dembélé foi substituído no primeiro tempo, para qual companheiro Mbappé mais passou a bola?
+    note: >-
+      Kolo Muani, que entrou no lugar de Dembélé.
+  - id: b06
+    type: substitution
+    stage: removed
+    check: set
+    text: >-
+      Depois que Dembélé foi substituído no primeiro tempo, qual dupla francesa mais trocou passes entre si?
+    note: >-
+      Empate entre Koundé e Varane e Upamecano e Varane quando as duas direções se somam.
+  - id: b07
+    type: substitution
+    stage: removed
+    check: player
+    text: >-
+      Depois que Di María foi substituído, qual companheiro mais recebeu passes de Messi?
+    note: >-
+      Empate entre Enzo Fernández e De Paul quando só contam passes de bola rolando.
