@@ -344,7 +344,8 @@ match the filters: each player is a node, and each passer -> receiver pair is a 
 carrying the number of passes and the xT they added. Returns a network_id, used by
 network_metric and network_edges, the team, filters and removed players it was built with,
 and a summary (players, connections, passes). Players can be left out: the network is then
-built as if they were not there (no passes to or from them). Networks last until the end of
+built as if they were not there (no passes to or from them), and the summary lists the
+players who, as a result, keep no connection with anyone. Networks last until the end of
 the question.
 
 In football terms: the map of who passes to whom, for the whole match or for a slice of

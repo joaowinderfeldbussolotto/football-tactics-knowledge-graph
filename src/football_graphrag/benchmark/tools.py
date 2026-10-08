@@ -112,6 +112,8 @@ class ActionFilters(BaseModel):
     player: str | None = Field(
         None, description='Player who performed the action: full name, nickname or a surname that is '
                           'unique in the match (e.g. "Messi"). An ambiguous name returns the candidates.')
+    receiver: str | None = Field(
+        None, description="Player who received the pass (completed passes only), named like player.")
     action: list[Action] | Action | None = Field(
         None, description=(
             "One or more action types (Portuguese labels). Passes and set pieces: passe, cruzamento "
@@ -302,6 +304,9 @@ class Toolbox:
         if f.player:
             conds.append("j.nome = $player")
             params["player"] = self.resolve_player(f.player)
+        if f.receiver:
+            conds.append("rc.nome = $receiver")
+            params["receiver"] = self.resolve_player(f.receiver)
         if f.action:
             conds.append("x.acao IN $actions")
             params["actions"] = [f.action] if isinstance(f.action, str) else list(f.action)
@@ -434,8 +439,13 @@ class Toolbox:
         if team is None:
             raise ToolError("team is required: 'Argentina' or 'France'")
         without = sorted({self.resolve_player(n) for n in (without_players or [])})
-        edges = [e for e in self._pass_edges(team, filters)
-                 if e["passer"] not in without and e["receiver"] not in without]
+        every = self._pass_edges(team, filters)
+        edges = [e for e in every if e["passer"] not in without and e["receiver"] not in without]
+        # Players connected in the full network who keep no connection without the
+        # removed ones: they disappear from the network, so they are listed here.
+        connected = {e["passer"] for e in edges} | {e["receiver"] for e in edges}
+        isolated = sorted(({e["passer"] for e in every} | {e["receiver"] for e in every})
+                          - connected - set(without))
         if not edges:
             raise ToolError("no completed pass between teammates matches these filters")
         network_id = f"net{len(self.networks) + 1}"
@@ -443,8 +453,8 @@ class Toolbox:
         self.networks[network_id] = {"team": team, "filters": used, "without_players": without, "edges": edges}
         players = sorted({e["passer"] for e in edges} | {e["receiver"] for e in edges})
         return {"network_id": network_id, "team": team, "filters": used, "without_players": without,
-                "players": len(players), "player_names": players, "connections": len(edges),
-                "passes": sum(e["passes"] for e in edges)}
+                "left_without_connection": isolated, "players": len(players), "player_names": players,
+                "connections": len(edges), "passes": sum(e["passes"] for e in edges)}
 
     def _network(self, network_id: str) -> dict:
         try:

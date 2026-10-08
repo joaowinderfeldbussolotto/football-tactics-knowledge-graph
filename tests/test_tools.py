@@ -382,3 +382,13 @@ def test_query_possessions_matches_the_parquet(tb, df):
     pair = tb.query_possessions("Argentina", includes_players=["Messi", "Enzo Fernández"])["possessions"]
     assert pair == sum(1 for pid in first.index if first.team_name[pid] == "Argentina"
                        and {"Lionel Andrés Messi Cuccittini", "Enzo Fernandez"} <= players[pid])
+
+
+def test_receiver_filter_and_players_left_without_connection(tb, df):
+    to_messi = tb.query_actions({"team": "Argentina", "receiver": "Messi"}, ["player"], top=100)
+    expected = completed_passes(df, "Argentina")
+    expected = expected[expected.receiver == "Lionel Andrés Messi Cuccittini"].player_name.value_counts().to_dict()
+    assert as_dict(to_messi) == expected
+    net = tb.pass_network("Argentina", without_players=["Otamendi"])
+    assert net["left_without_connection"] == ["Germán Alejandro Pezzella"]
+    assert tb.pass_network("Argentina")["left_without_connection"] == []
