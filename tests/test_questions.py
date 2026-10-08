@@ -36,9 +36,21 @@ def test_the_yaml_file_is_the_source_and_is_validated(tmp_path):
     broken.write_text(text.replace("check: set", "check: sett", 1))
     with pytest.raises(ValueError, match="unknown check 'sett'"):
         load(broken)
-    broken.write_text(text.replace("stage: pilot", "stage: candidate", 1))
+    # the main benchmark: 5 per type; one question less breaks it
+    import re
+    main = re.sub(r"(?m)^active_stages: .*\nper_type:.*$", "active_stages: [pilot, full]\nper_type: 5", text)
+    assert len(load_text(tmp_path, main).active) == 25
+    broken.write_text(main.replace("stage: pilot", "stage: candidate", 1))
     with pytest.raises(ValueError, match="active questions of type 'fact', expected"):
         load(broken)
+
+
+def load_text(tmp_path, text):
+    from football_graphrag.benchmark.questions import load
+
+    path = tmp_path / "q.yaml"
+    path.write_text(text)
+    return load(path)
 
 
 def test_active_questions_have_stable_ground_truth():
