@@ -16,6 +16,7 @@ JSON-able data, so it can be tested and called without an LLM.
 """
 
 import bisect
+import itertools
 import uuid
 from collections import Counter
 from contextlib import contextmanager
@@ -48,7 +49,8 @@ PERIOD_CLOCK_START = {1: 0, 2: 45 * 60, 3: 90 * 60, 4: 105 * 60}
 
 Action = Literal[ACTIONS]
 GroupBy = Literal["player", "receiver", "team", "action", "period", "third", "corridor"]
-NetworkMetric = Literal["betweenness", "degree", "pagerank", "bridges", "articulation_points", "communities"]
+NETWORK_METRICS = ("betweenness", "degree", "pagerank", "bridges", "articulation_points", "communities", "triangles")
+NetworkMetric = Literal[NETWORK_METRICS]
 Weight = Literal["none", "passes", "xt"]
 Direction = Literal["directed", "undirected"]
 
@@ -213,6 +215,8 @@ class Toolbox:
         self._clock: dict | None = None
         self._assists: list[int] | None = None
         self._goals: list[tuple] | None = None
+        self._log: list[dict] | None = None
+        self._log_pos: dict[int, int] | None = None
 
     # ------------------------------------------------------------------ plumbing
 
@@ -425,19 +429,22 @@ class Toolbox:
         finally:
             self._drop(name)
 
-    def pass_network(self, team: str, filters=None) -> dict:
+    def pass_network(self, team: str, filters=None, without_players=None) -> dict:
         team = resolve_team(team)
         if team is None:
             raise ToolError("team is required: 'Argentina' or 'France'")
-        edges = self._pass_edges(team, filters)
+        without = sorted({self.resolve_player(n) for n in (without_players or [])})
+        edges = [e for e in self._pass_edges(team, filters)
+                 if e["passer"] not in without and e["receiver"] not in without]
         if not edges:
             raise ToolError("no completed pass between teammates matches these filters")
         network_id = f"net{len(self.networks) + 1}"
         used = _as_filters(filters).model_dump(exclude_none=True, exclude={"team", "success"})
-        self.networks[network_id] = {"team": team, "filters": used, "edges": edges}
+        self.networks[network_id] = {"team": team, "filters": used, "without_players": without, "edges": edges}
         players = sorted({e["passer"] for e in edges} | {e["receiver"] for e in edges})
-        return {"network_id": network_id, "team": team, "filters": used, "players": len(players),
-                "player_names": players, "connections": len(edges), "passes": sum(e["passes"] for e in edges)}
+        return {"network_id": network_id, "team": team, "filters": used, "without_players": without,
+                "players": len(players), "player_names": players, "connections": len(edges),
+                "passes": sum(e["passes"] for e in edges)}
 
     def _network(self, network_id: str) -> dict:
         try:
@@ -453,13 +460,33 @@ class Toolbox:
             raise ToolError("weight must be 'none', 'passes' or 'xt'")
         if direction not in ("directed", "undirected"):
             raise ToolError("direction must be 'directed' or 'undirected'")
-        if metric not in ("betweenness", "degree", "pagerank", "bridges", "articulation_points", "communities"):
-            raise ToolError(f"unknown metric {metric!r}; valid: betweenness, degree, pagerank, bridges, "
-                            "articulation_points, communities")
-        out = {"network_id": network_id, "team": net["team"], "filters": net["filters"], "metric": metric}
-        undirected = direction == "undirected" or metric in ("bridges", "articulation_points", "communities")
+        if metric not in NETWORK_METRICS:
+            raise ToolError(f"unknown metric {metric!r}; valid: {', '.join(NETWORK_METRICS)}")
+        out = {"network_id": network_id, "team": net["team"], "filters": net["filters"],
+               "without_players": net["without_players"], "metric": metric}
+        undirected = direction == "undirected" or metric in ("bridges", "articulation_points", "communities",
+                                                             "triangles")
         with self._projection(net["edges"], undirected) as graph:
+            if metric == "triangles":
+                return self._triangles(graph, net["edges"], out, top)
             return self._metric(graph, out, metric, weight, direction, top)
+
+    def _triangles(self, graph: str, edges: list[dict], out: dict, top: int) -> dict:
+        """Every trio of players all connected to each other, ranked by the passes among them."""
+        rows = self._rows("""CALL gds.triangles($g) YIELD nodeA, nodeB, nodeC
+                             RETURN gds.util.asNode(nodeA).nome AS a, gds.util.asNode(nodeB).nome AS b,
+                                    gds.util.asNode(nodeC).nome AS c""", g=graph)
+        passes = {(e["passer"], e["receiver"]): e["passes"] for e in edges}
+        trios = []
+        for r in rows:
+            trio = sorted((r["a"], r["b"], r["c"]))
+            pairs = [(x, y) for x in trio for y in trio if x != y]
+            trios.append({"players": trio, "passes": sum(passes.get(pr, 0) for pr in pairs),
+                          "all_directions": all(pr in passes for pr in pairs)})
+        trios.sort(key=lambda t: (-t["passes"], t["players"]))
+        out |= {"note": "undirected; passes counted in both directions of the three pairs",
+                "total_triangles": len(trios), "triangles": trios[: _top(top)]}
+        return out
 
     def _metric(self, graph: str, out: dict, metric: str, weight: str, direction: str, top: int) -> dict:
         if metric in ("bridges", "articulation_points"):
@@ -527,18 +554,52 @@ class Toolbox:
             name = self.resolve_player(player)
             edges = [e for e in edges if name in (e["passer"], e["receiver"])]
         return {"network_id": network_id, "team": net["team"], "filters": net["filters"],
+                "without_players": net["without_players"],
                 "edges": [{"passer": e["passer"], "receiver": e["receiver"], "passes": e["passes"],
                            "xt": round(e["xt"], 4)} for e in edges[: _top(top)]]}
 
     # ------------------------------------------------------------------ pass chains
 
+    def action_log(self) -> list[dict]:
+        """Every action of the match in match order, with its possession, third and second."""
+        if self._log is None:
+            self._log = self._rows(f"""{_ACTIONS}
+                RETURN x.action_id AS id, j.nome AS player, j.time AS team, x.acao AS action,
+                       x.sucesso AS success, x.fase_posse_id AS possession, x.terco AS third,
+                       x.periodo AS period, round(second, 3) AS second
+                ORDER BY x.periodo, x.segundo, x.action_id""", **self.clock())
+        return self._log
+
+    def _then(self, pass_id: int, receiver: str, then_action: set) -> bool:
+        """After pass ``pass_id``, the receiver keeps the ball (carries and take-ons
+        only) and then performs one of ``then_action``, in the same possession."""
+        log = self.action_log()
+        pos = self._log_index()[pass_id]
+        possession = log[pos]["possession"]
+        for a in log[pos + 1:]:
+            if a["possession"] != possession:
+                return False
+            if a["player"] == receiver and a["action"] in ("conducao", "drible"):
+                continue
+            return a["player"] == receiver and a["action"] in then_action
+        return False
+
+    def _log_index(self) -> dict[int, int]:
+        if self._log_pos is None:
+            self._log_pos = {a["id"]: i for i, a in enumerate(self.action_log())}
+        return self._log_pos
+
     def pass_paths(self, team: str, players: int = 3, same_possession: bool = True,
-                   consecutive: bool = True, filters=None, top: int = 10) -> dict:
+                   consecutive: bool = True, then_action=None, filters=None, top: int = 10) -> dict:
         team = resolve_team(team)
         if team is None:
             raise ToolError("team is required: 'Argentina' or 'France'")
-        if not 3 <= int(players) <= 5:
-            raise ToolError("players must be 3, 4 or 5 (players in the sequence; 3 is A -> B -> C)")
+        if not 2 <= int(players) <= 5:
+            raise ToolError("players must be 2 to 5 (players in the sequence; 3 is A -> B -> C)")
+        then = [then_action] if isinstance(then_action, str) else list(then_action or [])
+        unknown = [a for a in then if a not in ACTIONS]
+        if unknown:
+            raise ToolError(f"unknown then_action {unknown}; use action labels such as finalizacao")
         length = int(players) - 1  # passes in the chain
         f = _as_filters(filters).model_copy(update={"team": team})
         where, params = self._where(f)
@@ -575,10 +636,72 @@ class Toolbox:
                 seq.append(passes[nxt]["receiver"])
                 cur = nxt
             else:
+                if then and not self._then(passes[cur]["id"], passes[cur]["receiver"], set(then)):
+                    continue
                 chains[tuple(seq)] += 1
         ranked = sorted(chains.items(), key=lambda kv: (-kv[1], kv[0]))[: _top(top)]
         return {"team": team, "filters": f.model_dump(exclude_none=True, exclude={"team"}),
                 "players_per_sequence": length + 1, "same_possession": same_possession,
-                "consecutive": consecutive,
+                "consecutive": consecutive, "then_action": then,
                 "total_chains": sum(chains.values()), "distinct_sequences": len(chains),
                 "sequences": [{"players": list(s), "count": n} for s, n in ranked]}
+
+    # ------------------------------------------------------------------ possessions
+
+    def possessions(self) -> list[dict]:
+        """Possession phases (layer 0): consecutive actions of one team, with who took part."""
+        phases: dict[str, dict] = {}
+        for a in self.action_log():
+            if a["possession"] is None:
+                continue
+            ph = phases.setdefault(a["possession"], {
+                "team": a["team"], "period": a["period"], "second": a["second"],
+                "start_third": _TO_ENGLISH.get(a["third"], a["third"]), "thirds": set(), "players": set(),
+                "actions": 0, "last_action": None})
+            ph["thirds"].add(_TO_ENGLISH.get(a["third"], a["third"]))
+            ph["players"].add(a["player"])
+            ph["actions"] += 1
+            ph["last_action"] = a["action"]
+        return list(phases.values())
+
+    def query_possessions(self, team: str | None = None, period=None, second_from: float | None = None,
+                          second_to: float | None = None, starts_in_third: str | None = None,
+                          reaches_third: str | None = None, ends_with=None, includes_players=None,
+                          group_by: str = "none", top: int = 10) -> dict:
+        team = resolve_team(team)
+        periods = [period] if isinstance(period, int) else list(period or [])
+        ends = [ends_with] if isinstance(ends_with, str) else list(ends_with or [])
+        unknown = [a for a in ends if a not in ACTIONS]
+        if unknown:
+            raise ToolError(f"unknown ends_with {unknown}; use action labels such as finalizacao")
+        for name, value in (("starts_in_third", starts_in_third), ("reaches_third", reaches_third)):
+            if value is not None and value not in THIRDS:
+                raise ToolError(f"{name} must be one of {', '.join(THIRDS)}")
+        if group_by not in ("none", "player", "pair"):
+            raise ToolError("group_by must be 'none', 'player' or 'pair'")
+        includes = {self.resolve_player(n) for n in (includes_players or [])}
+        selected = [
+            ph for ph in self.possessions()
+            if (team is None or ph["team"] == team)
+            and (not periods or ph["period"] in periods)
+            and (second_from is None or ph["second"] >= second_from)
+            and (second_to is None or ph["second"] <= second_to)
+            and (starts_in_third is None or ph["start_third"] == starts_in_third)
+            and (reaches_third is None or reaches_third in ph["thirds"])
+            and (not ends or ph["last_action"] in ends)
+            and includes <= ph["players"]
+        ]
+        out = {"team": team, "conditions": {k: v for k, v in {
+            "period": periods or None, "second_from": second_from, "second_to": second_to,
+            "starts_in_third": starts_in_third, "reaches_third": reaches_third, "ends_with": ends or None,
+            "includes_players": sorted(includes) or None}.items() if v is not None},
+            "possessions": len(selected)}
+        if group_by == "player":
+            counts = Counter(p for ph in selected for p in ph["players"])
+            out["ranking"] = [{"player": p, "possessions": n}
+                              for p, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[: _top(top)]]
+        elif group_by == "pair":
+            counts = Counter(pair for ph in selected for pair in itertools.combinations(sorted(ph["players"]), 2))
+            out["ranking"] = [{"players": list(pr), "possessions": n}
+                              for pr, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[: _top(top)]]
+        return out

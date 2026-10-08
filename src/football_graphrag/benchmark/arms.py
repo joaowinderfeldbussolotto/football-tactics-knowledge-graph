@@ -8,7 +8,7 @@ tool output mode). The only difference between arms is what the LLM gets:
 - ``vector``: the 30 event lines most similar to the question;
 - ``events_in_prompt``: the compact table of every event of the match;
 - ``stats_in_prompt``: per-player and per-team stats read from Neo4j (layer 1b);
-- ``graph_tools``: seven primitive tools that query Neo4j (``benchmark/tools.py``).
+- ``graph_tools``: eight primitive tools that query Neo4j (``benchmark/tools.py``).
 """
 
 import hashlib
@@ -342,19 +342,26 @@ def list_actions(ctx: RunContext[GraphDeps], filters: tools.ActionFilters | None
 @_describe(f"""Builds a team's pass network from the completed passes between teammates that
 match the filters: each player is a node, and each passer -> receiver pair is a connection
 carrying the number of passes and the xT they added. Returns a network_id, used by
-network_metric and network_edges, the team and filters it was built with, and a summary
-(players, connections, passes). Networks last until the end of the question.
+network_metric and network_edges, the team, filters and removed players it was built with,
+and a summary (players, connections, passes). Players can be left out: the network is then
+built as if they were not there (no passes to or from them). Networks last until the end of
+the question.
 
 In football terms: the map of who passes to whom, for the whole match or for a slice of
-it (a period, a stretch of time, an area of the pitch).
+it (a period, a stretch of time, an area of the pitch). Leaving players out shows how the
+team's circulation would be connected without them.
 
 Args:
     team: {tools.TEAM_HELP}
     filters: Which passes to include. The team is the one above, and only completed passes
         count. Omit it for every completed pass of the team.
+    without_players: Optional. Players to leave out of the network: full name, nickname or
+        a surname that is unique in the match.
 """)
-def pass_network(ctx: RunContext[GraphDeps], team: str, filters: tools.ActionFilters | None = None) -> dict:
-    return _call(ctx, "pass_network", ctx.deps.toolbox.pass_network, team=team, filters=filters)
+def pass_network(ctx: RunContext[GraphDeps], team: str, filters: tools.ActionFilters | None = None,
+                 without_players: list[str] | None = None) -> dict:
+    return _call(ctx, "pass_network", ctx.deps.toolbox.pass_network, team=team, filters=filters,
+                 without_players=without_players)
 
 
 @_describe(f"""Computes a graph metric on a network built by pass_network (Neo4j GDS). The result
@@ -371,8 +378,12 @@ repeats the team and filters the network was built with.
 - articulation_points: players whose removal would split the network in two.
 - communities: groups of players connected mostly among themselves (Louvain; groups can
   change between calls).
-Directed keeps passer -> receiver; undirected merges both directions of a pair. bridges
-and articulation_points are always unweighted and undirected; communities, undirected.
+- triangles: every trio of players all connected to each other, with the passes among the
+  three (both directions of the three pairs) and whether all six directions occur, most
+  passes first.
+Directed keeps passer -> receiver; undirected merges both directions of a pair. bridges,
+articulation_points and triangles are always unweighted and undirected; communities,
+undirected.
 xT on a connection can be negative (passes backward); degree, pagerank and communities
 count a negative total as zero.
 
@@ -380,11 +391,14 @@ In football terms: betweenness marks a player who connects teammates in ball
 circulation, a link or hub of the build-up; degree, how involved a player was in the
 passing and with how many partners; pagerank, the reference players the ball tends to
 flow to; bridges and articulation points, fragile links whose absence would cut the team
-in two; communities, the sub-groups of the team that combine most with each other.
+in two; communities, the sub-groups of the team that combine most with each other;
+triangles, the small groups that circulate the ball among themselves, the units a team
+builds its passing around.
 
 Args:
     network_id: The id returned by pass_network.
-    metric: betweenness, degree, pagerank, bridges, articulation_points or communities.
+    metric: betweenness, degree, pagerank, bridges, articulation_points, communities or
+        triangles.
     weight: none, passes or xt.
     direction: directed or undirected.
     top: How many players to return in a ranking, 1 to {tools.MAX_TOP}.
@@ -420,29 +434,75 @@ of the previous one (A -> B -> C ...) and counts the most frequent sequences of 
 After receiving, the link is the receiver's next pass attempt; the chain stops if that
 pass is not completed. same_possession: all passes of a chain in the same possession of
 the ball. consecutive: no other pass, by anyone, between two linked passes. Players may
-repeat (A -> B -> A). The filters select the first pass of each chain.
+repeat (A -> B -> A). The filters select the first pass of each chain. then_action keeps
+only the chains after which the last receiver, keeping the ball (carries and take-ons
+only), performs one of the given actions in the same possession.
 
 In football terms: a team's recurring passing combinations, who tends to find whom and
-through whom when the ball moves from player to player.
+through whom when the ball moves from player to player, and which combinations lead to a
+given outcome, such as a shot.
 
 Args:
     team: {tools.TEAM_HELP}
-    players: Number of players in a sequence, 3 to 5 (3 is A -> B -> C, two passes).
+    players: Number of players in a sequence, 2 to 5 (2 is a single pass A -> B; 3 is
+        A -> B -> C, two passes).
     same_possession: Require the whole chain within one possession.
     consecutive: Require no other pass between two linked passes.
+    then_action: Optional. Action labels (as in the filters' action field); keep only the
+        chains whose last receiver then performs one of them.
     filters: Which passes may start a chain. Omit it for every completed pass of the team.
     top: How many sequences to return, 1 to {tools.MAX_TOP}.
 """)
 def pass_paths(ctx: RunContext[GraphDeps], team: str, players: int = 3, same_possession: bool = True,
-               consecutive: bool = True, filters: tools.ActionFilters | None = None, top: int = 10) -> dict:
+               consecutive: bool = True, then_action: list[tools.Action] | None = None,
+               filters: tools.ActionFilters | None = None, top: int = 10) -> dict:
     return _call(ctx, "pass_paths", ctx.deps.toolbox.pass_paths, team=team, players=players,
-                 same_possession=same_possession, consecutive=consecutive, filters=filters, top=top)
+                 same_possession=same_possession, consecutive=consecutive, then_action=then_action,
+                 filters=filters, top=top)
 
 
-TOOLS = {f.__name__: f for f in (list_players, query_actions, list_actions, pass_network,
-                                 network_metric, network_edges, pass_paths)}
+@_describe(f"""Counts possessions (phases of consecutive actions of one team, ending when the other
+team acts, the period ends, or after a foul, shot, save, clearance or miscontrol) that meet
+the conditions, and who took part in them (players with at least one action in the
+possession). group_by player ranks players by the possessions they took part in; pair ranks
+pairs of teammates by the possessions they took part in together. Conditions on time refer
+to the possession's first action.
+
+In football terms: the team's moves as a whole, not single passes: who was involved in the
+moves that started deep and ended in a shot, or reached the final third, and which players
+were most often involved together.
+
+Args:
+    team: Optional. {tools.TEAM_HELP}
+    period: Optional. One or more periods (1 to 4).
+    second_from: Optional. Earliest start of the possession, in elapsed seconds (as in
+        list_actions).
+    second_to: Optional. Latest start of the possession, same scale.
+    starts_in_third: Optional. defensive, middle or attacking: third of the first action.
+    reaches_third: Optional. defensive, middle or attacking: some action of the possession
+        is in that third.
+    ends_with: Optional. Action labels; the last action of the possession is one of them.
+    includes_players: Optional. Players who all took part in the possession.
+    group_by: none (only the count), player or pair.
+    top: How many rows to return, 1 to {tools.MAX_TOP}.
+""")
+def query_possessions(ctx: RunContext[GraphDeps], team: str | None = None,
+                      period: list[Literal[1, 2, 3, 4]] | None = None, second_from: float | None = None,
+                      second_to: float | None = None,
+                      starts_in_third: Literal["defensive", "middle", "attacking"] | None = None,
+                      reaches_third: Literal["defensive", "middle", "attacking"] | None = None,
+                      ends_with: list[tools.Action] | None = None, includes_players: list[str] | None = None,
+                      group_by: Literal["none", "player", "pair"] = "none", top: int = 10) -> dict:
+    return _call(ctx, "query_possessions", ctx.deps.toolbox.query_possessions, team=team, period=period,
+                 second_from=second_from, second_to=second_to, starts_in_third=starts_in_third,
+                 reaches_third=reaches_third, ends_with=ends_with, includes_players=includes_players,
+                 group_by=group_by, top=top)
+
+
+TOOLS = {f.__name__: f for f in (list_players, query_actions, list_actions, query_possessions,
+                                 pass_network, network_metric, network_edges, pass_paths)}
 # An arm with tools is an agent plus a list of tools. A future arm without the
-# network tools would be one line: "tools_no_graph": tuple(TOOLS)[:3].
+# network tools would be one line: "tools_no_graph": tuple(TOOLS)[:4].
 TOOL_ARMS = {"graph_tools": tuple(TOOLS)}
 
 

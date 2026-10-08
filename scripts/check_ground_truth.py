@@ -51,7 +51,7 @@ def top(rows: list[dict], field: str = "player") -> list[str]:
 
 def top_trio(tb: Toolbox, team: str, filters=None) -> list[str]:
     """pass_paths may repeat a player (A -> B -> A); a trio has three different ones."""
-    seqs = tb.pass_paths(team, 3, True, True, filters, top=100)["sequences"]
+    seqs = tb.pass_paths(team, 3, True, True, filters=filters, top=100)["sequences"]
     return next(s["players"] for s in seqs if len(set(s["players"])) == 3)
 
 
