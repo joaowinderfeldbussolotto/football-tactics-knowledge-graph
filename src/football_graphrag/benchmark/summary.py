@@ -6,7 +6,7 @@ from pathlib import Path
 from statistics import mean
 
 from football_graphrag.benchmark.arms import ARMS
-from football_graphrag.benchmark.questions import BY_ID, QUESTION_TYPES
+from football_graphrag.benchmark.questions import BY_ID, ORDER, QUESTION_TYPES
 from football_graphrag.benchmark.scoring import canonical_name
 
 
@@ -133,7 +133,7 @@ def summarize(rows: list[dict]) -> str:
     ]
 
     # per-question detail
-    qids = sorted({r["question_id"] for r in rows}, key=lambda q: ("fansu".index(q[0]), q))
+    qids = sorted({r["question_id"] for r in rows}, key=lambda q: (ORDER.index(q[0]), q))
     body = []
     for q in qids:
         cells = []

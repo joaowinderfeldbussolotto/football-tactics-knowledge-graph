@@ -29,7 +29,8 @@ def test_the_yaml_file_is_the_source_and_is_validated(tmp_path):
 
     qs = load(QUESTIONS_FILE)
     assert qs.match_id == 3869685
-    assert len(qs.active) == 5 * qs.per_type
+    types = {q.type for q in qs.active}
+    assert qs.per_type is None or len(qs.active) == len(types) * qs.per_type
     text = QUESTIONS_FILE.read_text()
     broken = tmp_path / "questions.yaml"
     broken.write_text(text.replace("check: set", "check: sett", 1))
