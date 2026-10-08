@@ -29,15 +29,28 @@ def test_the_yaml_file_is_the_source_and_is_validated(tmp_path):
 
     qs = load(QUESTIONS_FILE)
     assert qs.match_id == 3869685
-    assert len(qs.active) == 5 * qs.per_type
+    types = {q.type for q in qs.active}
+    assert qs.per_type is None or len(qs.active) == len(types) * qs.per_type
     text = QUESTIONS_FILE.read_text()
     broken = tmp_path / "questions.yaml"
     broken.write_text(text.replace("check: set", "check: sett", 1))
     with pytest.raises(ValueError, match="unknown check 'sett'"):
         load(broken)
-    broken.write_text(text.replace("stage: pilot", "stage: candidate", 1))
+    # the main benchmark: 5 per type; one question less breaks it
+    import re
+    main = re.sub(r"(?m)^active_stages: .*\nper_type:.*$", "active_stages: [pilot, full]\nper_type: 5", text)
+    assert len(load_text(tmp_path, main).active) == 25
+    broken.write_text(main.replace("stage: pilot", "stage: candidate", 1))
     with pytest.raises(ValueError, match="active questions of type 'fact', expected"):
         load(broken)
+
+
+def load_text(tmp_path, text):
+    from football_graphrag.benchmark.questions import load
+
+    path = tmp_path / "q.yaml"
+    path.write_text(text)
+    return load(path)
 
 
 def test_active_questions_have_stable_ground_truth():
@@ -46,5 +59,7 @@ def test_active_questions_have_stable_ground_truth():
     gt = ground_truth.load()
     unstable = [q.id for q in QUESTIONS if not gt[q.id]["stable"]]
     assert not unstable, f"active questions whose answer changes with the reading: {unstable}"
-    removed_but_stable = [q.id for q in ALL_QUESTIONS if q.stage == "removed" and gt[q.id]["stable"]]
+    # a removed question is unstable, unless its note says why else it left
+    removed_but_stable = [q.id for q in ALL_QUESTIONS if q.stage == "removed" and gt[q.id]["stable"]
+                          and not q.note.startswith("Retirada")]
     assert not removed_but_stable, f"removed questions that are stable: {removed_but_stable}"

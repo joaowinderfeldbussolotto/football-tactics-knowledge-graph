@@ -51,7 +51,7 @@ def top(rows: list[dict], field: str = "player") -> list[str]:
 
 def top_trio(tb: Toolbox, team: str, filters=None) -> list[str]:
     """pass_paths may repeat a player (A -> B -> A); a trio has three different ones."""
-    seqs = tb.pass_paths(team, 3, True, True, filters, top=100)["sequences"]
+    seqs = tb.pass_paths(team, 3, True, True, filters=filters, top=100)["sequences"]
     return next(s["players"] for s in seqs if len(set(s["players"])) == 3)
 
 
@@ -60,6 +60,45 @@ def top_receiver(tb: Toolbox, team: str, passer: str, filters=None) -> list[str]
     edges = [e for e in tb.network_edges(net["network_id"], player=passer, top=100)["edges"]
              if e["passer"] == tb.resolve_player(passer)]
     return [edges[0]["receiver"]]
+
+
+def top_triangle(tb: Toolbox, team: str, filters=None) -> list[str]:
+    net = tb.pass_network(team, filters)
+    return tb.network_metric(net["network_id"], "triangles", top=1)["triangles"][0]["players"]
+
+
+def after_last_action(tb: Toolbox, player: str) -> float:
+    """Just after the player's last action: when he was substituted."""
+    return tb.list_actions({"player": player}, limit=100)["actions"][-1]["second"] + 0.001
+
+
+def top_passer_to(tb: Toolbox, team: str, receiver: str, filters=None) -> list[str]:
+    net = tb.pass_network(team, filters)
+    name = tb.resolve_player(receiver)
+    edges = [e for e in tb.network_edges(net["network_id"], player=receiver, top=100)["edges"]
+             if e["receiver"] == name]
+    return [edges[0]["passer"]]
+
+
+def isolated_without(tb: Toolbox, team: str, player: str) -> list[str]:
+    everyone = set(tb.pass_network(team)["player_names"])
+    left = set(tb.pass_network(team, without_players=[player])["player_names"])
+    return sorted(everyone - left - {tb.resolve_player(player)})
+
+
+def top_shooter_after_pass(tb: Toolbox, team: str) -> list[str]:
+    seqs = tb.pass_paths(team, 2, then_action=SHOTS, top=100)["sequences"]
+    counts: dict[str, int] = {}
+    for s in seqs:
+        counts[s["players"][1]] = counts.get(s["players"][1], 0) + s["count"]
+    return [max(counts, key=counts.get)]
+
+
+def top_partner(tb: Toolbox, team: str, player: str) -> list[str]:
+    name = tb.resolve_player(player)
+    ranking = tb.query_possessions(team, ends_with=SHOTS, includes_players=[player], group_by="player",
+                                   top=100)["ranking"]
+    return [next(r["player"] for r in ranking if r["player"] != name)]
 
 
 # One recipe per question: the tool calls, in order, that answer it.
@@ -105,6 +144,35 @@ RECIPES = {
                                         "articulation_points")["articulation_points"],
     "s06": lambda tb: top_receiver(tb, "Argentina", "Enzo Fernández", {"period": 2}),
     "s07": lambda tb: top_trio(tb, "Argentina", {"period": [3, 4]}),
+    "t01": lambda tb: top_triangle(tb, "Argentina", {"period": [1]}),
+    "t02": lambda tb: top_triangle(tb, "France"),
+    "t03": lambda tb: top_triangle(tb, "Argentina", {"period": [2]}),
+    "t04": lambda tb: top_triangle(tb, "France", {"period": [1]}),
+    "t05": lambda tb: top_triangle(tb, "Argentina", {"period": [3, 4]}),
+    "t06": lambda tb: tb.network_metric(tb.pass_network("France", {"period": [3, 4]})["network_id"],
+                                        "articulation_points")["articulation_points"],
+    "c01": lambda tb: top(tb.network_metric(tb.pass_network("Argentina", without_players=["Enzo Fernández"])
+                                            ["network_id"], "betweenness", "none", "directed", top=1)["ranking"]),
+    "c02": lambda tb: isolated_without(tb, "Argentina", "Otamendi"),
+    "q01": lambda tb: top_shooter_after_pass(tb, "Argentina"),
+    "p01": lambda tb: tb.query_possessions("Argentina", reaches_third="attacking", group_by="pair",
+                                           top=1)["ranking"][0]["players"],
+    "p02": lambda tb: top(tb.query_possessions("Argentina", starts_in_third="defensive", ends_with=SHOTS,
+                                               group_by="player", top=1)["ranking"]),
+    "p03": lambda tb: top(tb.query_possessions("Argentina", ends_with=SHOTS, group_by="player", top=1)["ranking"]),
+    "p04": lambda tb: top(tb.query_possessions("France", ends_with=SHOTS, group_by="player", top=1)["ranking"]),
+    "p05": lambda tb: top_partner(tb, "Argentina", "Messi"),
+    "p06": lambda tb: top_partner(tb, "France", "Mbappé"),
+    "b01": lambda tb: top_triangle(tb, "Argentina", {"second_from": after_last_action(tb, "Di María")}),
+    "b02": lambda tb: top_passer_to(tb, "Argentina", "Messi", {"second_from": after_last_action(tb, "Di María")}),
+    "b03": lambda tb: top_passer_to(tb, "France", "Mbappé", {"second_from": after_last_action(tb, "Dembélé")}),
+    "b04": lambda tb: top_triangle(tb, "France", {"second_from": after_last_action(tb, "Dembélé")}),
+    "b05": lambda tb: top_receiver(tb, "France", "Mbappé", {"second_from": after_last_action(tb, "Dembélé")}),
+    "p09": lambda tb: tb.query_possessions("France", period=[3, 4], ends_with=SHOTS,
+                                           includes_players=["Mbappé"])["possessions"],
+    "b09": lambda tb: [next(r["receiver"] for r in tb.query_actions(
+        {"team": "Argentina", "action": list(PASS_ACTIONS), "success": True,
+         "second_from": after_last_action(tb, "Di María")}, ["receiver"], top=5) if r["receiver"])],
 }
 
 

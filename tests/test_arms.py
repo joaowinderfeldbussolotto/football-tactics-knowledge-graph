@@ -83,8 +83,8 @@ async def test_graph_tools_arm_logs_calls_and_drops_its_networks():
         result = await arms.run_arm("graph_tools", "Quem foi o elo da Argentina?")
     assert result.answer is not None
     assert {c["tool"] for c in result.tool_calls} == set(arms.TOOL_ARMS["graph_tools"]) == {
-        "list_players", "query_actions", "list_actions", "pass_network", "network_metric",
-        "network_edges", "pass_paths",
+        "list_players", "query_actions", "list_actions", "query_possessions", "pass_network",
+        "network_metric", "network_edges", "pass_paths",
     }
     from football_graphrag.graph import db
     from football_graphrag.config import get_settings

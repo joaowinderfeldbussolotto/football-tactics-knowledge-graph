@@ -36,7 +36,7 @@ from pathlib import Path
 import networkx as nx
 import pandas as pd
 
-from football_graphrag.benchmark.questions import ALL_QUESTIONS, MATCH_ID, Question
+from football_graphrag.benchmark.questions import ALL_QUESTIONS, MATCH_ID, ORDER, Question
 from football_graphrag.config import get_settings
 
 # The layer 0 actions that are pass attempts (graph/build.py::PASS_TYPES).
@@ -278,6 +278,150 @@ def trio_readings(team: str, first=None) -> dict:
     return out
 
 
+# --------------------------------------------------------------------------- graph-heavy readings
+
+SHOT_ACTIONS = ("finalizacao", "penalti", "falta_direta")
+
+
+def triangle_readings(team: str, cuts: dict | None = None) -> dict:
+    """'The trio that exchanged the most passes among themselves, all three passing to each
+    other': triangles of the network ranked by the passes among the three. Readings: pass
+    set; any direction on each pair vs all six directions present."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, links=("each pair in some direction", "all six directions"),
+                                     **({"cut": list(cuts)} if cuts else {})):
+        mask = cuts[r["cut"]] if cuts else None
+        d = pass_network(team, "directed", PASS_SETS[r["passes"]], mask)
+        u = pass_network(team, "undirected", PASS_SETS[r["passes"]], mask)
+        trios = {}
+        for t in (c for c in nx.enumerate_all_cliques(u) if len(c) == 3):
+            pairs = [(a, b) for a in t for b in t if a != b]
+            if r["links"] == "all six directions" and not all(d.has_edge(a, b) for a, b in pairs):
+                continue
+            trios[tuple(sorted(t))] = sum(d[a][b]["passes"] for a, b in pairs if d.has_edge(a, b))
+        out[label] = top_group(trios)
+    return out
+
+
+def top_group(scores: dict) -> dict:
+    """The highest-scoring group of players, or a tie."""
+    ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))
+    if not ranked:
+        return tie()
+    if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+        return tie(*[g for g, n in ranked if n == ranked[0][1]])
+    return answer(ranked[0][0], ranked[0][1])
+
+
+def link_without_readings(team: str, without: str) -> dict:
+    """'If X were not on the pitch, who would be the main link': betweenness on the
+    network without X, in every reading."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, direction=DIRECTIONS, weight=WEIGHTS):
+        g = pass_network(team, r["direction"], PASS_SETS[r["passes"]])
+        g.remove_node(without)
+        out[label] = leader(betweenness(g, r["weight"]))
+    return out
+
+
+def isolated_without_readings(team: str, without: str) -> dict:
+    """'Without X, would a teammate exchange passes with nobody? Who?': players left with
+    no connection once X is removed."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS):
+        g = pass_network(team, "undirected", PASS_SETS[r["passes"]])
+        g.remove_node(without)
+        alone = sorted(n for n in g.nodes if g.degree(n) == 0)
+        out[label] = answer(alone) if len(alone) == 1 else tie(*alone)
+    return out
+
+
+def passes_before_shots(team: str, pass_set=PASS_ACTIONS, rule: str = "receiver shoots") -> list[list[str]]:
+    """For each shot of the team, the passers of the completed passes before it in the same
+    possession, latest first. rule 'receiver shoots': the last pass's receiver is the shooter
+    and only carries or take-ons come between; 'any pass in the possession': the last passes
+    of the possession before the shot, whoever received them."""
+    df = actions()
+    out = []
+    for shot in df[(df.team_name == team) & df.acao.isin(SHOT_ACTIONS)].itertuples():
+        before = df[(df.possession_id == shot.possession_id) & (df.order < shot.order)]
+        completed = before[before.acao.isin(pass_set) & before.receiver.notna() & (before.receiver_team == team)]
+        if completed.empty:
+            continue
+        if rule == "receiver shoots":
+            last = completed.iloc[-1]
+            between = before[before.order > last.order]
+            if last.receiver != shot.player_name or not between.acao.isin(["conducao", "drible"]).all() \
+                    or not (between.player_name == shot.player_name).all():
+                continue
+        out.append(list(completed.player_name[::-1]))
+    return out
+
+
+def before_shot_readings(team: str, position: int) -> dict:
+    """'Who gave the last (position 1) or second-to-last (2) pass before a shot the most'."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, rule=("receiver shoots", "any pass in the possession")):
+        chains = passes_before_shots(team, PASS_SETS[r["passes"]], r["rule"])
+        out[label] = leader(Counter(c[position - 1] for c in chains if len(c) >= position))
+    return out
+
+
+def possession_table() -> pd.DataFrame:
+    """One row per possession phase of layer 0: team, start, thirds, last action, players."""
+    df = actions().dropna(subset=["possession_id"])
+    g = df.groupby("possession_id")
+    first = g.first()
+    return pd.DataFrame({
+        "team": first.team_name, "period": first.period_id, "start_order": first.order,
+        "start_third": first.terco, "start_column": first.zone_start // 8,
+        "thirds": g.terco.agg(set), "last_action": g.acao.last(),
+        "has_shot": g.acao.agg(lambda a: bool(set(a) & set(SHOT_ACTIONS))),
+        "players": g.player_name.agg(set),
+    })
+
+
+def play_readings(team: str, start: str | None, end: str, by: str, with_player: str | None = None) -> dict:
+    """Possessions ('jogadas') of a team that start deep and/or end in a shot or reach the
+    final third, ranked by player or by pair. Readings: 'ended in a shot' as the last action
+    or any shot in the possession; 'own field of defence' as the defensive third or the own
+    half."""
+    ph = possession_table()
+    ph = ph[ph.team == team]
+    out = {}
+    starts = {"defensive third": ph.start_third == "defesa", "own half": ph.start_column < 6} if start else {"": True}
+    ends = ({"last action is a shot": ph.last_action.isin(SHOT_ACTIONS), "a shot in the possession": ph.has_shot}
+            if end == "shot" else {"reaches the attacking third": ph.thirds.map(lambda t: "ataque" in t)})
+    for (s_label, s_mask), (e_label, e_mask) in itertools.product(starts.items(), ends.items()):
+        sel = ph[s_mask & e_mask] if start else ph[e_mask]
+        if with_player:
+            sel = sel[sel.players.map(lambda p: with_player in p)]
+        counts = Counter()
+        for players in sel.players:
+            if by == "player":
+                counts.update(players)
+            elif by == "partner":
+                counts.update(p for p in players if p != with_player)
+            else:
+                counts.update(itertools.combinations(sorted(players), 2))
+        label = " / ".join(x for x in (s_label, e_label) if x)
+        out[label] = top_group({k if isinstance(k, tuple) else (k,): v for k, v in counts.items()})
+    return out
+
+
+def substitution_cuts(player: str) -> dict:
+    """'After X left': from the substitution event in the raw JSON, or after X's last action."""
+    df = actions()
+    last = int(df[df.player_name == player].order.max())
+    sub = next(e for e in raw_events() if _type(e) == "Substitution" and _player(e) == player)
+    sub_time = (sub["period"], sub["minute"] * 60 + sub["second"])
+    start_min = {1: 0, 2: 45, 3: 90, 4: 105}
+    later = df[(df.period_id > sub_time[0]) | ((df.period_id == sub_time[0])
+               & (df.time_seconds >= sub_time[1] - start_min[sub_time[0]] * 60))]
+    return {"after the substitution (raw JSON)": after(int(later.order.min()), True),
+            "after the player's last action": after(last, False)}
+
+
 # --------------------------------------------------------------------------- the questions
 
 def f01() -> dict:
@@ -487,7 +631,138 @@ def s09() -> dict:
     return partners_readings("Argentina", {"extra time": periods(3, 4)})
 
 
-ANSWERS = {name: fn for name, fn in globals().items() if callable(fn) and name[:1] in "fansu"
+# --------------------------------------------------------------------------- graph-heavy questions
+
+ARG, FRA = "Argentina", "France"
+MESSI, ENZO, OTAMENDI = "Lionel Andrés Messi Cuccittini", "Enzo Fernandez", "Nicolás Hernán Otamendi"
+DI_MARIA, MBAPPE, DEMBELE = "Ángel Fabián Di María Hernández", "Kylian Mbappé Lottin", "Ousmane Dembélé"
+
+
+def passers_to_readings(receiver: str, cuts: dict | None = None) -> dict:
+    """'The teammate who passed the most to X'."""
+    out = {}
+    df = actions()
+    for label, r in readings_product(passes=PASS_SETS, **({"cut": list(cuts)} if cuts else {})):
+        p = df[df.acao.isin(PASS_SETS[r["passes"]]) & (df.receiver == receiver) & (df.receiver_team == df.team_name)]
+        if cuts:
+            p = p[cuts[r["cut"]](p)]
+        out[label] = leader(Counter(p.player_name))
+    return out
+
+
+def shooter_after_pass_readings(team: str) -> dict:
+    """'Who most often shot right after receiving a pass': the shooter is the receiver of the
+    last completed pass of the possession; with or without requiring that only his carries
+    and take-ons come between."""
+    df = actions()
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, between=("anything", "only his carries and take-ons")):
+        counts = Counter()
+        for shot in df[(df.team_name == team) & df.acao.isin(SHOT_ACTIONS)].itertuples():
+            before = df[(df.possession_id == shot.possession_id) & (df.order < shot.order)]
+            done = before[before.acao.isin(PASS_SETS[r["passes"]]) & before.receiver.notna()
+                          & (before.receiver_team == team)]
+            if done.empty or done.iloc[-1].receiver != shot.player_name:
+                continue
+            gap = before[before.order > done.iloc[-1].order]
+            if r["between"] != "anything" and not (gap.acao.isin(["conducao", "drible"]).all()
+                                                   and (gap.player_name == shot.player_name).all()):
+                continue
+            counts[shot.player_name] += 1
+        out[label] = leader(counts)
+    return out
+
+
+def t01() -> dict: return triangle_readings(ARG, {"1st half": periods(1)})
+def t02() -> dict: return triangle_readings(FRA)
+def t03() -> dict: return triangle_readings(ARG, {"2nd half": periods(2)})
+def t04() -> dict: return triangle_readings(FRA, {"1st half": periods(1)})
+def t05() -> dict: return triangle_readings(ARG, {"extra time": periods(3, 4)})
+def t06() -> dict: return isolating_player_readings(FRA, {"extra time": periods(3, 4)})
+def t07() -> dict: return triangle_readings(FRA, {"extra time": periods(3, 4)})
+def c01() -> dict: return link_without_readings(ARG, ENZO)
+def c02() -> dict: return isolated_without_readings(ARG, OTAMENDI)
+def c03() -> dict: return link_without_readings(ARG, MESSI)
+def c04() -> dict: return link_without_readings(FRA, "Raphaël Varane")
+def c05() -> dict: return link_without_readings(FRA, "Jules Koundé")
+def q01() -> dict: return shooter_after_pass_readings(ARG)
+def q02() -> dict: return before_shot_readings(ARG, 1)
+def q03() -> dict: return before_shot_readings(ARG, 2)
+def q04() -> dict: return shooter_after_pass_readings(FRA)
+def p01() -> dict: return play_readings(ARG, None, "attacking", "pair")
+def p02() -> dict: return play_readings(ARG, "deep", "shot", "player")
+def p03() -> dict: return play_readings(ARG, None, "shot", "player")
+def p04() -> dict: return play_readings(FRA, None, "shot", "player")
+def p05() -> dict: return play_readings(ARG, None, "shot", "partner", MESSI)
+def p06() -> dict: return play_readings(FRA, None, "shot", "partner", MBAPPE)
+def p07() -> dict: return play_readings(FRA, None, "attacking", "pair")
+def b01() -> dict: return triangle_readings(ARG, substitution_cuts(DI_MARIA))
+def b02() -> dict: return passers_to_readings(MESSI, substitution_cuts(DI_MARIA))
+def b03() -> dict: return passers_to_readings(MBAPPE, substitution_cuts(DEMBELE))
+def b04() -> dict: return triangle_readings(FRA, substitution_cuts(DEMBELE))
+def b05() -> dict: return receiver_readings(MBAPPE, substitution_cuts(DEMBELE))
+def b06() -> dict: return pair_readings(FRA, substitution_cuts(DEMBELE))
+def b07() -> dict: return receiver_readings(MESSI, substitution_cuts(DI_MARIA))
+
+
+def _possessions_by(team: str, masks: dict, by: str = "player", value_of: str | None = None) -> dict:
+    out = {}
+    ph = possession_table()
+    for label, mask in masks.items():
+        sel = ph[(ph.team == team) & mask(ph)]
+        if value_of:
+            out[label] = answer(value=int(sum(value_of in p for p in sel.players)))
+            continue
+        counts = Counter()
+        for players in sel.players:
+            counts.update(players)
+        out[label] = leader(counts)
+    return out
+
+
+def p08() -> dict:
+    reach = lambda ph: ph.thirds.map(lambda t: "ataque" in t) & (ph.period == 2)
+    return _possessions_by(FRA, {"defensive third": lambda ph: (ph.start_third == "defesa") & reach(ph),
+                                 "own half": lambda ph: (ph.start_column < 6) & reach(ph)})
+
+
+def p09() -> dict:
+    et = lambda ph: ph.period.isin([3, 4])
+    return _possessions_by(FRA, {"last action is a shot": lambda ph: ph.last_action.isin(SHOT_ACTIONS) & et(ph),
+                                 "a shot in the possession": lambda ph: ph.has_shot & et(ph)}, value_of=MBAPPE)
+
+
+def p10() -> dict:
+    df = actions()
+    goals = df[df.gol & (df.team_name == ARG)]
+    open_play = set(goals[goals.acao != "penalti"].possession_id)
+    return _possessions_by(ARG, {"every goal": lambda ph: ph.index.isin(set(goals.possession_id)),
+                                 "penalty goals left out": lambda ph: ph.index.isin(open_play)})
+
+
+def b08() -> dict:
+    sub = next(e for e in raw_events() if _type(e) == "Substitution"
+               and e["substitution"]["replacement"]["name"] == "Randal Kolo Muani")
+    cuts = substitution_cuts(_player(sub))
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, cut=list(cuts),
+                                     direction=("both directions", "to Mbappé", "from Mbappé")):
+        p = team_passes(FRA, PASS_SETS[r["passes"]], cuts[r["cut"]])
+        to, frm = Counter(p[p.receiver == MBAPPE].player_name), Counter(p[p.player_name == MBAPPE].receiver)
+        out[label] = leader({"both directions": to + frm, "to Mbappé": to, "from Mbappé": frm}[r["direction"]])
+    return out
+
+
+def b09() -> dict:
+    cuts = substitution_cuts(DI_MARIA)
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, cut=list(cuts)):
+        p = team_passes(ARG, PASS_SETS[r["passes"]], cuts[r["cut"]])
+        out[label] = leader(Counter(p.receiver))
+    return out
+
+
+ANSWERS = {name: fn for name, fn in globals().items() if callable(fn) and name[:1] in ORDER
            and name[1:].isdigit()}
 
 # A premise a question states, which must be stable too even though the

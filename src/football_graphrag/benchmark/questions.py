@@ -22,11 +22,16 @@ import yaml
 # config/questions.yaml at the repository root (src/football_graphrag/benchmark/ -> ../../../).
 QUESTIONS_FILE = Path(__file__).resolve().parents[3] / "config" / "questions.yaml"
 
-PREFIXES = {"fact": "f", "filtered_aggregation": "a", "network": "n", "network_slice": "s", "unanswerable": "u"}
+PREFIXES = {
+    "fact": "f", "filtered_aggregation": "a", "network": "n", "network_slice": "s", "unanswerable": "u",
+    # graph-heavy questions
+    "structure": "t", "counterfactual": "c", "sequence": "q", "play": "p", "substitution": "b",
+}
+ORDER = "".join(PREFIXES.values())
 QUESTION_TYPES = tuple(PREFIXES)
 CHECKS = ("player", "value", "set", "player_and_value", "no_data")
-STAGES = ("pilot", "full", "candidate", "removed")
-RUN_STAGES = ("pilot", "full")
+STAGES = ("pilot", "full", "graph", "candidate", "removed")
+RUN_STAGES = ("pilot", "full", "graph")
 
 
 @dataclass(frozen=True)
@@ -44,7 +49,7 @@ class Question:
 class QuestionSet:
     match_id: int
     active_stages: tuple[str, ...]
-    per_type: int
+    per_type: int | None  # None: every active type needs at least one question, any number
     all: list[Question]
 
     @property
@@ -67,7 +72,9 @@ def load(path: Path = QUESTIONS_FILE) -> QuestionSet:
         )
         for q in data["questions"]
     ]
-    qs = QuestionSet(int(data["match_id"]), tuple(data["active_stages"]), int(data["per_type"]), questions)
+    per_type = data.get("per_type")
+    qs = QuestionSet(int(data["match_id"]), tuple(data["active_stages"]),
+                     None if per_type is None else int(per_type), questions)
     validate(qs)
     return qs
 
@@ -80,9 +87,11 @@ def validate(qs: QuestionSet) -> None:
     unknown = set(qs.active_stages) - set(RUN_STAGES)
     if unknown:
         errors.append(f"active_stages may only hold {RUN_STAGES}, not {sorted(unknown)}")
-    for t in QUESTION_TYPES:
+    if not qs.active:
+        errors.append(f"no active question in stages {qs.active_stages}")
+    for t in sorted({q.type for q in qs.active}):
         n = sum(q.type == t for q in qs.active)
-        if n != qs.per_type:
+        if qs.per_type is not None and n != qs.per_type:
             errors.append(f"{n} active questions of type {t!r}, expected {qs.per_type}")
     for q in qs.all:
         if q.type not in QUESTION_TYPES:
