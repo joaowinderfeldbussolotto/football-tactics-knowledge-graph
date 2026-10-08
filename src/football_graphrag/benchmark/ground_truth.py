@@ -1,27 +1,33 @@
-"""Ground truth for the 30 benchmark questions. Never reads Neo4j.
+"""Ground truth for the benchmark questions, with a robustness test. Never reads Neo4j.
 
-The answer key is computed by a path independent of the systems being
-evaluated:
+The answer key comes from a path independent of the systems being evaluated:
+pandas over the RAW StatsBomb JSON (facts, simple counts) or the layer 0
+Parquet (counts whose definition belongs to layer 0, passes with receiver),
+and networkx for pass networks.
 
-- facts and simple counts (goals, cards, assists, shots, fouls, completed
-  passes, dribbles) come from the RAW StatsBomb JSON;
-- counts whose definition belongs to layer 0 (a "successful tackle" is
-  defined in ``ingestion/football_semantics.py``) come from the layer 0
-  Parquet, applying the same definition;
-- structural answers are computed with networkx on the layer 0 Parquet,
-  replicating ``graph/projections.py::pass_network`` and the Cypher of
-  ``graph/analysis.py::terceiro_homem`` exactly.
+Robustness test: a question in football language can be read in more than
+one way ("passes" with or without set pieces, a connection weighted by the
+number of passes or by xT, "after the goal" with or without the goal
+itself...). Each answer function returns the answer under EVERY reasonable
+reading. A question is ``stable`` when all readings agree on what its check
+looks at; an unstable question leaves the benchmark (``stage: removed`` in
+the YAML). Ties count as unstable: "who did the most" has no single answer.
 
-Sanity check against the official FIFA match report: 6 goals (broadcast
-minutes 23, 36, 80, 81, 108, 118) and 7 yellow cards during play (the 8th,
-Emiliano Martínez's, was shown in the penalty shootout and is out of scope).
-StatsBomb's ``minute`` field is elapsed minutes, so it reads 22, 35, 79, 80,
-107, 117; the layer 0 ``minuto`` column adds 1.
+Readings used:
+- pass set: every completed pass (set pieces, throw-ins, goal kicks
+  included) or open-play passes only (layer 0 action ``passe``);
+- network weight: none, number of passes, xT (betweenness turns weights into
+  lengths, ``1/passes`` and ``1/(1+xT)``; other metrics use them as
+  strengths, negative xT as zero);
+- network direction: directed (passer -> receiver) or undirected (both
+  directions of a pair summed);
+- time cut at an event: the event itself included or not.
 
 Usage: ``python -m football_graphrag.benchmark.ground_truth`` writes
-``data/benchmark/ground_truth.json``.
+``data/benchmark/ground_truth.json`` (every question, with all readings).
 """
 
+import itertools
 import json
 from collections import Counter
 from functools import lru_cache
@@ -30,15 +36,17 @@ from pathlib import Path
 import networkx as nx
 import pandas as pd
 
-from football_graphrag.benchmark.questions import MATCH_ID, QUESTIONS
+from football_graphrag.benchmark.questions import ALL_QUESTIONS, MATCH_ID, Question
 from football_graphrag.config import get_settings
 
-# Same list as graph/build.py: the SPADL action types that become PASSOU_PARA.
-PASS_TYPES = [
-    "pass", "cross", "freekick_short", "corner_short", "throw_in",
-    "goalkick", "freekick_crossed", "corner_crossed",
-]
-TEAMS = {"Argentina": "Argentina", "França": "France"}
+# The layer 0 actions that are pass attempts (graph/build.py::PASS_TYPES).
+PASS_ACTIONS = (
+    "passe", "cruzamento", "arremesso_lateral", "falta_cobrada_curta", "falta_cobrada_na_area",
+    "escanteio_curto", "escanteio_na_area", "tiro_de_meta",
+)
+PASS_SETS = {"all passes": PASS_ACTIONS, "open-play passes": ("passe",)}
+WEIGHTS = ("none", "passes", "xt")
+DIRECTIONS = ("directed", "undirected")
 
 
 # --------------------------------------------------------------------------- loading
@@ -52,8 +60,34 @@ def raw_events(match_id: int = MATCH_ID) -> list[dict]:
 
 @lru_cache
 def actions(match_id: int = MATCH_ID) -> pd.DataFrame:
-    """Layer 0 SPADL actions."""
-    return pd.read_parquet(get_settings().processed_dir / f"{match_id}.parquet")
+    """Layer 0 actions in match order, with receiver name and team."""
+    df = pd.read_parquet(get_settings().processed_dir / f"{match_id}.parquet")
+    df = df.sort_values(["period_id", "time_seconds", "action_id"]).reset_index(drop=True)
+    df["order"] = range(len(df))
+    known = df.dropna(subset=["player_id"])
+    names = known.groupby("player_id").player_name.first()
+    teams = known.groupby("player_id").team_name.first()
+    rec = df.receiver_player_id
+    df["receiver"] = rec.map(lambda r: names.get(int(r)) if pd.notna(r) else None)
+    df["receiver_team"] = rec.map(lambda r: teams.get(int(r)) if pd.notna(r) else None)
+    return df
+
+
+def goal_order(n: int) -> int:
+    """Match order of the n-th goal (1-based)."""
+    return int(actions()[actions().gol].order.iloc[n - 1])
+
+
+def after(order: int, inclusive: bool):
+    return lambda d: d.order >= order if inclusive else d.order > order
+
+
+def between(start: int, end: int, inclusive: bool):
+    return lambda d: (d.order >= start) & (d.order <= end) if inclusive else (d.order > start) & (d.order < end)
+
+
+def periods(*ids: int):
+    return lambda d: d.period_id.isin(ids)
 
 
 def _type(e: dict) -> str:
@@ -64,238 +98,451 @@ def _player(e: dict) -> str | None:
     return e.get("player", {}).get("name")
 
 
-def _is_completed_pass(e: dict) -> bool:
-    # StatsBomb marks only failed passes with an outcome.
-    return _type(e) == "Pass" and "outcome" not in e["pass"]
+# --------------------------------------------------------------------------- answers and readings
+
+def answer(players=(), value=None) -> dict:
+    return {"players": list(players), "value": value}
 
 
-# --------------------------------------------------------------------------- raw JSON
-
-def goals() -> list[dict]:
-    return [
-        {"minute": e["minute"], "player": _player(e), "team": e["team"]["name"]}
-        for e in raw_events()
-        if _type(e) == "Shot" and e["shot"]["outcome"]["name"] == "Goal"
-    ]
+def tie(*candidates) -> dict:
+    return {"tie": [list(c) if isinstance(c, tuple) else c for c in candidates]}
 
 
-def yellow_cards() -> list[dict]:
-    """Yellow cards come from fouls and from "Bad Behaviour" (no foul)."""
-    cards = []
-    for e in raw_events():
-        for key in ("foul_committed", "bad_behaviour"):
-            card = e.get(key, {}).get("card", {}).get("name")
-            if card == "Yellow Card":
-                cards.append({"minute": e["minute"], "second": e["second"], "player": _player(e),
-                              "team": e["team"]["name"], "foul": key == "foul_committed"})
-    return sorted(cards, key=lambda c: (c["minute"], c["second"]))
+def leader(scores: dict, n: int = 1) -> dict:
+    """The top player (or n players), or a tie at the boundary."""
+    ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))
+    if not ranked:
+        return tie()
+    if len(ranked) > n and ranked[n - 1][1] == ranked[n][1]:
+        return tie(*[p for p, s in ranked if s == ranked[n - 1][1]])
+    return answer([p for p, _ in ranked[:n]], ranked[n - 1][1] if n == 1 else None)
 
 
-def assist_for(goal: dict) -> str | None:
-    """The pass marked ``goal_assist`` in the same team, closest before the goal."""
-    candidates = [
-        e for e in raw_events()
-        if _type(e) == "Pass" and e["pass"].get("goal_assist")
-        and e["team"]["name"] == goal["team"] and e["minute"] <= goal["minute"]
-    ]
-    return _player(max(candidates, key=lambda e: (e["minute"], e["second"]))) if candidates else None
+def readings_product(**axes):
+    """Every combination of the reading axes, as (label, {axis: value})."""
+    keys = list(axes)
+    for values in itertools.product(*(axes[k] for k in keys)):
+        yield " / ".join(str(v) for v in values), dict(zip(keys, values))
 
 
-def count_by_player(predicate) -> Counter:
-    return Counter(_player(e) for e in raw_events() if predicate(e))
+# --------------------------------------------------------------------------- pass networks (networkx)
 
-
-def completed_passes() -> Counter:
-    return count_by_player(_is_completed_pass)
-
-
-def failed_passes() -> Counter:
-    return count_by_player(lambda e: _type(e) == "Pass" and "outcome" in e["pass"])
-
-
-def completed_passes_between(passer: str, receiver: str) -> int:
-    return sum(
-        1 for e in raw_events()
-        if _is_completed_pass(e) and _player(e) == passer
-        and e["pass"].get("recipient", {}).get("name") == receiver
-    )
-
-
-# --------------------------------------------------------------------------- parquet
-
-def successful_tackles() -> Counter:
-    """Layer 0 definition: ``acao == 'desarme'`` and ``sucesso``."""
+def team_passes(team: str, pass_set=PASS_ACTIONS, mask=None) -> pd.DataFrame:
+    """Completed passes between teammates (the edges of the pass network)."""
     df = actions()
-    return Counter(df[(df.acao == "desarme") & df.sucesso].player_name)
+    p = df[df.acao.isin(pass_set) & df.receiver.notna() & (df.team_name == team)
+           & (df.receiver_team == team) & (df.receiver != df.player_name)]
+    return p if mask is None else p[mask(p)]
 
 
-def _player_teams() -> dict[int, str]:
-    # The same rule as graph/build.py::_write_jogadores: the team of a
-    # player's first action.
-    df = actions().dropna(subset=["player_id"])
-    return df.groupby("player_id").team_name.first().to_dict()
-
-
-def _player_names() -> dict[int, str]:
-    df = actions().dropna(subset=["player_id"])
-    return df.groupby("player_id").player_name.first().to_dict()
-
-
-def completed_pass_actions() -> pd.DataFrame:
-    """The rows that become PASSOU_PARA edges: passes with a known receiver."""
-    df = actions()
-    p = df[df.receiver_player_id.notna() & df.type_name.isin(PASS_TYPES)].copy()
-    p["receiver_id"] = p.receiver_player_id.astype(int)
-    p["receiver_name"] = p.receiver_id.map(_player_names())
-    p["receiver_team"] = p.receiver_id.map(_player_teams())
-    p["passer_team"] = p.player_id.astype(int).map(_player_teams())
-    return p
-
-
-def pass_network(team: str) -> nx.DiGraph:
-    """Replica of graph/projections.py::pass_network.
-
-    Directed; nodes are the team's players; one edge per (a, b) pair with
-    ``n_passes``, ``xt_total`` and ``cost = 1 / (1 + xt_total)``.
-    """
-    p = completed_pass_actions()
-    p = p[(p.passer_team == team) & (p.receiver_team == team)]
-    agg = p.groupby(["player_name", "receiver_name"]).agg(
-        n_passes=("action_id", "size"), xt_total=("xt_value", "sum")
-    )
-    g = nx.DiGraph()
+def pass_network(team: str, direction: str, pass_set=PASS_ACTIONS, mask=None) -> nx.Graph:
+    """Directed: one edge per passer -> receiver. Undirected: both directions of a
+    pair summed. Edge attributes: passes, xt, and the betweenness lengths
+    (``len_passes`` = 1/passes, ``len_xt`` = 1/(1+xt), the layer 2 cost)."""
+    p = team_passes(team, pass_set, mask)
+    agg = p.groupby(["player_name", "receiver"]).agg(passes=("order", "size"), xt=("xt_value", "sum"))
+    g = nx.DiGraph() if direction == "directed" else nx.Graph()
     for (a, b), row in agg.iterrows():
-        g.add_edge(a, b, n_passes=int(row.n_passes), xt_total=float(row.xt_total),
-                   cost=1.0 / (1.0 + float(row.xt_total)))
+        old = g.get_edge_data(a, b, {"passes": 0, "xt": 0.0}) if direction == "undirected" else {"passes": 0, "xt": 0.0}
+        g.add_edge(a, b, passes=old["passes"] + int(row.passes), xt=old["xt"] + float(row.xt))
+    for _, _, e in g.edges(data=True):
+        e["len_passes"], e["len_xt"] = 1.0 / e["passes"], 1.0 / (1.0 + e["xt"])
     return g
 
 
-def betweenness_ranking(team: str) -> list[tuple[str, float]]:
-    """GDS ``gds.betweenness.stream`` with ``relationshipWeightProperty: 'cost'``.
-
-    GDS returns raw (non-normalized) scores, hence ``normalized=False``.
-    """
-    scores = nx.betweenness_centrality(pass_network(team), weight="cost", normalized=False)
-    return sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))
+def betweenness(g: nx.Graph, weight: str) -> dict:
+    """GDS ``gds.betweenness.stream`` equivalent (raw scores, not normalized)."""
+    w = {"none": None, "passes": "len_passes", "xt": "len_xt"}[weight]
+    return nx.betweenness_centrality(g, weight=w, normalized=False)
 
 
-def progressive_trios() -> pd.DataFrame:
-    """Replica of the Cypher in graph/analysis.py::terceiro_homem.
-
-    Two PASSOU_PARA edges a->b->c in the same possession phase, the second
-    1 to 3 action_ids after the first, three distinct players, and the
-    final zone in a more advanced third than the starting zone
-    (``(zone // 8) // 4``: 12x8 grid, 4 columns per third).
-    """
-    p = completed_pass_actions().sort_values("action_id")
-    first = p[["action_id", "possession_id", "player_name", "receiver_name", "passer_team",
-               "zone_start", "xt_value"]]
-    second = p[["action_id", "possession_id", "player_name", "receiver_name", "zone_end", "xt_value"]]
-    m = first.merge(second, left_on=["possession_id", "receiver_name"],
-                    right_on=["possession_id", "player_name"], suffixes=("_1", "_2"))
-    gap = m.action_id_2 - m.action_id_1
-    m = m[(gap > 0) & (gap <= 3)]
-    m = m[(m.player_name_1 != m.receiver_name_2) & (m.player_name_1 != m.receiver_name_1)
-          & (m.receiver_name_1 != m.receiver_name_2)]
-    m = m[(m.zone_end.astype(int) // 8) // 4 > (m.zone_start.astype(int) // 8) // 4]
-    m = m.rename(columns={"player_name_1": "a", "receiver_name_1": "b", "receiver_name_2": "c",
-                          "passer_team": "team"})
-    m["xt"] = m.xt_value_1 + m.xt_value_2
-    out = m.groupby(["team", "a", "b", "c"]).agg(n=("xt", "size"), xt_total=("xt", "sum")).reset_index()
-    return out.sort_values(["n", "xt_total"], ascending=[False, False]).reset_index(drop=True)
+def link_readings(team: str, cuts: dict | None = None) -> dict:
+    """'Main link of the ball circulation': top betweenness in every reading."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, direction=DIRECTIONS, weight=WEIGHTS,
+                                     **({"cut": list(cuts)} if cuts else {})):
+        mask = cuts[r["cut"]] if cuts else None
+        g = pass_network(team, r["direction"], PASS_SETS[r["passes"]], mask)
+        out[label] = leader(betweenness(g, r["weight"]))
+    return out
 
 
-# --------------------------------------------------------------------------- answers
-
-def _answer(source: str, players=(), value=None, no_data=False, detail="") -> dict:
-    return {"source": source, "players": list(players), "value": value, "no_data": no_data,
-            "detail": detail}
-
-
-def _top(counter: Counter, n: int = 1) -> list[tuple[str, int]]:
-    """Top n, refusing ties at the boundary: a tie would make the question ambiguous."""
-    ranked = counter.most_common()
-    if len(ranked) > n and ranked[n - 1][1] == ranked[n][1]:
-        raise ValueError(f"tie at position {n}: {ranked[: n + 1]}")
-    return ranked[:n]
-
-
-def _pivot(team: str, position: int = 1) -> tuple[str, float]:
-    ranking = betweenness_ranking(team)
-    if ranking[position - 1][1] == ranking[position][1]:
-        raise ValueError(f"betweenness tie at position {position} for {team}: {ranking[:position + 1]}")
-    return ranking[position - 1]
+def pair_readings(team: str, cuts: dict | None = None) -> dict:
+    """'Pair that exchanged the most passes': the heaviest connection, with both
+    directions summed (undirected) or one direction only (directed)."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, direction=DIRECTIONS,
+                                     **({"cut": list(cuts)} if cuts else {})):
+        mask = cuts[r["cut"]] if cuts else None
+        g = pass_network(team, r["direction"], PASS_SETS[r["passes"]], mask)
+        edges = sorted(((d["passes"], tuple(sorted((a, b)))) for a, b, d in g.edges(data=True)), reverse=True)
+        if len(edges) > 1 and edges[0][0] == edges[1][0]:
+            out[label] = tie(*[pair for n, pair in edges if n == edges[0][0]])
+        else:
+            out[label] = answer(edges[0][1], edges[0][0])
+    return out
 
 
-def _top_trio(team: str) -> tuple[list[str], int]:
-    t = progressive_trios()
-    t = t[t.team == team]
-    if t.iloc[0].n == t.iloc[1].n:
-        raise ValueError(f"trio tie for {team}: {t.head(2).to_dict('records')}")
-    row = t.iloc[0]
-    return [row.a, row.b, row.c], int(row.n)
+def isolating_player_readings(team: str, cuts: dict | None = None) -> dict:
+    """'Player without whom a teammate would exchange passes with nobody': the
+    articulation points of the network. Direction does not matter (a player
+    cut off in the undirected network is cut off in both directions)."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, **({"cut": list(cuts)} if cuts else {})):
+        mask = cuts[r["cut"]] if cuts else None
+        points = sorted(nx.articulation_points(pass_network(team, "undirected", PASS_SETS[r["passes"]], mask)))
+        out[label] = answer(points) if len(points) == 1 else tie(*points)
+    return out
+
+
+def partners_readings(team: str, cuts: dict | None = None) -> dict:
+    """'Exchanged passes with the most different teammates': distinct partners
+    in either direction, as passer only, or as receiver only."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, partners=("either direction", "passed to", "received from"),
+                                     **({"cut": list(cuts)} if cuts else {})):
+        mask = cuts[r["cut"]] if cuts else None
+        if r["partners"] == "either direction":
+            g = pass_network(team, "undirected", PASS_SETS[r["passes"]], mask)
+            degree = dict(g.degree())
+        else:
+            g = pass_network(team, "directed", PASS_SETS[r["passes"]], mask)
+            degree = dict(g.out_degree() if r["partners"] == "passed to" else g.in_degree())
+        out[label] = leader(degree)
+    return out
+
+
+def receiver_readings(passer: str, cuts: dict | None = None) -> dict:
+    """'The teammate who received the most passes from X'."""
+    out = {}
+    df = actions()
+    for label, r in readings_product(passes=PASS_SETS, **({"cut": list(cuts)} if cuts else {})):
+        p = df[df.acao.isin(PASS_SETS[r["passes"]]) & (df.player_name == passer) & df.receiver.notna()
+               & (df.receiver_team == df.team_name)]
+        if cuts:
+            p = p[cuts[r["cut"]](p)]
+        out[label] = leader(Counter(p.receiver))
+    return out
+
+
+def chains(team: str, length: int, same_possession: bool, consecutive: bool, pass_set=PASS_ACTIONS,
+           first=None) -> Counter:
+    """Sequences of completed passes A -> B -> C ...: after receiving, the link
+    is the receiver's next pass attempt; the chain stops if it is not
+    completed. same_possession: whole chain in one possession; consecutive:
+    no other pass attempt, by anyone, between two linked passes. ``first``
+    selects the passes that may start a chain."""
+    df = actions()
+    attempts = df[df.acao.isin(pass_set)].reset_index(drop=True)
+    ok = (attempts.receiver.notna() & (attempts.receiver_team == attempts.team_name)
+          & (attempts.receiver != attempts.player_name))
+    by_passer: dict[str, list[int]] = {}
+    for i, name in enumerate(attempts.player_name):
+        by_passer.setdefault(name, []).append(i)
+    starts = attempts.index if first is None else attempts.index[first(attempts)]
+    counts: Counter = Counter()
+    for i in starts:
+        if attempts.team_name[i] != team or not ok[i]:
+            continue
+        seq, cur = [attempts.player_name[i], attempts.receiver[i]], i
+        for _ in range(length - 1):
+            later = [k for k in by_passer.get(attempts.receiver[cur], []) if k > cur]
+            if not later or not ok[later[0]]:
+                break
+            nxt = later[0]
+            if same_possession and attempts.possession_id[nxt] != attempts.possession_id[cur]:
+                break
+            if consecutive and nxt != cur + 1:
+                break
+            seq.append(attempts.receiver[nxt])
+            cur = nxt
+        else:
+            counts[tuple(seq)] += 1
+    return counts
+
+
+def trio_readings(team: str, first=None) -> dict:
+    """'The sequence of three different players, one passing to the next, that
+    repeated the most'."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, possession=("same possession", "any possession"),
+                                     link=("consecutive passes", "other passes between allowed")):
+        c = chains(team, 2, r["possession"] == "same possession", r["link"] == "consecutive passes",
+                   PASS_SETS[r["passes"]], first)
+        c = Counter({s: n for s, n in c.items() if len(set(s)) == 3})
+        ranked = c.most_common()
+        if len(ranked) > 1 and ranked[0][1] == ranked[1][1]:
+            out[label] = tie(*[s for s, n in ranked if n == ranked[0][1]])
+        else:
+            out[label] = answer(ranked[0][0], ranked[0][1])
+    return out
+
+
+# --------------------------------------------------------------------------- the questions
+
+def f01() -> dict:
+    cards = sorted(
+        ((e["minute"], e["second"], _player(e)) for e in raw_events()
+         for key in ("foul_committed", "bad_behaviour")
+         if e.get(key, {}).get("card", {}).get("name") == "Yellow Card"))
+    return {"raw JSON": answer([cards[0][2]])}
+
+
+def f02() -> dict:
+    fouls = [e for e in raw_events() if _type(e) == "Foul Committed" and e.get("foul_committed", {}).get("penalty")]
+    return {"raw JSON (foul flagged as penalty)": answer([_player(fouls[0])])}
+
+
+def f03() -> dict:
+    goal = next(e for e in raw_events() if _type(e) == "Shot" and e["shot"]["outcome"]["name"] == "Goal"
+                and e["period"] == 4 and _player(e).startswith("Lionel"))
+    saved = [e for e in raw_events() if _type(e) == "Shot" and e["shot"]["outcome"]["name"] == "Saved"
+             and e["index"] < goal["index"] and e["possession"] == goal["possession"]]
+    return {"raw JSON (saved shot in the goal's possession)": answer([_player(saved[-1])])}
+
+
+def f04() -> dict:
+    goals = [e for e in raw_events() if _type(e) == "Shot" and e["shot"]["outcome"]["name"] == "Goal"]
+    equalizer = goals[3]  # 2-2, regular time
+    assist = [e for e in raw_events() if _type(e) == "Pass" and e["pass"].get("goal_assist")
+              and e["index"] < equalizer["index"]][-1]
+    df = actions()
+    last_pass = df[(df.order < goal_order(4)) & (df.receiver == equalizer["player"]["name"])].iloc[-1]
+    return {"raw JSON (goal_assist)": answer([_player(assist)]),
+            "layer 0 (last pass to the scorer)": answer([last_pass.player_name])}
+
+
+def _final_third_passers(team: str) -> dict:
+    df = actions()
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, third=("third where the pass starts", "third where it ends")):
+        p = df[df.acao.isin(PASS_SETS[r["passes"]]) & df.sucesso & (df.team_name == team)]
+        p = p[p.terco == "ataque"] if r["third"].startswith("third where the pass starts") else p[p.zone_end // 8 >= 8]
+        out[label] = leader(Counter(p.player_name))
+    return out
+
+
+def a01() -> dict:
+    return _final_third_passers("Argentina")
+
+
+def a02() -> dict:
+    return _final_third_passers("France")
+
+
+def _shots_after_equalizer(team: str) -> dict:
+    df = actions()
+    out = {}
+    for inclusive in (True, False):
+        cut = "with the 2-2 shot" if inclusive else "without the 2-2 shot"
+        shots = df[after(goal_order(4), inclusive)(df) & (df.grupo_acao == "finalizacao") & (df.team_name == team)]
+        out[f"layer 0 / {cut}"] = answer(value=len(shots))
+    # the same count from the raw JSON
+    goal_index = [e for e in raw_events() if _type(e) == "Shot" and e["shot"]["outcome"]["name"] == "Goal"][3]["index"]
+    for inclusive in (True, False):
+        cut = "with the 2-2 shot" if inclusive else "without the 2-2 shot"
+        n = sum(1 for e in raw_events() if _type(e) == "Shot" and e["team"]["name"] == team
+                and (e["index"] >= goal_index if inclusive else e["index"] > goal_index))
+        out[f"raw JSON / {cut}"] = answer(value=n)
+    return out
+
+
+def a03() -> dict:
+    return _shots_after_equalizer("Argentina")
+
+
+def a04() -> dict:
+    return _shots_after_equalizer("France")
+
+
+def a05() -> dict:
+    df = actions()
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, cut=("goals included", "goals excluded")):
+        window = between(goal_order(2), goal_order(3), r["cut"] == "goals included")
+        p = df[window(df) & df.acao.isin(PASS_SETS[r["passes"]]) & df.sucesso & (df.team_name == "Argentina")]
+        out[label] = leader(Counter(p.player_name))
+    return out
+
+
+def a06() -> dict:
+    df = actions()
+    t = df[periods(3, 4)(df) & (df.acao == "desarme") & df.sucesso & (df.team_name == "Argentina")]
+    return {"layer 0 (tackles won)": leader(Counter(t.player_name))}
+
+
+def n01() -> dict:
+    return link_readings("Argentina")
+
+
+def n02() -> dict:
+    return link_readings("France")
+
+
+def n03() -> dict:
+    return isolating_player_readings("Argentina")
+
+
+def n04() -> dict:
+    return pair_readings("France")
+
+
+def n05() -> dict:
+    return pair_readings("Argentina")
+
+
+def s01() -> dict:
+    return link_readings("France", {"extra time": periods(3, 4)})
+
+
+def s02() -> dict:
+    cuts = {"goals included": between(goal_order(2), goal_order(3), True),
+            "goals excluded": between(goal_order(2), goal_order(3), False)}
+    return link_readings("France", cuts)
+
+
+def s03() -> dict:
+    cuts = {"with the 2-2 goal": after(goal_order(4), True), "without the 2-2 goal": after(goal_order(4), False)}
+    return pair_readings("France", cuts)
+
+
+def s04() -> dict:
+    return pair_readings("Argentina", {"2nd half": periods(2)})
+
+
+def f05() -> dict:
+    shots = [e for e in raw_events() if _type(e) == "Shot" and e["team"]["name"] == "France"]
+    open_play = [e for e in shots if e["shot"]["type"]["name"] != "Penalty"]
+    df = actions()
+    l0 = df[(df.team_name == "France") & (df.grupo_acao == "finalizacao")]
+    return {"raw JSON / every shot": answer([_player(shots[-1])]),
+            "raw JSON / penalties excluded": answer([_player(open_play[-1])]),
+            "layer 0": answer([l0.player_name.iloc[-1]])}
+
+
+def f06() -> dict:
+    cards = [e for e in raw_events() if e.get("bad_behaviour", {}).get("card", {}).get("name") == "Yellow Card"]
+    return {"raw JSON (Bad Behaviour card)": answer([_player(e) for e in cards])}
+
+
+def a07() -> dict:
+    raw = Counter(_player(e) for e in raw_events() if _type(e) == "Foul Committed" and e["period"] == 2)
+    df = actions()
+    l0 = Counter(df[(df.period_id == 2) & (df.acao == "falta_cometida")].player_name)
+    return {"raw JSON": leader(raw), "layer 0": leader(l0)}
+
+
+def a08() -> dict:
+    raw = Counter(_player(e) for e in raw_events() if _type(e) == "Dribble" and e["period"] >= 3
+                  and e["dribble"]["outcome"]["name"] == "Complete")
+    df = actions()
+    l0 = Counter(df[periods(3, 4)(df) & (df.acao == "drible") & df.sucesso].player_name)
+    return {"raw JSON": leader(raw), "layer 0": leader(l0)}
+
+
+def a09() -> dict:
+    raw = Counter(_player(e) for e in raw_events() if _type(e) == "Interception" and e["period"] == 1)
+    df = actions()
+    l0 = Counter(df[(df.period_id == 1) & (df.acao == "interceptacao")].player_name)
+    return {"raw JSON (every interception)": leader(raw), "layer 0 (successful only)": leader(l0)}
+
+
+def n06() -> dict:
+    return partners_readings("Argentina")
+
+
+def n07() -> dict:
+    return partners_readings("France")
+
+
+def n08() -> dict:
+    return receiver_readings("Lionel Andrés Messi Cuccittini")
+
+
+def n09() -> dict:
+    return trio_readings("France")
+
+
+def n10() -> dict:
+    return trio_readings("Argentina")
+
+
+def s05() -> dict:
+    return isolating_player_readings("Argentina", {"extra time": periods(3, 4)})
+
+
+def s06() -> dict:
+    return receiver_readings("Enzo Fernandez", {"2nd half": periods(2)})
+
+
+def s07() -> dict:
+    return trio_readings("Argentina", periods(3, 4))
+
+
+def s08() -> dict:
+    return partners_readings("France", {"1st half": periods(1)})
+
+
+def s09() -> dict:
+    return partners_readings("Argentina", {"extra time": periods(3, 4)})
+
+
+ANSWERS = {name: fn for name, fn in globals().items() if callable(fn) and name[:1] in "fansu"
+           and name[1:].isdigit()}
+
+# A premise a question states, which must be stable too even though the
+# check does not look at it: s04 says the 1st half pair is no longer the
+# main one in the 2nd half.
+CONTEXT = {"s04": lambda: pair_readings("Argentina", {"1st half": periods(1)})}
+
+
+# --------------------------------------------------------------------------- stability
+
+def key(q: Question, a: dict):
+    """What the question's check looks at, so readings can be compared."""
+    if "tie" in a:
+        return ("tie",)
+    if q.check == "player":
+        return a["players"][:1]
+    if q.check == "set":
+        return tuple(sorted(a["players"]))
+    if q.check == "value":
+        return a["value"]
+    return (a["players"][:1], a["value"])  # player_and_value
+
+
+def evaluate(q: Question) -> dict:
+    if q.type == "unanswerable":
+        return {"players": [], "value": None, "no_data": True, "stable": True, "readings": {},
+                "detail": q.note}
+    readings = ANSWERS[q.id]()
+    stable = _agree(q, readings)
+    first = next(iter(readings.values()))
+    out = {
+        "players": first["players"] if stable else None,
+        # a count that varies across readings is not part of a player check
+        "value": first.get("value") if stable and q.check in ("value", "player_and_value") else None,
+        "no_data": False,
+        "stable": stable,
+        "readings": readings,
+    }
+    if q.id in CONTEXT:
+        context = CONTEXT[q.id]()
+        out["context_readings"] = context
+        out["stable"] = stable and _agree(q, context)
+    return out
+
+
+def _agree(q: Question, readings: dict) -> bool:
+    keys = {str(key(q, a)) for a in readings.values()}
+    return len(keys) == 1 and "('tie',)" not in keys
 
 
 def compute() -> dict[str, dict]:
-    g = goals()
-    cards = yellow_cards()
-    shots = count_by_player(lambda e: _type(e) == "Shot")
-    fouls = count_by_player(lambda e: _type(e) == "Foul Committed")
-    dribbles = count_by_player(lambda e: _type(e) == "Dribble" and e["dribble"]["outcome"]["name"] == "Complete")
-    passes_ok = completed_passes()
-    france_goals = [x for x in g if x["team"] == "France"]
-
-    arg_pivot, arg_pivot_score = _pivot("Argentina")
-    fra_pivot, fra_pivot_score = _pivot("France")
-    arg_second, arg_second_score = _pivot("Argentina", 2)
-    fra_trio, fra_trio_n = _top_trio("France")
-    trios = progressive_trios()
-    arg_repeated = trios[(trios.team == "Argentina") & (trios.n >= 2)]
-
-    (top_passer, top_passes), = _top(passes_ok)
-    (top_dribbler, top_dribbles), = _top(dribbles)
-    (top_fouler, top_fouls), = _top(fouls)
-    top_tacklers = _top(successful_tackles(), 3)
-    (trio_best_passer, trio_best_passes), = _top(Counter({p: passes_ok[p] for p in fra_trio}))
-
-    gt = {
-        "f01": _answer("raw_json", [g[0]["player"]], detail=f"goal at StatsBomb minute {g[0]['minute']}"),
-        "f02": _answer("raw_json", value=len(g), detail=str([(x["minute"], x["player"]) for x in g])),
-        "f03": _answer("raw_json", [assist_for(france_goals[1])],
-                       detail=f"France's 2nd goal, StatsBomb minute {france_goals[1]['minute']}"),
-        "f04": _answer("raw_json", [cards[0]["player"]], detail=f"StatsBomb minute {cards[0]['minute']}"),
-        "f05": _answer("raw_json", [c["player"] for c in cards if not c["foul"]],
-                       detail="the only yellow card from a Bad Behaviour event"),
-        "f06": _answer("raw_json", value=shots["Lautaro Javier Martínez"]),
-        "a01": _answer("parquet", [p for p, _ in top_tacklers], detail=str(top_tacklers)),
-        "a02": _answer("raw_json", [top_passer], top_passes),
-        "a03": _answer("raw_json", [top_dribbler], top_dribbles),
-        "a04": _answer("raw_json", value=sum(1 for e in raw_events() if _type(e) == "Shot"
-                                             and e["team"]["name"] == "France")),
-        "a05": _answer("raw_json", [top_fouler], top_fouls),
-        "a06": _answer("raw_json", [c["player"] for c in cards if c["team"] == "France"]),
-        "s01": _answer("parquet", [arg_pivot], detail=f"betweenness {arg_pivot_score}"),
-        "s02": _answer("parquet", [fra_pivot], detail=f"betweenness {fra_pivot_score}"),
-        "s03": _answer("parquet", [arg_second], detail=f"betweenness {arg_second_score}"),
-        "s04": _answer("parquet", [fra_trio[1]], detail=f"{' -> '.join(fra_trio)}, {fra_trio_n}x"),
-        "s05": _answer("parquet", fra_trio, detail=f"{' -> '.join(fra_trio)}, {fra_trio_n}x"),
-        "s06": _answer("parquet", value=len(arg_repeated),
-                       detail=str([" -> ".join((r.a, r.b, r.c)) for r in arg_repeated.itertuples()])),
-        "c01": _answer("parquet+raw_json", value=failed_passes()[arg_pivot], detail=f"pivot: {arg_pivot}"),
-        "c02": _answer("parquet+raw_json", value=passes_ok[fra_pivot], detail=f"pivot: {fra_pivot}"),
-        "c03": _answer("parquet", value=successful_tackles()[arg_second], detail=f"2nd: {arg_second}"),
-        "c04": _answer("parquet+raw_json", [trio_best_passer],
-                       detail=str({p: passes_ok[p] for p in fra_trio})),
-        "c05": _answer("parquet+raw_json", value=completed_passes_between(arg_pivot, arg_second),
-                       detail=f"{arg_pivot} -> {arg_second}"),
-        "c06": _answer("parquet+raw_json", value=fouls[fra_pivot], detail=f"pivot: {fra_pivot}"),
-    }
-    for q in QUESTIONS:
-        if q.type == "unanswerable":
-            gt[q.id] = _answer("none", no_data=True,
-                               detail="StatsBomb event data has no tracking, physiological or venue data")
-    assert set(gt) == {q.id for q in QUESTIONS}
-    return {q.id: gt[q.id] for q in QUESTIONS}
+    missing = [q.id for q in ALL_QUESTIONS if q.type != "unanswerable" and q.id not in ANSWERS]
+    if missing:
+        raise ValueError(f"no answer function for {missing}")
+    return {q.id: evaluate(q) for q in ALL_QUESTIONS}
 
 
 def ground_truth_path() -> Path:

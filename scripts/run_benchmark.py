@@ -2,7 +2,7 @@
 """Run the benchmark: questions x arms x repeats, one results.jsonl line per run.
 
 Usage:
-    python scripts/run_benchmark.py                       # all: 30 questions x 5 arms x 3 repeats
+    python scripts/run_benchmark.py                       # active questions x configured arms x 3 repeats
     python scripts/run_benchmark.py --repeats 1
     python scripts/run_benchmark.py --arms no_context,stats_in_prompt,graph_tools
     python scripts/run_benchmark.py --questions f01,s02
@@ -25,8 +25,8 @@ import sys
 from pathlib import Path
 
 from football_graphrag.benchmark import ground_truth
-from football_graphrag.benchmark.arms import ARMS, missing_config
-from football_graphrag.benchmark.questions import QUESTION_TYPES, QUESTIONS, get_question
+from football_graphrag.benchmark.arms import ARMS, configured_arms, missing_config
+from football_graphrag.benchmark.questions import QUESTION_SET, QUESTION_TYPES, QUESTIONS, get_question
 from football_graphrag.benchmark.runner import result_row, run_one
 from football_graphrag.benchmark.summary import load_rows, write_summary
 from football_graphrag.config import get_settings
@@ -37,12 +37,14 @@ logger = logging.getLogger("run_benchmark")
 
 
 def default_output() -> Path:
-    return get_settings().data_dir / "benchmark" / "results.jsonl"
+    """pilot_results.jsonl while only the pilot questions are active, else results.jsonl."""
+    name = "pilot_results.jsonl" if QUESTION_SET.active_stages == ("pilot",) else "results.jsonl"
+    return get_settings().data_dir / "benchmark" / name
 
 
 async def main(args) -> int:
     settings = get_settings()
-    arms = args.arms.split(",") if args.arms else list(ARMS)
+    arms = args.arms.split(",") if args.arms else configured_arms()
     for a in arms:
         if a not in ARMS:
             print(f"unknown arm {a!r}; valid: {', '.join(ARMS)}")
@@ -105,7 +107,8 @@ async def main(args) -> int:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--repeats", type=int, default=3)
-    parser.add_argument("--arms", help=f"comma-separated subset of: {','.join(ARMS)}")
+    parser.add_argument("--arms", help=f"comma-separated subset of: {','.join(ARMS)} "
+                                       "(default: the arms in config/benchmark.yaml)")
     parser.add_argument("--questions", help="comma-separated question ids, e.g. f01,s02")
     parser.add_argument("--sample", action="store_true", help="first question of each type, 1 repeat")
     parser.add_argument("--resume", action="store_true", help="skip runs already in the output file")

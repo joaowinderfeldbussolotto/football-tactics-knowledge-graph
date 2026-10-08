@@ -1,0 +1,7 @@
+# Quais braços rodar por padrão.
+#
+# run_benchmark.py e ask.py usam esta lista quando a linha de comando não diz
+# outra coisa (--arms em run_benchmark.py, --arm em ask.py). Para a rodada
+# que consolida os resultados, liste os cinco:
+#   no_context, vector, events_in_prompt, stats_in_prompt, graph_tools
+arms: [events_in_prompt, graph_tools]

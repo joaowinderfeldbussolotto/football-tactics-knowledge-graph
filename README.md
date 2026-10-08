@@ -8,8 +8,9 @@ Um benchmark que responde uma pergunta:
 > por ferramentas?
 
 Os dados são a final da Copa do Mundo de 2022, Argentina x França (StatsBomb
-Open Data). São 30 perguntas fechadas, cada uma com resposta certa calculada
-por código e corrigida por código; nenhum LLM dá nota.
+Open Data). São 25 perguntas fechadas, cada uma com resposta certa calculada
+por código, testada em todas as leituras razoáveis da pergunta, e corrigida
+por código; nenhum LLM dá nota.
 
 ## Comece por aqui
 
@@ -25,6 +26,7 @@ A documentação foi escrita para ser lida em ordem, sem conhecimento prévio:
 | [6. Como rodar](docs/06-como-rodar.md) | passo a passo do zero, local ou Docker, e solução de problemas |
 | [7. Decisões e limitações](docs/07-decisoes-e-limitacoes.md) | por que cada escolha, problemas achados nos dados, o que o benchmark não diz |
 | [8. Glossário](docs/08-glossario.md) | todos os termos técnicos em linguagem simples |
+| [9. Transformações dos dados](docs/09-transformacoes-dos-dados.md) | tudo o que acontece com os dados, do JSON bruto ao que cada braço vê, e como o gabarito é calculado |
 | [Registro das execuções](docs/execucoes/README.md) | cada execução do benchmark: configuração, custo real, resultado, achados e links para os traces |
 
 ## Em uma tabela
@@ -33,17 +35,17 @@ A documentação foi escrita para ser lida em ordem, sem conhecimento prévio:
 |---|---|
 | `no_context` | só a pergunta (mede a memória do modelo) |
 | `vector` | as 30 linhas de evento mais parecidas com a pergunta |
-| `events_in_prompt` | todos os 2.585 lances da partida (~68 mil tokens) |
+| `events_in_prompt` | todos os 2.585 lances da partida (~111 mil tokens) |
 | `stats_in_prompt` | a súmula por jogador e por time |
-| `graph_tools` | 8 ferramentas que consultam o grafo no Neo4j |
+| `graph_tools` | 7 ferramentas primitivas que consultam o grafo no Neo4j |
 
-| Tipo de pergunta (6 de cada) | Exemplo |
+| Tipo de pergunta (5 de cada) | Exemplo |
 |---|---|
-| `factual` | "Quem deu a assistência para o segundo gol da França na final?" |
-| `aggregation` | "Quem fez mais desarmes certos na final? Liste os 3 primeiros." |
-| `structural` | "Quem foi o jogador da Argentina por quem passava o maior número de rotas de passe entre os companheiros?" |
-| `composite` | "Quantos passes errou esse jogador?" |
-| `unanswerable` | "Qual foi a velocidade máxima atingida por Mbappé na final?" |
+| `fact` | "Quem cometeu a falta que deu origem ao primeiro pênalti da final?" |
+| `filtered_aggregation` | "Depois do gol que deixou o placar em 2 a 2 no tempo normal, quantas finalizações a Argentina fez até o fim da prorrogação?" |
+| `network` | "Qual dupla da França mais trocou passes entre si na final?" |
+| `network_slice` | "Na prorrogação, quem foi o principal elo da circulação de bola da França?" |
+| `unanswerable` | "Quantos minutos Messi passou no campo de ataque durante a final?" |
 
 As perguntas ficam em [`config/questions.yaml`](config/questions.yaml).
 
@@ -56,7 +58,7 @@ Com Docker e Python 3.11 (detalhes e caminho só com Docker no
 cp .env.example .env                       # preencha as chaves de LLM e de embeddings
 scripts/local_setup.sh                     # ambiente, Neo4j e camadas de dados, sem custo de API
 source .venv/bin/activate
-python scripts/check_ground_truth.py       # gabarito x grafo: tem de dar 30/30
+python scripts/check_ground_truth.py       # gabarito x grafo: tem de dar 25/25
 python scripts/run_benchmark.py --sample   # 1 pergunta por tipo, centavos
 ```
 
@@ -64,7 +66,7 @@ Depois, a execução completa (`python scripts/run_benchmark.py --fresh`).
 
 ## Fazer perguntas livres
 
-Qualquer pergunta sobre a final, fora das 30 do benchmark. Não há gabarito:
+Qualquer pergunta sobre a final, fora as do benchmark. Não há gabarito:
 a resposta é mostrada, não corrigida.
 
 ```bash

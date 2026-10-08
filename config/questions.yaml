@@ -1,11 +1,16 @@
-# Perguntas do benchmark: a final da Copa do Mundo de 2022 (Argentina x França).
+# Perguntas do benchmark (v2): a final da Copa do Mundo de 2022 (Argentina x França).
 #
 # Este arquivo é a única fonte das perguntas. O código lê daqui
 # (src/football_graphrag/benchmark/questions.py) e valida ao carregar.
 #
 # Campos de cada pergunta:
-#   id         prefixo pelo tipo: f, a, s, c, u + número (f01, a01, ...)
-#   type       factual | aggregation | structural | composite | unanswerable
+#   id         prefixo pelo tipo + número: f (fact), a (filtered_aggregation),
+#              n (network), s (network_slice), u (unanswerable)
+#   type       fact | filtered_aggregation | network | network_slice | unanswerable
+#   stage      pilot     entra na rodada piloto
+#              full      entra só na rodada completa (junto com as pilot)
+#              candidate escrita e estável, mas fora das rodadas
+#              removed   a resposta muda conforme a leitura: fica só como registro
 #   check      como a resposta é conferida:
 #                player            o 1º jogador da resposta é o esperado
 #                value             o número é o esperado (dentro de tolerance)
@@ -14,278 +19,348 @@
 #                no_data           o modelo disse que os dados não respondem
 #   tolerance  opcional; só para valores contínuos. Contagens são exatas (0).
 #   text       a pergunta, exatamente como vai para o modelo
-#   note       opcional; por que a pergunta existe ou um cuidado. NÃO vai para o modelo.
+#   note       opcional; por que a pergunta existe, por que saiu ou um cuidado.
+#              NÃO vai para o modelo.
 #
-# Regras para mudar ou acrescentar perguntas:
-#   - sempre fechada ("quem", "quantos", "quais"), com resposta única e sem empate;
-#   - 6 por tipo (a validação recusa outra quantidade);
-#   - em linguagem de futebol: nada de nome de tool ou de algoritmo
+# Regras para escrever perguntas (capítulo 3 da documentação):
+#   - linguagem de futebol, sem definição operacional e sem jargão de algoritmo
 #     (tests/test_questions.py falha com "betweenness", "xT", "grafo" etc.);
-#   - depois de mudar, recalcule o gabarito e confira contra o grafo:
-#       python -m football_graphrag.benchmark.ground_truth
-#       python scripts/check_ground_truth.py
-#     Pergunta nova também precisa de resposta em ground_truth.py.
+#   - fechadas ("quem", "quantos", "quais"), com resposta única;
+#   - a resposta é calculada em todas as leituras razoáveis da pergunta
+#     (ground_truth.py); se muda conforme a leitura, a pergunta sai
+#     (stage: removed), sem acrescentar definição ao texto;
+#   - as tools foram congeladas antes das perguntas (tag v2-tools-frozen):
+#     nenhuma tool é criada ou alterada para uma pergunta.
+#
+# Depois de mudar, recalcule o gabarito e confira contra o grafo:
+#   python -m football_graphrag.benchmark.ground_truth
+#   python scripts/check_ground_truth.py
 
 match_id: 3869685
 
+# Quais estágios estão ativos e quantas perguntas por tipo eles têm de somar.
+# Piloto: [pilot] e 2 por tipo. Rodada completa: [pilot, full] e 5 por tipo.
+active_stages: [pilot, full]
+per_type: 5
+
 questions:
 
-  # ---- factual: achar um fato
+  # ---- fact: achar um evento
   - id: f01
-    type: factual
+    type: fact
+    stage: full
     check: player
     text: >-
-      Quem marcou o primeiro gol da final?
-    note: >-
-      Resposta amplamente conhecida (Messi, de pênalti). Uma das 2 permitidas: o braço
-      no_context mede o efeito da memória do modelo.
+      Quem recebeu o primeiro cartão amarelo da final?
   - id: f02
-    type: factual
-    check: value
+    type: fact
+    stage: pilot
+    check: player
     text: >-
-      Quantos gols foram marcados na final, somando tempo normal e prorrogação (sem contar a
-      disputa de pênaltis)?
+      Quem cometeu a falta que deu origem ao primeiro pênalti da final?
     note: >-
-      Resposta amplamente conhecida (6). A outra das 2 permitidas.
+      Dembélé, em Di María (20'). O pênalti é cobrado no minuto seguinte; é preciso achar a
+      falta antes dele.
   - id: f03
-    type: factual
+    type: fact
+    stage: pilot
     check: player
     text: >-
-      Quem deu a assistência para o segundo gol da França na final?
+      No lance do gol de Messi na prorrogação, o goleiro francês tinha feito uma defesa
+      instantes antes. Quem deu o chute que ele defendeu?
     note: >-
-      O primeiro gol da França foi de pênalti (sem assistência); o segundo teve passe de
-      Thuram.
+      Lautaro Martínez (108'); Messi marcou no rebote.
   - id: f04
-    type: factual
+    type: fact
+    stage: full
     check: player
     text: >-
-      Quem foi o primeiro jogador a receber cartão amarelo na final?
-    note: >-
-      Exige ordenar os cartões no tempo; o de Enzo foi nos acréscimos do 1º tempo.
+      Quem deu o passe para o gol que deixou o placar em 2 a 2 no tempo normal?
+
   - id: f05
-    type: factual
+    type: fact
+    stage: full
     check: player
     text: >-
-      Qual jogador recebeu cartão amarelo na final sem ter cometido falta?
+      Quem fez a última finalização da França na final, antes da disputa de pênaltis?
     note: >-
-      O amarelo de Giroud foi por reclamação (evento 'Bad Behaviour' no StatsBomb), não por
-      falta.
+      Kolo Muani (122'), defendida por Emiliano Martínez. Escrita depois do congelamento da v2.2.
   - id: f06
-    type: factual
-    check: value
+    type: fact
+    stage: candidate
+    check: player
     text: >-
-      Quantas finalizações Lautaro Martínez fez na final?
+      Quem levou cartão amarelo na final sem ter cometido falta?
     note: >-
-      "Martínez" sozinho seria ambíguo (Lautaro ou Emiliano); aqui o nome completo vem na
-      pergunta.
+      Giroud (94'), por reclamação.
 
-  # ---- aggregation: contar e ordenar muitos eventos
+  # ---- filtered_aggregation: filtrar, contar e ordenar, com recorte
   - id: a01
-    type: aggregation
-    check: set
+    type: filtered_aggregation
+    stage: full
+    check: player
     text: >-
-      Quem fez mais desarmes certos na final? Liste os 3 primeiros.
-    note: >-
-      Ranking sem empate na 3ª posição (Enzo 5, Tagliafico 4, Camavinga 4; o 4º tem 3). A
-      ordem não é conferida.
+      Quem deu mais passes certos no terço final do campo pela Argentina?
   - id: a02
-    type: aggregation
-    check: player_and_value
+    type: filtered_aggregation
+    stage: removed
+    check: player
     text: >-
-      Qual jogador deu mais passes certos na final, e quantos foram?
+      Quem deu mais passes certos no terço final do campo pela França?
     note: >-
-      Passes certos batem no JSON bruto e no SPADL. Passes TENTADOS não batem (o SPADL
-      descarta alguns), por isso não são perguntados.
+      Muda com a leitura: Rabiot e Mbappé empatam ou se alternam conforme o terço seja o de
+      origem ou o de destino do passe, e conforme entrem cruzamentos e bolas paradas.
   - id: a03
-    type: aggregation
-    check: player_and_value
+    type: filtered_aggregation
+    stage: pilot
+    check: value
     text: >-
-      Qual jogador completou mais dribles na final, e quantos foram?
-    note: >-
-      Drible = tentativa de passar pelo marcador (take-on), não condução de bola.
+      Depois do gol que deixou o placar em 2 a 2 no tempo normal, quantas finalizações a
+      Argentina fez até o fim da prorrogação?
   - id: a04
-    type: aggregation
+    type: filtered_aggregation
+    stage: removed
     check: value
     text: >-
-      Quantas finalizações a França fez na final (tempo normal e prorrogação)?
+      Depois do gol que deixou o placar em 2 a 2 no tempo normal, quantas finalizações a
+      França fez até o fim da prorrogação?
     note: >-
-      Inclui pênaltis cobrados no jogo; exclui a disputa de pênaltis.
+      Muda com a leitura: o próprio chute do 2 a 2 é da França e entra ou não no "depois".
   - id: a05
-    type: aggregation
+    type: filtered_aggregation
+    stage: pilot
     check: player_and_value
     text: >-
-      Qual jogador cometeu mais faltas na final, e quantas foram?
-    note: >-
-      Julián Álvarez: 8 faltas, o dobro do 2º colocado.
+      Enquanto a Argentina vencia por 2 a 0, qual jogador argentino acertou mais passes, e
+      quantos?
   - id: a06
-    type: aggregation
+    type: filtered_aggregation
+    stage: full
+    check: player
+    text: >-
+      Na prorrogação, quem fez mais desarmes certos pela Argentina?
+
+  - id: a07
+    type: filtered_aggregation
+    stage: full
+    check: player
+    text: >-
+      No segundo tempo, quem cometeu mais faltas?
+    note: >-
+      Julián Álvarez (4). Escrita depois do congelamento da v2.2.
+  - id: a08
+    type: filtered_aggregation
+    stage: candidate
+    check: player
+    text: >-
+      Na prorrogação, quem completou mais dribles?
+  - id: a09
+    type: filtered_aggregation
+    stage: removed
+    check: player
+    text: >-
+      No primeiro tempo, quem fez mais interceptações?
+    note: >-
+      Muda com a fonte: no JSON bruto (toda interceptação) é Tchouaméni; na camada 0 (só as certas) é Rabiot.
+
+  # ---- network: um conceito de rede de passes na partida inteira
+  - id: n01
+    type: network
+    stage: removed
+    check: player
+    text: >-
+      Quem era o principal elo da circulação de bola da Argentina?
+    note: >-
+      Muda com a leitura: Otamendi na maioria das leituras, Enzo Fernández quando a ligação
+      pesa pelo número de passes e as duas direções se somam.
+  - id: n02
+    type: network
+    stage: removed
+    check: player
+    text: >-
+      Quem era o principal elo da circulação de bola da França?
+    note: >-
+      Muda com a leitura: Koundé, Varane ou Rabiot conforme o peso e a direção.
+  - id: n03
+    type: network
+    stage: pilot
+    check: player
+    text: >-
+      Na troca de passes da Argentina, qual jogador, se não estivesse em campo, deixaria
+      algum companheiro sem trocar passes com ninguém do time?
+    note: >-
+      Otamendi: Pezzella, que entrou no fim da prorrogação, só trocou passes com ele.
+  - id: n04
+    type: network
+    stage: pilot
     check: set
     text: >-
-      Quais jogadores da França receberam cartão amarelo na final?
-    note: >-
-      Exige filtrar por time; inclui o amarelo sem falta (Giroud).
+      Qual dupla da França mais trocou passes entre si na final?
+  - id: n05
+    type: network
+    stage: full
+    check: set
+    text: >-
+      Qual dupla da Argentina mais trocou passes entre si na final?
 
-  # ---- structural: exige um algoritmo sobre a rede de passes
+  - id: n06
+    type: network
+    stage: full
+    check: player
+    text: >-
+      Qual jogador da Argentina trocou passes com o maior número de companheiros diferentes na final?
+    note: >-
+      Enzo Fernández, em qualquer direção e conjunto de passes. Escrita depois do congelamento da v2.2.
+  - id: n07
+    type: network
+    stage: removed
+    check: player
+    text: >-
+      Qual jogador da França trocou passes com o maior número de companheiros diferentes na final?
+    note: >-
+      Muda com a leitura: Koundé (nas duas direções), Tchouaméni (só para quem passou), empate Rabiot e Koundé (só de quem recebeu).
+  - id: n08
+    type: network
+    stage: candidate
+    check: player
+    text: >-
+      Qual companheiro mais recebeu passes de Messi na final?
+  - id: n09
+    type: network
+    stage: full
+    check: set
+    text: >-
+      Qual sequência de três jogadores da França, com a bola passando de um para o outro, mais se repetiu na final?
+    note: >-
+      Upamecano, Varane e Koundé (6 vezes) em todas as leituras. A conferência é por conjunto: a ordem não é conferida. Escrita depois do congelamento da v2.2.
+  - id: n10
+    type: network
+    stage: candidate
+    check: set
+    text: >-
+      Qual sequência de três jogadores da Argentina, com a bola passando de um para o outro, mais se repetiu na final?
+
+  # ---- network_slice: rede num recorte, ou comparação entre recortes
   - id: s01
-    type: structural
+    type: network_slice
+    stage: pilot
     check: player
     text: >-
-      Na final, quem foi o jogador da Argentina por quem passava o maior número de rotas de
-      passe entre os companheiros (o principal elo de ligação na circulação de bola do
-      time)?
-    note: >-
-      Conceito de rede (betweenness), descrito sem jargão. Resposta igual em todas as
-      leituras razoáveis do conceito.
+      Na prorrogação, quem foi o principal elo da circulação de bola da França?
   - id: s02
-    type: structural
+    type: network_slice
+    stage: removed
     check: player
     text: >-
-      Na final, quem foi o jogador da França por quem passava o maior número de rotas de
-      passe entre os companheiros (o principal elo de ligação na circulação de bola do
-      time)?
+      Enquanto perdia por 2 a 0, quem era o principal elo da circulação de bola da França?
     note: >-
-      Igual à s01, para a França.
+      Estável em peso e direção (Tchouaméni), mas muda quando só os passes de bola rolando
+      contam (Rabiot, Varane).
   - id: s03
-    type: structural
-    check: player
-    text: >-
-      Na final, quem foi o segundo jogador da Argentina por quem passavam mais rotas de
-      passe entre os companheiros (o segundo principal elo de ligação na circulação de bola
-      do time)?
-    note: >-
-      O 2º elo da Argentina é o mesmo em todas as leituras; o da França mudava e saiu do
-      benchmark.
-  - id: s04
-    type: structural
-    check: player
-    text: >-
-      Na combinação de três jogadores (A passa para B e B passa para C, três jogadores
-      diferentes, na mesma posse de bola e sem outro passe no meio, terminando num terço do
-      campo mais avançado do que aquele onde a jogada começou) que a França mais repetiu na
-      final, quem era o jogador do meio (o B)?
-    note: >-
-      Combinação de três jogadores: a regra vem por extenso porque sem ela a resposta muda.
-  - id: s05
-    type: structural
+    type: network_slice
+    stage: full
     check: set
     text: >-
-      Quais jogadores formam a combinação de três jogadores (A passa para B e B passa para
-      C, três jogadores diferentes, na mesma posse de bola e sem outro passe no meio,
-      terminando num terço do campo mais avançado do que aquele onde a jogada começou) que a
-      França mais repetiu na final?
-    note: >-
-      A ordem dos três jogadores não é conferida.
-  - id: s06
-    type: structural
-    check: value
+      Depois do gol que deixou o placar em 2 a 2 no tempo normal, qual dupla da França mais
+      trocou passes entre si?
+  - id: s04
+    type: network_slice
+    stage: pilot
+    check: set
     text: >-
-      Quantas combinações diferentes de três jogadores a Argentina repetiu pelo menos duas
-      vezes na final? Considere como combinação: A passa para B e B passa para C, três
-      jogadores diferentes, na mesma posse de bola e sem outro passe no meio, terminando num
-      terço do campo mais avançado do que aquele onde a jogada começou.
+      A dupla da Argentina que mais trocou passes entre si no primeiro tempo continuou sendo
+      a principal no segundo tempo? Qual foi a dupla que mais trocou passes no segundo tempo?
     note: >-
-      Contagem: muito sensível à definição (6 com a regra; 58 sem a exigência do terço mais
-      avançado).
+      Comparação entre recortes. Só a dupla do 2º tempo é conferida.
 
-  # ---- composite: um resultado estrutural combinado com uma contagem
-  - id: c01
-    type: composite
-    check: value
-    text: >-
-      Na final, quantos passes errou o jogador da Argentina por quem passava o maior número
-      de rotas de passe entre os companheiros (o principal elo de ligação na circulação de
-      bola do time)?
-    note: >-
-      Estrutural (quem é o elo) + agregação (passes errados).
-  - id: c02
-    type: composite
-    check: value
-    text: >-
-      Na final, quantos passes certos deu o jogador da França por quem passava o maior
-      número de rotas de passe entre os companheiros (o principal elo de ligação na
-      circulação de bola do time)?
-    note: >-
-      Estrutural + agregação (passes certos).
-  - id: c03
-    type: composite
-    check: value
-    text: >-
-      Na final, quantos desarmes certos fez o segundo jogador da Argentina por quem passavam
-      mais rotas de passe entre os companheiros (o segundo principal elo de ligação na
-      circulação de bola do time)?
-    note: >-
-      Estrutural + agregação (desarmes certos).
-  - id: c04
-    type: composite
+  - id: s05
+    type: network_slice
+    stage: candidate
     check: player
     text: >-
-      Entre os três jogadores da combinação de três jogadores (A passa para B e B passa para
-      C, três jogadores diferentes, na mesma posse de bola e sem outro passe no meio,
-      terminando num terço do campo mais avançado do que aquele onde a jogada começou) que a
-      França mais repetiu na final, qual deu mais passes certos na partida?
+      Na prorrogação, qual jogador da Argentina, se não estivesse em campo, deixaria algum companheiro sem trocar passes com ninguém do time?
     note: >-
-      Estrutural (a combinação) + comparação entre os três jogadores.
-  - id: c05
-    type: composite
-    check: value
+      Mesma resposta da n03 (Otamendi): fica na reserva para não repetir o conceito.
+  - id: s06
+    type: network_slice
+    stage: full
+    check: player
     text: >-
-      Na final, quantos passes certos o jogador da Argentina por quem passava o maior número
-      de rotas de passe entre os companheiros (o principal elo de ligação na circulação de
-      bola do time) deu para o segundo jogador da Argentina por quem passavam mais rotas de
-      passe entre os companheiros (o segundo principal elo de ligação na circulação de bola
-      do time)?
+      No segundo tempo, qual companheiro mais recebeu passes de Enzo Fernández?
     note: >-
-      Dois resultados estruturais + contagem de passes de um para o outro.
-  - id: c06
-    type: composite
-    check: value
+      De Paul (9). Escrita depois do congelamento da v2.2.
+  - id: s07
+    type: network_slice
+    stage: full
+    check: set
     text: >-
-      Na final, quantas faltas cometeu o jogador da França por quem passava o maior número
-      de rotas de passe entre os companheiros (o principal elo de ligação na circulação de
-      bola do time)?
+      Na prorrogação, qual sequência de três jogadores da Argentina, com a bola passando de um para o outro, mais se repetiu?
     note: >-
-      Estrutural + agregação (faltas).
+      Otamendi, Romero e Enzo Fernández (3 vezes) em todas as leituras. Conferência por conjunto. Escrita depois do congelamento da v2.2.
+  - id: s08
+    type: network_slice
+    stage: removed
+    check: player
+    text: >-
+      No primeiro tempo, qual jogador da França trocou passes com o maior número de companheiros diferentes?
+    note: >-
+      Muda com a leitura: Tchouaméni, Koundé, ou empate de três quando conta só de quem recebeu.
+  - id: s09
+    type: network_slice
+    stage: removed
+    check: player
+    text: >-
+      Na prorrogação, qual jogador da Argentina trocou passes com o maior número de companheiros diferentes?
+    note: >-
+      Empate entre Enzo Fernández e Otamendi numa leitura (só passes de bola rolando, para quem passou).
 
-  # ---- unanswerable: o dado não existe; a resposta certa é no_data
+  # ---- unanswerable: parece respondível com eventos, mas os dados não têm
   - id: u01
     type: unanswerable
+    stage: pilot
     check: no_data
     text: >-
-      Qual foi a velocidade máxima atingida por Mbappé na final?
+      Quantos minutos Messi passou no campo de ataque durante a final?
     note: >-
-      Velocidade exige dados de rastreamento, que o StatsBomb de eventos não tem.
+      Dados de eventos só têm posição no instante de cada ação com bola; o tempo em cada
+      parte do campo exige rastreamento (tracking). Os dados 360 também são instantâneos.
   - id: u02
     type: unanswerable
+    stage: full
     check: no_data
     text: >-
-      Quantos quilômetros Enzo Fernández percorreu na final?
+      Qual foi a distância total percorrida por Rodrigo De Paul na final?
     note: >-
-      Distância percorrida também exige rastreamento.
+      Distância percorrida exige rastreamento contínuo, que o StatsBomb aberto não tem.
   - id: u03
     type: unanswerable
+    stage: pilot
     check: no_data
     text: >-
-      Quem foi eleito o melhor jogador da final?
+      Quantos piques em alta velocidade Mbappé deu na prorrogação?
     note: >-
-      O modelo sabe de memória (Messi), mas os dados não registram premiações.
+      Velocidade de jogador exige rastreamento; os eventos não registram corridas sem bola.
   - id: u04
     type: unanswerable
+    stage: full
     check: no_data
     text: >-
-      Qual era a temperatura no estádio durante a final?
+      A que velocidade saiu o chute de Mbappé no gol que deixou o placar em 2 a 2?
     note: >-
-      Clima não está nos dados de eventos.
+      O StatsBomb registra local, parte do corpo e desfecho do chute, não a velocidade da bola.
   - id: u05
     type: unanswerable
+    stage: full
     check: no_data
     text: >-
-      Quantos torcedores assistiram à final no estádio?
+      Em quantos lances Mbappé ficou em posição de impedimento sem participar da jogada?
     note: >-
-      Público do estádio não está nos dados de eventos.
+      Os eventos só registram o impedimento marcado; impedimento passivo não vira evento. Os dados 360 mostram posições só no instante de cada ação, e não dizem se o jogador participou. Escrita depois do congelamento da v2.2.
   - id: u06
     type: unanswerable
+    stage: candidate
     check: no_data
     text: >-
-      Qual foi a frequência cardíaca máxima de Di María durante a final?
+      Quantas vezes Messi pediu a bola a um companheiro e não a recebeu?
     note: >-
-      Dado fisiológico: não existe nos dados.
+      Pedido de bola não é registrado em dados de eventos.

@@ -70,7 +70,7 @@ def add_trace_urls(rows: list[dict]) -> int:
 
 def markdown_table(rows: list[dict]) -> str:
     arms = [a for a in ARMS if any(r["arm"] == a for r in rows)]
-    order = "fascu"
+    order = "fansu"
     qids = sorted({r["question_id"] for r in rows}, key=lambda q: (order.index(q[0]), q))
     cell = {}
     for r in rows:

@@ -9,6 +9,20 @@ vêm sempre do arquivo de resultados da execução, nunca do Langfuse.
 | [01](2026-10-07_01_amostra_deepseek-v4-pro.md) | 2026-10-07 | amostra (parcial) | DeepSeek V4 Pro (Cloudflare) | 17 | 3/3 | ~US$ 0,32 |
 | [02](2026-10-07_02_amostra_claude-haiku-5.5.md) | 2026-10-07 | amostra | Claude Haiku 5.5 | 25 | 5/5 | ~US$ 0,27 |
 | [03](2026-10-07_03_completa_claude-haiku-5.5_r1.md) | 2026-10-07 | completa, 1 repetição | Claude Haiku 5.5 + cache | 150 | 29/30 | ~US$ 0,23 |
+| [04](2026-10-07_04_piloto-v2_claude-haiku-5.5.md) | 2026-10-07 | **v2**, piloto, 1 repetição | Claude Haiku 5.5 + cache | 50 | 5/10 | US$ 0,10 |
+| [05](2026-10-07_05_piloto-v2.1_claude-haiku-5.5.md) | 2026-10-07 | **v2.1**, piloto, 1 repetição + 2 nas perguntas-alvo | Claude Haiku 5.5 + cache | 56 | 6/10 | US$ 0,24 |
+| [06](2026-10-07_06_placar-list-actions_v2.2.md) | 2026-10-07 | **v2.2**, só `graph_tools` em a03, a05, f03 | Claude Haiku 5.5 | 3 | 2/3 | ~US$ 0,04 |
+| [07](2026-10-07_07_completa-v2.2_claude-haiku-5.5_r1.md) | 2026-10-07 | **v2.2**, completa, 1 repetição | Claude Haiku 5.5 + cache | 125 | 20/25 | US$ 0,30 |
+| [08](2026-10-07_08_placar-depois-do-gol_v2.3.md) | 2026-10-07 | **v2.3**, só `graph_tools` em f04, s03, a03 | Claude Haiku 5.5 | 3 | 3/3 | ~US$ 0,04 |
+| [09](2026-10-08_09_completa-atual_claude-haiku-5.5_r1.md) | 2026-10-08 | completa, versão atual, 1 repetição | Claude Haiku 5.5 + cache | 125 | 24/25 | US$ 0,36 |
+
+> **As execuções 01 a 03 usaram dados com um erro na camada 0**, corrigido
+> depois: em 44% das ações o lado do ataque estava invertido, o que deixava
+> errados terço, corredor, xT e VAEP dessas ações (capítulo 7, seção 7.2).
+> Contagens simples, gols, cartões e assistências não mudam. As respostas
+> estruturais da v1 mudam (o 2º elo da Argentina passa a ser Messi; o trio
+> mais repetido da França vira empate). Servem como registro, não como
+> resultado.
 
 ## Sobre os links dos traces
 

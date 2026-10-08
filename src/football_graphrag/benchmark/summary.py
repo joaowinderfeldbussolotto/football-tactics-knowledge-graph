@@ -6,7 +6,7 @@ from pathlib import Path
 from statistics import mean
 
 from football_graphrag.benchmark.arms import ARMS
-from football_graphrag.benchmark.questions import QUESTION_TYPES
+from football_graphrag.benchmark.questions import BY_ID, QUESTION_TYPES
 from football_graphrag.benchmark.scoring import canonical_name
 
 
@@ -59,7 +59,32 @@ def summarize(rows: list[dict]) -> str:
     for t in types:
         body.append([t] + [_pct([r["correct"] for r in by_arm[a] if r["type"] == t]) for a in arms])
     body.append(["**all**"] + [f"**{_pct([r['correct'] for r in by_arm[a]])}**" for a in arms])
-    out += ["", "## 1. Accuracy by question type and arm", "", _table(["type"] + arms, body)]
+    body.append(["**all but unanswerable**"] + [
+        f"**{_pct([r['correct'] for r in by_arm[a] if r['type'] != 'unanswerable'])}**" for a in arms])
+    out += [
+        "", "## 1. Accuracy by question type and arm", "",
+        "An arm that always answers \"no data\" gets every unanswerable question right; the last row "
+        "leaves them out.",
+        "", _table(["type"] + arms, body),
+    ]
+
+    # 1b. seen vs unseen: the pilot questions inspired the v2.1/v2.2 tool fixes
+    stages = {r["question_id"]: BY_ID[r["question_id"]].stage if r["question_id"] in BY_ID else "?" for r in rows}
+    if {"pilot", "full"} <= set(stages.values()):
+        body = []
+        for label, stage in (("pilot questions (seen while fixing the tools)", "pilot"),
+                             ("new and reserve questions (unseen)", "full")):
+            for only_answerable in (False, True):
+                name = label + (", without unanswerable" if only_answerable else "")
+                body.append([name] + [_pct([r["correct"] for r in by_arm[a] if stages[r["question_id"]] == stage
+                                            and not (only_answerable and r["type"] == "unanswerable")])
+                                      for a in arms])
+        out += [
+            "", "## 1b. Seen and unseen questions", "",
+            "The tool fixes after the pilot were made looking at the pilot questions' errors; only the "
+            "unseen questions measure them without that bias.",
+            "", _table(["questions"] + arms, body),
+        ]
 
     # 2-3. kinds of error
     body = []
@@ -108,7 +133,7 @@ def summarize(rows: list[dict]) -> str:
     ]
 
     # per-question detail
-    qids = sorted({r["question_id"] for r in rows}, key=lambda q: ("fasc u".index(q[0]), q))
+    qids = sorted({r["question_id"] for r in rows}, key=lambda q: ("fansu".index(q[0]), q))
     body = []
     for q in qids:
         cells = []
@@ -121,9 +146,12 @@ def summarize(rows: list[dict]) -> str:
 
 
 def summary_path_for(results: Path) -> Path:
-    """results.jsonl -> summary.md; anything else -> <stem>_summary.md."""
+    """results.jsonl -> summary.md; <x>_results.jsonl -> <x>_summary.md; anything
+    else -> <stem>_summary.md."""
     if results.name == "results.jsonl":
         return results.with_name("summary.md")
+    if results.stem.endswith("_results"):
+        return results.with_name(f"{results.stem.removesuffix('_results')}_summary.md")
     return results.with_name(f"{results.stem}_summary.md")
 
 

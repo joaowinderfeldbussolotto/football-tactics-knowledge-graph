@@ -63,42 +63,46 @@ mesmo. Se um braço acerta mais, é por causa dos dados que recebeu.
 
 ## Os cinco tipos de pergunta
 
-São 30 perguntas, 6 de cada tipo. Os tipos existem porque cada braço deve ir
+São 25 perguntas, 5 de cada tipo. Os tipos existem porque cada braço deve ir
 bem em algumas e mal em outras, e o interessante é ver onde cada um quebra.
 
 | Tipo | O que exige | Exemplo real do benchmark | Resposta |
 |---|---|---|---|
-| `factual` | achar um fato | "Quem deu a assistência para o segundo gol da França na final?" | Marcus Thuram |
-| `aggregation` | contar e ordenar muitos eventos | "Quem fez mais desarmes certos na final? Liste os 3 primeiros." | Enzo Fernandez, Tagliafico, Camavinga |
-| `structural` | um cálculo sobre a rede de passes | "Quem foi o jogador da Argentina por quem passava o maior número de rotas de passe entre os companheiros?" | Otamendi |
-| `composite` | estrutural + contagem | "Quantos passes errou esse mesmo jogador?" | 6 |
-| `unanswerable` | perceber que o dado não existe | "Qual foi a velocidade máxima atingida por Mbappé na final?" | `no_data` |
+| `fact` | achar um evento | "Quem cometeu a falta que deu origem ao primeiro pênalti da final?" | Dembélé |
+| `filtered_aggregation` | filtrar, contar e ordenar, com recorte | "Enquanto a Argentina vencia por 2 a 0, qual jogador argentino acertou mais passes, e quantos?" | Enzo Fernández, 26 |
+| `network` | um conceito de rede de passes na partida inteira | "Qual dupla da França mais trocou passes entre si na final?" | Upamecano e Varane |
+| `network_slice` | um conceito de rede num recorte do jogo | "Na prorrogação, quem foi o principal elo da circulação de bola da França?" | Koundé |
+| `unanswerable` | perceber que o dado não existe | "Quantos minutos Messi passou no campo de ataque durante a final?" | `no_data` |
 
 Por que cada tipo é difícil:
 
-- **factual**: basta achar a linha certa, mas é preciso achá-la. O `vector`
-  pode trazer as linhas erradas.
-- **aggregation**: exige contar dezenas de eventos sem errar. Contar 2.585
-  linhas de cabeça é difícil para um modelo de linguagem; a súmula pronta e
-  as ferramentas fazem a conta por ele.
-- **structural**: a resposta não está em nenhuma linha nem em nenhuma
-  contagem simples. Ela vem de um algoritmo que olha a rede de passes inteira
-  (quem passa para quem). Só o braço com ferramentas consegue rodar esse
-  algoritmo. Os outros podem tentar raciocinar, mas a conta é pesada.
-- **composite**: exige primeiro descobrir *quem* (estrutural) e depois
-  *quanto* (contagem). Dois passos, dois jeitos de errar.
-- **unanswerable**: o certo é dizer "não tenho esse dado". O erro típico é
-  inventar uma resposta (alucinar). Uma das perguntas é "Quem foi eleito o
-  melhor jogador da final?": o modelo sabe de memória que foi Messi, mas os
-  dados não registram premiações. A instrução manda responder só com os
-  dados, então o certo é `no_data`.
+- **fact**: basta achar a linha certa, mas é preciso achá-la, muitas vezes
+  em relação a outro momento ("a falta que deu origem ao pênalti"). O
+  `vector` pode trazer as linhas erradas.
+- **filtered_aggregation**: exige localizar um recorte do jogo ("enquanto
+  vencia por 2 a 0") e contar dezenas de eventos dentro dele sem errar.
+- **network**: a resposta não está em nenhuma linha nem em nenhuma contagem
+  simples. Ela vem de olhar a rede de passes inteira (quem passa para quem).
+- **network_slice**: o mesmo, num pedaço do jogo, ou comparando dois
+  pedaços. Dois jeitos de errar: o recorte e a rede.
+- **unanswerable**: o certo é dizer "não tenho esse dado". As perguntas
+  parecem respondíveis com eventos, mas pedem algo que só um rastreamento
+  contínuo dos jogadores teria (tempo em cada parte do campo, velocidade,
+  distância). O erro típico é aproximar com outra medida, como contar
+  conduções no lugar de piques.
+
+As perguntas falam como um comentarista e não dizem como calcular. Para isso
+não criar ambiguidade, cada resposta certa é calculada em todas as leituras
+razoáveis da pergunta, e só ficam as perguntas em que todas concordam
+(capítulo 3).
 
 ## Como se sabe se a resposta está certa
 
 Cada pergunta tem um **gabarito** (a resposta certa), calculado por código a
 partir dos dados brutos, **sem usar o banco de dados que os braços
 consultam**. Assim o gabarito não herda um possível erro do sistema avaliado.
-O gabarito também é conferido contra o banco: as 30 respostas batem.
+O gabarito também é conferido contra o banco, pelas ferramentas do
+`graph_tools`: as 25 respostas batem.
 
 Cada resposta do modelo é conferida **por código, não por outro modelo**. O
 modelo responde num formato fixo (lista de jogadores, um número, ou "sem
@@ -108,13 +112,14 @@ opinião: está certo ou errado. Detalhes no
 
 ## O que sai no fim
 
-Depois de rodar 30 perguntas × 5 braços × 3 repetições (450 execuções), o
-projeto gera `data/benchmark/summary.md` com:
+Depois de rodar as 25 perguntas nos 5 braços (com 1 ou mais repetições), o
+projeto gera um resumo (`summary.md`) com:
 
-1. **acerto por tipo de pergunta e por braço**, a tabela principal;
+1. **acerto por tipo de pergunta e por braço**, a tabela principal, com o
+   total com e sem as perguntas sem resposta;
 2. **tipos de erro por braço**: alucinação (respondeu errado com
    confiança), abstenção (disse "sem dados" quando havia) e erro de formato;
-3. **consistência**: se o mesmo braço dá a mesma resposta nas 3 repetições;
+3. **consistência**: se o mesmo braço dá a mesma resposta nas repetições;
 4. **custo**: tokens e tempo médios por pergunta.
 
 ## Mapa da documentação

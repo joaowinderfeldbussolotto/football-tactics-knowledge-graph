@@ -97,6 +97,13 @@ pesquisadores para que dados de fornecedores diferentes fiquem iguais. Ele:
   resultado (certo ou errado), parte do corpo;
 - vira o campo para que **todo time sempre ataque da esquerda para a
   direita**. Assim, "x alto" sempre significa "perto do gol adversário".
+  A conversão a partir da `kloppy` entrega o mandante (Argentina) atacando
+  para a direita só nos períodos ímpares, com os lados trocando a cada
+  período. A camada 0 espelha as coordenadas de início e fim das ações que
+  ficariam ao contrário: as do mandante nos períodos pares e as do
+  visitante nos ímpares. Um teste confere que toda ação fica no mesmo lugar
+  que no JSON bruto (que já vem do ponto de vista de quem age) e que toda
+  finalização está no terço de ataque.
 
 Os ~4.400 eventos da final viram **2.585 ações**. A conversão é feita pela
 biblioteca `socceraction`, a partir da leitura do JSON pela `kloppy`.
@@ -107,10 +114,10 @@ Estas são as cinco ações que terminam no gol (colunas resumidas):
 
 | action_id | minuto | jogador | acao | sucesso | zona início → fim | xT gerado | recebedor |
 |---|---|---|---|---|---|---|---|
-| 706 | 36 | Messi | passe | sim | 41 → 49 | 0,001 | Julián Álvarez |
+| 706 | 36 | Messi | passe | sim | 41 → 49 | 0,002 | Julián Álvarez |
 | 707 | 36 | Julián Álvarez | conducao | sim | 49 → 49 | 0,000 | – |
-| 708 | 36 | Julián Álvarez | passe | sim | 49 → 74 | 0,011 | Mac Allister |
-| 709 | 36 | Mac Allister | passe | sim | 74 → 92 | **0,070** | Di María |
+| 708 | 36 | Julián Álvarez | passe | sim | 49 → 74 | 0,012 | Mac Allister |
+| 709 | 36 | Mac Allister | passe | sim | 74 → 92 | **0,184** | Di María |
 | 710 | 36 | Di María | finalizacao | sim (gol) | 92 → 91 | 0,000 | – |
 
 As colunas que a camada 0 acrescenta ao SPADL:
@@ -129,7 +136,7 @@ As colunas que a camada 0 acrescenta ao SPADL:
 - **xT (expected threat, ameaça esperada)**: quanto uma ação aumentou a
   chance de o time marcar nos próximos lances. Cada zona tem um valor de
   ameaça; levar a bola de uma zona fraca para uma forte gera xT positivo. O
-  passe de Mac Allister gerou 0,070, o maior do lance, porque colocou a bola
+  passe de Mac Allister gerou 0,184, o maior do lance, porque colocou a bola
   dentro da área.
 - **VAEP**: outra medida de valor da ação, que considera também o risco de
   sofrer gol. É calculada por um modelo de aprendizado de máquina.
@@ -137,7 +144,11 @@ As colunas que a camada 0 acrescenta ao SPADL:
   do mesmo time com a bola. As cinco ações acima são da fase 132.
 
 O xT e o VAEP vêm de modelos **treinados uma única vez** nos 16 jogos do
-mata-mata da Copa 2022, a final incluída, e guardados em `data/models/`.
+mata-mata da Copa 2022, a final incluída, e guardados em `data/models/`. No
+treino do xT, as ações também são postas da esquerda para a direita. O VAEP
+espera o formato original do SPADL (mandante para a direita, visitante para
+a esquerda) e faz a virada por conta própria, então recebe as ações nesse
+formato.
 
 ### Uma diferença importante entre o JSON e a camada 0
 
@@ -212,7 +223,7 @@ O passe de Mac Allister virou esta aresta (propriedades principais):
 
 ```
 (Alexis Mac Allister) -[PASSOU_PARA {minuto: 36, zona_origem: 74, zona_destino: 92,
-                                     xt_gerado: 0.070, progressivo: true,
+                                     xt_gerado: 0.184, progressivo: true,
                                      fase_posse_id: "3869685:132"}]-> (Ángel Fabián Di María Hernández)
 ```
 
@@ -254,9 +265,9 @@ posse, não por número de toques), PPDA (intensidade da pressão) e *field
 tilt* (domínio territorial). Esses termos estão no
 [glossário](08-glossario.md).
 
-**Essa súmula é exatamente o que o braço `stats_in_prompt` recebe**, e é
-também o que as ferramentas `player_stats`, `team_stats` e `stat_ranking` do
-braço `graph_tools` consultam. Os dois braços partem dos mesmos números.
+**Essa súmula é exatamente o que o braço `stats_in_prompt` recebe.** O
+`graph_tools` não a lê: suas ferramentas contam direto sobre as arestas de
+ações e de passes, as mesmas de que a súmula é contada.
 
 ---
 

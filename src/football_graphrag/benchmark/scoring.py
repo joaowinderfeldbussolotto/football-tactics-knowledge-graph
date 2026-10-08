@@ -14,7 +14,7 @@ import unicodedata
 from dataclasses import dataclass
 from functools import lru_cache
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from football_graphrag.benchmark.questions import MATCH_ID, Question
 from football_graphrag.config import get_settings
@@ -37,6 +37,15 @@ class Answer(BaseModel):
         default=False,
         description="True only if the provided data does not contain what is needed to answer.",
     )
+
+    @model_validator(mode="after")
+    def _not_empty(self) -> "Answer":
+        # An answer with no player, no number and no no_data says nothing; it
+        # goes back to the model as a retry and, if it persists, is a format
+        # error (not a wrong answer).
+        if not self.players and self.value is None and not self.no_data:
+            raise ValueError("empty answer: give players, a value, or set no_data to true")
+        return self
 
 
 # --------------------------------------------------------------------------- names

@@ -158,7 +158,7 @@ calculado por um modelo treinado com jogos da Copa.
 **xT (expected threat, ameaça esperada).** Cada zona do campo tem um valor que
 indica a chance de aquela posse virar gol. Levar a bola de uma zona fraca
 para uma forte gera xT positivo. O passe de Mac Allister para Di María, no
-gol de 36', gerou 0,070.
+gol de 36', gerou 0,184.
 
 **Zona.** Uma das 96 células da grade de 12 × 8 em que o campo é dividido. A
 coluna 0 fica junto ao próprio gol; a 11, junto ao gol adversário.
