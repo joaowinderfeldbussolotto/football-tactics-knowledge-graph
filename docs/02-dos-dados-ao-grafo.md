@@ -265,9 +265,9 @@ posse, não por número de toques), PPDA (intensidade da pressão) e *field
 tilt* (domínio territorial). Esses termos estão no
 [glossário](08-glossario.md).
 
-**Essa súmula é exatamente o que o braço `stats_in_prompt` recebe**, e é
-também o que as ferramentas `player_stats`, `team_stats` e `stat_ranking` do
-braço `graph_tools` consultam. Os dois braços partem dos mesmos números.
+**Essa súmula é exatamente o que o braço `stats_in_prompt` recebe.** O
+`graph_tools` não a lê: suas ferramentas contam direto sobre as arestas de
+ações e de passes, as mesmas de que a súmula é contada.
 
 ---
 

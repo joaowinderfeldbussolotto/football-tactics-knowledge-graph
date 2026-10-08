@@ -22,11 +22,11 @@ class Answer(BaseModel):
     no_data: bool         # True só se os dados não respondem
 ```
 
-| Campo | O que o modelo põe | Exemplo (pergunta a02) |
+| Campo | O que o modelo põe | Exemplo (pergunta a05) |
 |---|---|---|
-| `rationale` | um raciocínio curto, baseado nos dados | "No ranking de passes_certos, Enzo Fernandez lidera com 79." |
+| `rationale` | um raciocínio curto, baseado nos dados | "O 2 a 0 vai do gol de Di María (36') ao pênalti de Mbappé (80'); nesse trecho, Enzo Fernandez acertou 26 passes." |
 | `players` | nomes completos; em rankings, do melhor para o pior | `["Enzo Fernandez"]` |
-| `value` | um número só, sem "passes" ou "%" | `79` |
+| `value` | um número só, sem "passes" ou "%" | `26` |
 | `no_data` | `true` apenas se os dados não permitem responder | `false` |
 
 **Por que `rationale` vem primeiro?** Um modelo de linguagem escreve um
@@ -44,6 +44,11 @@ conversa com o modelo) detecta, devolve o erro ao modelo e pede de novo, até
 **2 vezes**. Se ainda assim não vier no formato, a execução é registrada como
 **erro de formato** e o benchmark segue para a próxima.
 
+**Resposta vazia não vale.** Uma resposta sem jogador, sem número e sem
+`no_data` não diz nada. O formato a recusa e ela volta ao modelo como as
+demais respostas fora do formato. Se persistir, é erro de formato, não
+alucinação.
+
 ---
 
 ## 5.2 As regras de correção
@@ -53,60 +58,64 @@ Cada pergunta diz no YAML como deve ser conferida (o campo `check`, capítulo
 
 ### `player`: o primeiro nome tem de ser o esperado
 
-Pergunta f03, "Quem deu a assistência para o segundo gol da França?".
-Gabarito: Marcus Thuram.
+Pergunta f04, "Quem deu o passe para o gol que deixou o placar em 2 a 2 no
+tempo normal?". Gabarito: Marcus Thuram.
 
 | Resposta do modelo | Resultado | Por quê |
 |---|---|---|
 | `players: ["Marcus Thuram"]` | ✅ certo | |
 | `players: ["Thuram"]` | ✅ certo | sobrenome único na partida (5.3) |
 | `players: ["Kylian Mbappé", "Marcus Thuram"]` | ❌ errado | só o **primeiro** conta, e o primeiro é o autor do gol |
-| `players: []` | ❌ errado | |
+| `players: []`, sem número nem `no_data` | ⚠️ recusada pelo formato | depois de 2 novas tentativas, erro de formato |
 
 ### `value`: o número tem de bater
 
-Pergunta f02, "Quantos gols...?". Gabarito: 6.
+Pergunta a03, "Depois do gol que deixou o placar em 2 a 2 no tempo normal,
+quantas finalizações a Argentina fez até o fim da prorrogação?". Gabarito: 10.
 
 | Resposta | Resultado |
 |---|---|
-| `value: 6` ou `value: 6.0` | ✅ certo |
-| `value: 7` | ❌ errado |
-| `value: null` | ❌ errado |
+| `value: 10` ou `value: 10.0` | ✅ certo |
+| `value: 12` | ❌ errado |
+| `value: null`, com um jogador | ❌ errado |
 
 Contagens são **exatas**. O YAML permite uma margem (`tolerance`) para
 números contínuos, como porcentagens, mas nenhuma pergunta atual usa.
 
 ### `set`: o conjunto de jogadores, em qualquer ordem
 
-Pergunta a06, "Quais jogadores da França receberam cartão amarelo?".
-Gabarito: Rabiot, Thuram, Giroud.
+Pergunta n04, "Qual dupla da França mais trocou passes entre si na final?".
+Gabarito: Upamecano e Varane.
 
 | Resposta | Resultado | Por quê |
 |---|---|---|
-| `["Giroud", "Rabiot", "Thuram"]` | ✅ certo | a ordem não importa |
-| `["Rabiot", "Thuram"]` | ❌ errado | faltou um |
-| `["Rabiot", "Thuram", "Giroud", "Mbappé"]` | ❌ errado | sobrou um |
+| `["Varane", "Upamecano"]` | ✅ certo | a ordem não importa |
+| `["Varane"]` | ❌ errado | faltou um |
+| `["Varane", "Upamecano", "Koundé"]` | ❌ errado | sobrou um |
+
+Nas sequências de três jogadores (n09, s07), a conferência também é por
+conjunto: os três nomes certos, em qualquer ordem.
 
 ### `player_and_value`: as duas coisas
 
-Pergunta a02, "Qual jogador deu mais passes certos, e quantos foram?".
-Gabarito: Enzo Fernandez, 79.
+Pergunta a05, "Enquanto a Argentina vencia por 2 a 0, qual jogador argentino
+acertou mais passes, e quantos?". Gabarito: Enzo Fernandez, 26.
 
 | Resposta | Resultado |
 |---|---|
-| `["Enzo Fernández"], 79` | ✅ certo (o acento não importa) |
-| `["Enzo Fernández"], 92` | ❌ errado (92 são os tentados) |
-| `["Otamendi"], 79` | ❌ errado |
+| `["Enzo Fernández"], 26` | ✅ certo (o acento não importa) |
+| `["Enzo Fernández"], 51` | ❌ errado (51 é contando desde o apito inicial) |
+| `["Otamendi"], 26` | ❌ errado |
 
 ### `no_data`: dizer que não há dado
 
-Pergunta u03, "Quem foi eleito o melhor jogador da final?". Gabarito:
-`no_data`.
+Pergunta u03, "Quantos piques em alta velocidade Mbappé deu na
+prorrogação?". Gabarito: `no_data`.
 
 | Resposta | Resultado |
 |---|---|
 | `no_data: true` | ✅ certo |
-| `players: ["Lionel Messi"]` | ❌ errado, e conta como **alucinação** (o dado não existe; a resposta veio da memória) |
+| `value: 7` | ❌ errado, e conta como **alucinação**: os dados não têm velocidade de corrida; 7 é o número de conduções, outra medida |
 
 ---
 
@@ -169,13 +178,13 @@ JSON Lines: um objeto JSON por linha. Os campos:
 
 | Campo | Exemplo | Significado |
 |---|---|---|
-| `question_id`, `type`, `arm`, `repeat` | `"a02"`, `"aggregation"`, `"graph_tools"`, `1` | o que foi executado |
-| `answer` | `{"rationale": "...", "players": [...], "value": 79, "no_data": false}` | a resposta completa (`null` se houve erro de formato) |
-| `expected` | `{"players": ["Enzo Fernandez"], "value": 79, "no_data": false}` | o gabarito |
+| `question_id`, `type`, `arm`, `repeat` | `"a05"`, `"filtered_aggregation"`, `"graph_tools"`, `1` | o que foi executado |
+| `answer` | `{"rationale": "...", "players": [...], "value": 26, "no_data": false}` | a resposta completa (`null` se houve erro de formato) |
+| `expected` | `{"players": ["Enzo Fernandez"], "value": 26, "no_data": false}` | o gabarito |
 | `correct`, `abstention`, `format_error` | `true`, `false`, `false` | o desfecho (5.4) |
 | `error` | `null` | o motivo, quando não houve resposta válida |
 | `input_tokens`, `output_tokens` | `2817`, `95` | tokens consumidos, informados pelo provedor |
-| `n_tool_calls`, `tool_calls` | `1`, `[{"tool": "stat_ranking", "args": {...}}]` | ferramentas chamadas (só no `graph_tools`) |
+| `n_tool_calls`, `tool_calls` | `2`, `[{"tool": "list_actions", "args": {...}}, ...]` | ferramentas chamadas (só no `graph_tools`) |
 | `latency_s` | `3.2` | tempo da execução, em segundos |
 | `cache_read_tokens`, `cache_write_tokens` | `100945`, `0` | tokens lidos e gravados no cache de prompt (capítulo 7) |
 | `trace_url` | `"https://us.cloud.langfuse.com/project/.../traces/..."` | link do trace no Langfuse (`null` sem Langfuse) |
@@ -194,14 +203,15 @@ Ao fim da execução, `scripts/run_benchmark.py` gera
 ### 1. Acerto por tipo e braço (a tabela principal)
 
 Linhas são os tipos de pergunta, colunas são os braços, e cada célula é a %
-de execuções certas (as 3 repetições contam). A última linha é o total.
+de execuções certas (todas as repetições contam). As últimas linhas são o
+total e o total **sem as `unanswerable`**: um braço que responde "sem dados"
+a tudo acerta todas as `unanswerable`, e essa linha tira esse efeito.
 
 Como ler: compare **colunas** para saber qual braço vai melhor em cada tipo.
 Compare **linhas** para saber que tipo de pergunta é difícil para todos.
-Cada tipo tem 6 perguntas × 3 repetições = 18 execuções, então **uma pergunta
-vale cerca de 17 pontos percentuais** dentro do tipo. Diferenças pequenas
-entre braços (menos de 15 pontos) podem ser uma ou duas perguntas e não
-devem ser lidas como superioridade.
+Cada tipo tem 5 perguntas, então **uma pergunta vale 20 pontos percentuais**
+dentro do tipo, com qualquer número de repetições. Diferenças de uma ou duas
+perguntas entre braços não devem ser lidas como superioridade.
 
 ### 2. Erros por braço
 
@@ -235,7 +245,7 @@ Para cada pergunta e braço, quantas das repetições acertaram (por exemplo,
 
 Se as chaves do Langfuse estiverem no `.env`, cada execução aparece no
 Langfuse como um bloco nomeado `{pergunta}/{braço}/r{n}` (por exemplo,
-`s03/graph_tools/r2`). Dentro dele está a conversa inteira: o prompt
+`s01/graph_tools/r1`). Dentro dele está a conversa inteira: o prompt
 enviado, cada chamada de ferramenta com o resultado e a resposta final.
 Isso é muito útil para entender um erro.
 

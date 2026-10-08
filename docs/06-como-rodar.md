@@ -165,7 +165,7 @@ python scripts/check_ground_truth.py
 ```
 
 Compara o gabarito com o grafo, sem LLM (capítulo 3). Tem de terminar com
-`30/30 agree`. Se não terminar, há algo diferente nos dados e o benchmark não
+`25/25 agree`. Se não terminar, há algo diferente nos dados e o benchmark não
 deve ser rodado até entender a diferença.
 
 ```bash
@@ -213,21 +213,21 @@ O desfecho pode ser `ok`, `wrong`, `abstention` ou `format_error`
 python scripts/run_benchmark.py --fresh
 ```
 
-São 30 perguntas × 5 braços × 3 repetições = **450 execuções**, uma de cada
-vez. O `--fresh` esvazia o arquivo de resultados antes (sem ele, o script se
+São 25 perguntas × 5 braços × 3 repetições = **375 execuções**, uma de cada
+vez (`--repeats 1` faz 125). O `--fresh` esvazia o arquivo de resultados antes (sem ele, o script se
 recusa a começar se já houver resultados, para não misturar a amostra com a
 execução completa nem apagar dados pagos sem querer).
 
-**Quanto custa?** Quase tudo vem do braço `events_in_prompt`: 90 execuções
-× ~68 mil tokens = cerca de **6,2 milhões de tokens de entrada**. Os outros
-quatro braços juntos somam bem menos de 1 milhão. Multiplique pelo preço do
-seu modelo. Com um modelo de US$ 0,075 por milhão de tokens de entrada, isso
-dá cerca de US$ 0,50, mais a saída. É uma estimativa; o custo real aparece no
-`summary.md` (tokens médios) e no painel do provedor.
+**Quanto custa?** Os dois braços mais pesados são o `events_in_prompt` (~111
+mil tokens de entrada por pergunta, quase todos lidos do cache a partir da
+segunda) e o `graph_tools` (~37 mil por pergunta, sem cache). Com o Claude
+Haiku 5.5 pelo OpenRouter, uma repetição das 25 perguntas nos 5 braços custou
+cerca de US$ 0,30. O custo real aparece no `summary.md` (tokens médios) e no
+painel do provedor.
 
 **Quanto demora?** Depende do provedor. Conte alguns segundos por execução,
 mais nas do `events_in_prompt` e do `graph_tools`: algo entre 30 minutos e
-algumas horas para as 450.
+algumas horas para as 375.
 
 ### Se cair no meio
 
@@ -288,7 +288,7 @@ Free questions about the 2022 World Cup final, one per line. Empty line or 'sair
 
 pergunta> Quem tocou mais na bola?
 === graph_tools  (<segundos>s, tokens in/out <entrada>/<saída>)
-  tool: stat_ranking(stat='toques', team=None, top=5)
+  tool: query_actions(filters=None, group_by=['player'], metric='count', top=5)
   answer:  <o raciocínio do modelo, em texto>
   players: <jogadores> | value: <número> | no_data: no
   trace:   https://us.cloud.langfuse.com/project/.../traces/...

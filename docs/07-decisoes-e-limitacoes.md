@@ -1,8 +1,8 @@
 # 7. Decisões, problemas encontrados e limitações
 
 Este capítulo reúne o "porquê" do projeto: as escolhas que moldaram o
-benchmark, os problemas encontrados nos dados (e o que foi feito com eles) e
-o que o benchmark **não** consegue dizer. Leia antes de tirar conclusões dos
+benchmark, os problemas conhecidos nos dados (e como são tratados) e o que o
+benchmark **não** consegue dizer. Leia antes de tirar conclusões dos
 resultados.
 
 ---
@@ -43,42 +43,57 @@ mecanismo do PydanticAI (a resposta vem como uma "ferramenta de saída"),
 porque ele funciona junto com as ferramentas do `graph_tools`. Usar um
 mecanismo diferente em algum braço seria mais uma diferença além dos dados.
 
-### As perguntas falam futebol
+A instrução de sistema diz que as perguntas são sobre **uma partida**, sem
+dizer qual. Dizer "a final da Copa de 2022" ajudaria o modelo a responder de
+memória em vez de usar os dados.
 
-Uma versão anterior das perguntas usava o vocabulário das ferramentas
-("betweenness centrality... ponderada pelo xT"), o que dava ao `graph_tools`
-um atalho: a pergunta apontava a ferramenta. Agora elas descrevem os
-conceitos em linguagem de futebol, e um teste impede o jargão de voltar. Para
-isso não criar ambiguidade, mediu-se antes se a resposta muda conforme a
-leitura do conceito, e o que mudava saiu (capítulo 3, seção 3.5).
+### Perguntas sem definição, testadas em todas as leituras
 
-### `ligacao_fragil` fora das perguntas
+As perguntas descrevem os conceitos como um comentarista ("o principal elo
+da circulação de bola", "a dupla que mais trocou passes"), sem dizer como
+calcular. Um teste impede vocabulário de ferramenta ou de algoritmo. O preço
+é que a mesma pergunta pode ser lida de mais de um jeito. Em vez de
+acrescentar definição ao texto, o gabarito calcula a resposta em todas as
+leituras razoáveis e a pergunta só fica se todas concordam (capítulo 3,
+seção 3.5).
 
-A camada 2 tem um padrão chamado `ligacao_fragil`: a ligação da rede de passes
-que, cortada, separaria o time em dois blocos. Na final, **nenhuma das duas
-redes tem uma ponte** (uma ligação cuja remoção desconecta a rede), então o
-padrão usa um plano B: agrupa os jogadores em comunidades com o algoritmo
-**Louvain** e procura o par que concentra o fluxo entre os grupos. O
-problema é que o Louvain tem um componente aleatório: rodando com sementes
-diferentes (0 a 4), as comunidades mudaram de uma vez para outra. Um gabarito
-que depende de sorte não é gabarito. As perguntas estruturais usam só os
-dois padrões estáveis: o elo de ligação (betweenness) e as combinações de
-três jogadores. A ferramenta `pass_network_bridges` continua à disposição do
-modelo.
+### Ferramentas primitivas, fixadas antes das perguntas
+
+As sete ferramentas do `graph_tools` são operações sem conceito tático
+pronto: filtrar e contar ações, listar ações, montar uma rede de passes,
+calcular uma métrica, listar ligações, contar sequências. O modelo tem de
+combiná-las. Elas foram escritas e fixadas antes das perguntas que as
+testam, e um teste guarda um hash das definições.
+
+O modelo nunca escreve Cypher: cada ferramenta executa uma consulta fixa,
+com parâmetros. Escrever consultas misturaria duas habilidades (saber
+consultar um banco e saber usar os dados), e a primeira não é o que se quer
+medir. Nenhuma ferramenta lê os padrões prontos da camada 2.
+
+### Descrições de ferramenta com a leitura no futebol
+
+Cada descrição tem duas partes: o que a ferramenta calcula e o que isso
+costuma significar no futebol ("betweenness... marks a player who connects
+teammates in ball circulation"). Um produto real faria o mesmo. Isso
+facilita ao modelo traduzir a pergunta para a ferramenta, e é uma escolha
+deliberada. As descrições não trazem regras feitas para uma pergunta, nem
+sugestões de filtros ou pesos para um caso concreto.
 
 ### A súmula do `stats_in_prompt` vem do Neo4j
 
 Não de um cálculo à parte. Assim o `stats_in_prompt` e o `graph_tools` partem
-dos mesmos números, e a comparação entre os dois isola uma única coisa: ter
-ou não ter ferramentas. Pelo mesmo motivo, o glossário dos campos é o mesmo
-nos dois braços.
+do mesmo banco: a súmula é contada pelo Neo4j sobre as mesmas arestas que as
+ferramentas consultam.
 
-### A tabela de eventos tem três colunas a mais que o plano original
+### A mesma informação de eventos nos três braços que veem eventos
 
-`period`, `possession` e `outcome` (capítulo 4, seção 4.3). Sem elas, o braço
-não teria fatos que as perguntas exigem (quem fez gol, quem levou cartão, se
-dois passes foram na mesma posse) ou leria o minuto de forma ambígua. A
-tabela continua sem nenhum valor agregado.
+`events_in_prompt`, `vector` e o `list_actions` do `graph_tools` mostram os
+mesmos fatos de cada ação: período, minuto, time, jogador, ação, sucesso,
+recebedor, zonas, posse, desfecho e placar. O placar aparece de dois jeitos:
+**antes** da ação, em toda linha, e **depois**, na linha de um gol. O primeiro
+serve para recortes ("enquanto vencia por 2 a 0"); o segundo, para achar um
+gol pelo placar que ele fez ("o gol do 2 a 2"). Nenhum dos três recebe
+contagens prontas.
 
 ### O braço `vector` indexa as mesmas linhas
 
@@ -107,13 +122,6 @@ ignoram. O `results.jsonl` registra os tokens lidos e gravados no cache
 Verificado com o Claude Haiku 5.5: a segunda pergunta do `stats_in_prompt`
 leu 4.921 de 4.966 tokens do cache e custou metade.
 
-### Ferramentas com consultas fixas
-
-O modelo escolhe ferramentas, mas não escreve consultas ao banco. Deixar o
-modelo escrever Cypher misturaria duas habilidades (saber consultar um banco
-e saber usar os dados), e a primeira não é o que se quer medir. As
-ferramentas são genéricas e nenhuma lê os padrões prontos da camada 2.
-
 ### Erros do provedor não viram resultado
 
 Se o provedor do modelo falhar (servidor fora, limite de uso), depois das
@@ -132,33 +140,9 @@ custam dinheiro; apagá-los deve ser uma decisão explícita.
 
 ## 7.2 Problemas encontrados nos dados
 
-Montar o gabarito por um caminho independente serviu para o que foi pensado:
-encontrar divergências. A regra do projeto nesta etapa é **não alterar as
-camadas 0 a 2**, então os problemas abaixo foram registrados e contornados,
-não corrigidos nas camadas.
-
-### O lado do ataque invertido em 44% das ações (corrigido)
-
-Toda ação da camada 0 deveria estar "vista do time que age", atacando da
-esquerda para a direita. Não estava: a conversão do kloppy para SPADL deixa
-o mandante (Argentina) atacando para a direita só nos períodos ímpares, e os
-lados trocam a cada período. Sem uma correção, as ações da Argentina no 2º
-tempo e na 2ª prorrogação, e as da França no 1º tempo e na 1ª prorrogação,
-ficavam espelhadas: 1.146 de 2.585. O gol de Messi aos 108' aparecia chutado
-de cima da própria linha de gol, no terço de defesa.
-
-O erro passava por terço, corredor, zonas, xT, VAEP, passe progressivo,
-PPDA e field tilt, e daí para a súmula e os padrões da camada 2. O gabarito
-não o pegou porque lia o mesmo Parquet que o grafo (seção 7.3). Foi achado
-ao testar os filtros de terço das ferramentas da v2.
-
-**O que foi feito:** a camada 0 desvira essas ações logo após a conversão; o
-VAEP recebe as ações na orientação que ele espera; e a grade de xT foi
-reajustada, porque o ajuste também misturava as duas direções (ela dava
-valor alto à área do próprio time). Dois testes garantem que cada ação está
-no mesmo lugar que no JSON bruto e que toda finalização está no terço de
-ataque. As camadas 0 a 2 foram refeitas. As execuções da v1 registradas em
-`docs/execucoes/` usaram os dados antigos.
+Montar o gabarito por um caminho independente serve para encontrar
+divergências entre as fontes. Os casos abaixo são conhecidos e contornados
+nas perguntas ou na apresentação dos dados.
 
 ### Defesas do goleiro: 7 ou 8?
 
@@ -176,8 +160,8 @@ A conversão para SPADL descarta alguns passes do JSON: Enzo Fernandez tem 94
 passes tentados no JSON e 92 na camada 0; Koundé, 67 e 66. Passes **certos**
 batem nas duas fontes.
 
-**O que foi feito:** as perguntas usam passes certos. "Passes errados" aparece
-uma vez (c01, Otamendi), num jogador em que as duas fontes concordam (6).
+**Como é tratado:** nenhuma pergunta depende de passes tentados ou errados;
+as perguntas sobre passes usam passes certos.
 
 ### O cartão recuperado no fim da tabela
 
@@ -186,8 +170,8 @@ SPADL o descarta. A camada 0 o recupera do JSON bruto, mas o acrescenta **no
 fim da tabela**, com o último número de ação. Quem lesse a tabela pela ordem
 das ações veria o cartão depois do último lance da prorrogação.
 
-**O que foi feito:** a tabela de eventos dos braços é ordenada por período e
-tempo de jogo, não pelo número da ação. Um teste garante isso.
+**Como é tratado:** a tabela de eventos dos braços e o `list_actions` ordenam
+por período e tempo de jogo, não pelo número da ação. Um teste garante isso.
 
 ### O banco pode ter outras partidas
 
@@ -200,49 +184,60 @@ um banco limpo: `docker compose down -v` e rodar as camadas de novo.
 
 ## 7.3 Limitações: o que o benchmark não diz
 
-**Uma partida, 30 perguntas.** Cada tipo tem 6 perguntas. Dentro de um tipo,
-uma pergunta a mais ou a menos muda o acerto em ~17 pontos percentuais.
-Diferenças pequenas entre braços podem ser acaso das perguntas escolhidas,
-não superioridade real.
+**Uma partida, 25 perguntas.** Cada tipo tem 5 perguntas, então uma pergunta
+vale 20 pontos percentuais dentro do tipo. Diferenças de uma ou duas
+perguntas entre braços podem ser acaso das perguntas escolhidas.
+
+**Variação entre execuções.** Com temperatura 0, a mesma pergunta ainda pode
+ter respostas diferentes em execuções diferentes. Com uma repetição, a
+tabela de consistência fica vazia e essa variação não é medida.
 
 **Mede correção, não qualidade.** O benchmark diz se o braço acertou o nome
 ou o número. Não diz se ele explicaria bem uma jogada, nem se o raciocínio
 (`rationale`) faz sentido.
 
-**O gabarito estrutural depende da camada 0.** A rede de passes usa o xT, que
-vem de um modelo treinado pela própria pipeline, com jogos que incluem a
-final. O gabarito e o grafo partem do mesmo Parquet, então a conferência
-cruzada valida as camadas 1 e 2, **não a 0**. Um erro na camada 0 passaria
-igual pelos dois lados (como o das defesas do goleiro, que só foi achado
-porque essa pergunta usaria o JSON bruto).
+**Ferramentas e perguntas da mesma autoria.** As ferramentas foram fixadas
+antes das perguntas, mas foram desenhadas por quem escreveu as perguntas.
+Ajustes posteriores de apresentação (placar nos eventos, resultados das
+ferramentas de rede que repetem os filtros, contagem de jogadores nas
+sequências) foram feitos depois de ver erros do modelo em parte das
+perguntas. Num uso real, ninguém garante que a ferramenta certa exista.
 
-**As ferramentas foram desenhadas por quem escreveu as perguntas.** Elas são
-genéricas, mas `pass_network_centrality` e `three_player_sequences` existem
-porque há perguntas estruturais. Num uso real, ninguém garante que a
-ferramenta certa exista. O resultado do `graph_tools` é, portanto, um teto
-otimista para "LLM com ferramentas de grafo".
+**Descrições que ajudam.** As descrições das ferramentas trazem a leitura
+tática de cada métrica (7.1). Isso aproxima a pergunta da ferramenta.
 
-**As perguntas explicam os conceitos.** Mesmo em linguagem de futebol, as
-perguntas estruturais dizem o que querem ("por quem passavam mais rotas de
-passe"). Uma pergunta espontânea seria mais vaga. A regra das combinações de
-três jogadores coincide, por necessidade, com a descrição da ferramenta,
-porque "combinação de três" não tem definição única no futebol.
+**Perguntas que saíram.** 9 de 40 perguntas escritas saíram porque a resposta
+mudava com a leitura. Entre elas está o "principal elo da circulação de
+bola" na partida inteira, um conceito comum em análise de futebol que, nesta
+final, não tem resposta única.
+
+**O `graph_tools` mistura dois efeitos:** ter ferramentas que calculam e ter
+algoritmos de grafo. Separá-los exige um braço com só as ferramentas de
+ações (`list_players`, `query_actions`, `list_actions`), sem as de rede.
+Esse braço é uma linha de configuração (`TOOL_ARMS` em `arms.py`) e fica como
+trabalho futuro.
+
+**O `events_in_prompt` depende de uma partida caber no contexto.** A tabela
+tem ~111 mil tokens. Uma rodada de Copa ou um campeonato não cabe, e o braço
+deixaria de existir; as ferramentas continuariam funcionando.
 
 **Um único modelo.** O resultado vale para o modelo do `.env` no dia da
 execução. Outro modelo pode inverter a ordem dos braços. O modelo usado fica
-registrado em cada linha do `results.jsonl`.
+registrado em cada linha do arquivo de resultados.
 
-**Temperatura 0 não garante repetição.** Provedores podem dar respostas
-diferentes para o mesmo pedido. A tabela de consistência mede isso, mas não
-corrige.
+**Conferência por conjunto.** Nas sequências de três jogadores, a ordem não é
+conferida. Na pergunta que compara o 1º e o 2º tempo, só a dupla do 2º tempo
+é conferida.
 
-**Escolhas fixas do `vector`.** 30 linhas e um modelo de embedding: outro
-número de linhas ou outro modelo daria outro resultado. Não foram testadas
+**O gabarito de rede depende da camada 0.** Redes e xT vêm da camada 0, cujo
+modelo de xT foi treinado com jogos que incluem a final. O gabarito e o grafo
+partem do mesmo Parquet, então a conferência cruzada valida as camadas 1 e
+2 e as ferramentas, **não a 0**. Por isso a camada 0 tem testes próprios
+contra o JSON bruto.
+
+**Escolhas fixas do `vector`.** 30 linhas e um modelo de embedding. Outro
+número de linhas ou outro modelo daria outro resultado; não foram testadas
 variações.
 
 **Instruções em inglês, perguntas em português.** É comum na prática e vale
 para todos os braços igualmente, mas é uma variável que não foi isolada.
-
-**Tokens aproximados na documentação.** Os tamanhos citados nos capítulos usam
-um tokenizador genérico. Os números do `summary.md` vêm do provedor e são os
-que valem.
