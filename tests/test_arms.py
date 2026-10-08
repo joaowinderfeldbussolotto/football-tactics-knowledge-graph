@@ -135,3 +135,13 @@ def test_cached_arms_split_data_and_question_around_a_cache_point():
 def test_shared_prompt_forbids_approximate_answers_and_tool_calls_are_sequential():
     assert "do not answer with a different or\napproximate measure" in arms.SYSTEM_PROMPT
     assert arms.tool_agent("graph_tools").model_settings["parallel_tool_calls"] is False
+
+
+def test_configured_arms_come_from_the_config_file(tmp_path):
+    cfg = tmp_path / "benchmark.yaml"
+    cfg.write_text("arms: [graph_tools, events_in_prompt]\n")
+    assert arms.configured_arms(cfg) == ["events_in_prompt", "graph_tools"]  # ARMS order
+    assert arms.configured_arms(tmp_path / "missing.yaml") == list(arms.ARMS)
+    cfg.write_text("arms: [graph]\n")
+    with pytest.raises(ValueError, match="arms must be"):
+        arms.configured_arms(cfg)

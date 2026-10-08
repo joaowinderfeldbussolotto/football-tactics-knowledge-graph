@@ -207,6 +207,20 @@ ponta a ponta. Cada execução imprime uma linha neste formato:
 O desfecho pode ser `ok`, `wrong`, `abstention` ou `format_error`
 (capítulo 5).
 
+### Quais braços rodar
+
+O arquivo [`config/benchmark.yaml`](../config/benchmark.yaml) diz quais braços
+o `run_benchmark.py` e o `ask.py` usam quando a linha de comando não diz
+outra coisa:
+
+```yaml
+arms: [events_in_prompt, graph_tools]
+```
+
+Para a rodada que consolida os resultados, liste os cinco. Na linha de
+comando, `--arms` (no `run_benchmark.py`) ou `--arm` (no `ask.py`) sobrepõe o
+arquivo.
+
 ### Depois, o benchmark completo
 
 ```bash

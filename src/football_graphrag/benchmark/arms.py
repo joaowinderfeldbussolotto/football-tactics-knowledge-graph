@@ -17,10 +17,12 @@ import os
 import time
 from dataclasses import dataclass, field
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
 import pandas as pd
+import yaml
 from pydantic import BaseModel
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai.messages import CachePoint
@@ -38,6 +40,19 @@ from football_graphrag.llm.provider import embed_texts, pydantic_ai_model, pydan
 os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 
 ARMS = ("no_context", "vector", "events_in_prompt", "stats_in_prompt", "graph_tools")
+# config/benchmark.yaml at the repository root: which arms run by default.
+BENCHMARK_CONFIG = Path(__file__).resolve().parents[3] / "config" / "benchmark.yaml"
+
+
+def configured_arms(path: Path = BENCHMARK_CONFIG) -> list[str]:
+    """The arms listed in config/benchmark.yaml, in ARMS order; all arms if the file is missing."""
+    if not path.exists():
+        return list(ARMS)
+    listed = yaml.safe_load(path.read_text(encoding="utf-8")).get("arms") or []
+    unknown = [a for a in listed if a not in ARMS]
+    if unknown or not listed:
+        raise ValueError(f"{path.name}: arms must be a non-empty list of {', '.join(ARMS)}; got {listed}")
+    return [a for a in ARMS if a in listed]
 
 SYSTEM_PROMPT = """\
 You answer questions about one football match, using the data provided in

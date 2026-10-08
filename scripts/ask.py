@@ -22,7 +22,7 @@ import logging
 import sys
 
 from football_graphrag.benchmark import ground_truth
-from football_graphrag.benchmark.arms import ARMS, SYSTEM_PROMPT, ArmResult, missing_config
+from football_graphrag.benchmark.arms import ARMS, SYSTEM_PROMPT, ArmResult, configured_arms, missing_config
 from football_graphrag.benchmark.questions import Question, get_question
 from football_graphrag.benchmark.runner import run_one
 from football_graphrag.benchmark.scoring import score
@@ -67,7 +67,7 @@ async def ask(text: str, arms: list[str], *, question: Question | None, show_pro
 
 async def main(args) -> int:
     settings = get_settings()
-    arms = [args.arm] if args.arm else list(ARMS)
+    arms = [args.arm] if args.arm else configured_arms()
     problems = missing_config(arms)
     if problems:
         print("cannot run:\n  " + "\n  ".join(problems))
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("text", nargs="?", help="a free question (in Portuguese); omit it for interactive mode")
     parser.add_argument("--question", help="a benchmark question id, e.g. s01")
-    parser.add_argument("--arm", choices=ARMS, help="only this arm (default: all)")
+    parser.add_argument("--arm", choices=ARMS, help="only this arm (default: the arms in config/benchmark.yaml)")
     parser.add_argument("--show-prompt", action="store_true", help="print the prompt sent to the model")
     args = parser.parse_args()
     if args.text and args.question:
