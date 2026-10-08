@@ -372,38 +372,44 @@ questions:
   # ---- structure: estrutura da rede de passes: triângulos e jogadores que isolariam um companheiro
   - id: t01
     type: structure
-    stage: graph
+    stage: removed
     check: set
     text: >-
       No primeiro tempo, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
     note: >-
-      Romero, Enzo Fernández e Otamendi: a saída de bola por baixo.
+      Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
   - id: t02
     type: structure
-    stage: graph
+    stage: removed
     check: set
     text: >-
       Qual trio da França mais trocou passes entre si na final, com os três passando a bola uns para os outros?
+    note: >-
+      Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
   - id: t03
     type: structure
-    stage: graph
+    stage: removed
     check: set
     text: >-
       No segundo tempo, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
     note: >-
-      Enzo Fernández, Messi e De Paul: o eixo de passes sobe para o meio-campo.
+      Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
   - id: t04
     type: structure
-    stage: graph
+    stage: removed
     check: set
     text: >-
       No primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
+    note: >-
+      Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
   - id: t05
     type: structure
-    stage: graph
+    stage: removed
     check: set
     text: >-
       Na prorrogação, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
+    note: >-
+      Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
   - id: t06
     type: structure
     stage: graph

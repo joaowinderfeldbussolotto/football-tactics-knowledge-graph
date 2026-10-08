@@ -46,11 +46,11 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [u04](#u04) | unanswerable | full | sim | – |
 | [u05](#u05) | unanswerable | full | sim | – |
 | [u06](#u06) | unanswerable | candidate | sim | – |
-| [t01](#t01) | structure | graph | sim | 4 |
-| [t02](#t02) | structure | graph | sim | 4 |
-| [t03](#t03) | structure | graph | sim | 4 |
-| [t04](#t04) | structure | graph | sim | 4 |
-| [t05](#t05) | structure | graph | sim | 4 |
+| [t01](#t01) | structure | removed | sim | 4 |
+| [t02](#t02) | structure | removed | sim | 4 |
+| [t03](#t03) | structure | removed | sim | 4 |
+| [t04](#t04) | structure | removed | sim | 4 |
+| [t05](#t05) | structure | removed | sim | 4 |
 | [t06](#t06) | structure | graph | sim | 2 |
 | [t07](#t07) | structure | removed | **não** | 4 |
 | [c01](#c01) | counterfactual | graph | sim | 12 |
@@ -682,9 +682,9 @@ Sem leituras: a resposta esperada é "sem dados".
 
 > No primeiro tempo, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
 
-Estágio: **graph** · conferência: `set` · estável: **sim**
+Estágio: **removed** · conferência: `set` · estável: **sim**
 
-Nota: Romero, Enzo Fernández e Otamendi: a saída de bola por baixo.
+Nota: Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
 
 | leitura | resposta |
 |---|---|
@@ -697,7 +697,9 @@ Nota: Romero, Enzo Fernández e Otamendi: a saída de bola por baixo.
 
 > Qual trio da França mais trocou passes entre si na final, com os três passando a bola uns para os outros?
 
-Estágio: **graph** · conferência: `set` · estável: **sim**
+Estágio: **removed** · conferência: `set` · estável: **sim**
+
+Nota: Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
 
 | leitura | resposta |
 |---|---|
@@ -710,9 +712,9 @@ Estágio: **graph** · conferência: `set` · estável: **sim**
 
 > No segundo tempo, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
 
-Estágio: **graph** · conferência: `set` · estável: **sim**
+Estágio: **removed** · conferência: `set` · estável: **sim**
 
-Nota: Enzo Fernández, Messi e De Paul: o eixo de passes sobe para o meio-campo.
+Nota: Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
 
 | leitura | resposta |
 |---|---|
@@ -725,7 +727,9 @@ Nota: Enzo Fernández, Messi e De Paul: o eixo de passes sobe para o meio-campo.
 
 > No primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
 
-Estágio: **graph** · conferência: `set` · estável: **sim**
+Estágio: **removed** · conferência: `set` · estável: **sim**
+
+Nota: Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
 
 | leitura | resposta |
 |---|---|
@@ -738,7 +742,9 @@ Estágio: **graph** · conferência: `set` · estável: **sim**
 
 > Na prorrogação, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
 
-Estágio: **graph** · conferência: `set` · estável: **sim**
+Estágio: **removed** · conferência: `set` · estável: **sim**
+
+Nota: Retirada: a formulação é artificial (ninguém pergunta por trios que trocaram passes entre si) e é lida como sequência A -> B -> C; na execução 10, os dois braços a leram assim.
 
 | leitura | resposta |
 |---|---|

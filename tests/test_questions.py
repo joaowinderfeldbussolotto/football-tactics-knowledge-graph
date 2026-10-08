@@ -59,5 +59,7 @@ def test_active_questions_have_stable_ground_truth():
     gt = ground_truth.load()
     unstable = [q.id for q in QUESTIONS if not gt[q.id]["stable"]]
     assert not unstable, f"active questions whose answer changes with the reading: {unstable}"
-    removed_but_stable = [q.id for q in ALL_QUESTIONS if q.stage == "removed" and gt[q.id]["stable"]]
+    # a removed question is unstable, unless its note says why else it left
+    removed_but_stable = [q.id for q in ALL_QUESTIONS if q.stage == "removed" and gt[q.id]["stable"]
+                          and not q.note.startswith("Retirada")]
     assert not removed_but_stable, f"removed questions that are stable: {removed_but_stable}"
