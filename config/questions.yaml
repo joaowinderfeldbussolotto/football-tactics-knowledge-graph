@@ -561,6 +561,30 @@ questions:
     note: >-
       Empate entre Rabiot e Tchouaméni e Rabiot e Mbappé.
 
+  - id: p08
+    type: play
+    stage: removed
+    check: player
+    text: >-
+      Quem participou de mais jogadas da França que levaram a bola da defesa até o terço final no segundo tempo?
+    note: >-
+      Muda com a leitura: Kolo Muani se a jogada começa no terço de defesa; empate de três se começa no próprio campo.
+  - id: p09
+    type: play
+    stage: graph
+    check: value
+    text: >-
+      Em quantas jogadas da França que terminaram em finalização na prorrogação Mbappé participou?
+    note: >-
+      2.
+  - id: p10
+    type: play
+    stage: candidate
+    check: player
+    text: >-
+      Qual jogador participou de mais jogadas da Argentina que terminaram em gol?
+    note: >-
+      Messi (3). Fica de reserva: as ferramentas não identificam a jogada de cada gol, e a conferência pelo grafo não tem como responder.
   # ---- substitution: antes e depois de uma substituição
   - id: b01
     type: substitution
@@ -618,3 +642,19 @@ questions:
       Depois que Di María foi substituído, qual companheiro mais recebeu passes de Messi?
     note: >-
       Empate entre Enzo Fernández e De Paul quando só contam passes de bola rolando.
+  - id: b08
+    type: substitution
+    stage: removed
+    check: player
+    text: >-
+      Depois que Kolo Muani entrou, ele se tornou o principal parceiro de Mbappé? Com quem Mbappé mais combinou a partir dali?
+    note: >-
+      Muda com a leitura: Rabiot contando os passes para Mbappé ou as duas direções; Kolo Muani contando só os passes de Mbappé.
+  - id: b09
+    type: substitution
+    stage: graph
+    check: player
+    text: >-
+      Depois que Di María foi substituído, quem passou a ser o jogador da Argentina mais procurado pelos companheiros?
+    note: >-
+      Enzo Fernández, o que mais recebeu passes.

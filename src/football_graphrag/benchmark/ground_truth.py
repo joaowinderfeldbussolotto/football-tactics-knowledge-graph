@@ -705,6 +705,63 @@ def b06() -> dict: return pair_readings(FRA, substitution_cuts(DEMBELE))
 def b07() -> dict: return receiver_readings(MESSI, substitution_cuts(DI_MARIA))
 
 
+def _possessions_by(team: str, masks: dict, by: str = "player", value_of: str | None = None) -> dict:
+    out = {}
+    ph = possession_table()
+    for label, mask in masks.items():
+        sel = ph[(ph.team == team) & mask(ph)]
+        if value_of:
+            out[label] = answer(value=int(sum(value_of in p for p in sel.players)))
+            continue
+        counts = Counter()
+        for players in sel.players:
+            counts.update(players)
+        out[label] = leader(counts)
+    return out
+
+
+def p08() -> dict:
+    reach = lambda ph: ph.thirds.map(lambda t: "ataque" in t) & (ph.period == 2)
+    return _possessions_by(FRA, {"defensive third": lambda ph: (ph.start_third == "defesa") & reach(ph),
+                                 "own half": lambda ph: (ph.start_column < 6) & reach(ph)})
+
+
+def p09() -> dict:
+    et = lambda ph: ph.period.isin([3, 4])
+    return _possessions_by(FRA, {"last action is a shot": lambda ph: ph.last_action.isin(SHOT_ACTIONS) & et(ph),
+                                 "a shot in the possession": lambda ph: ph.has_shot & et(ph)}, value_of=MBAPPE)
+
+
+def p10() -> dict:
+    df = actions()
+    goals = df[df.gol & (df.team_name == ARG)]
+    open_play = set(goals[goals.acao != "penalti"].possession_id)
+    return _possessions_by(ARG, {"every goal": lambda ph: ph.index.isin(set(goals.possession_id)),
+                                 "penalty goals left out": lambda ph: ph.index.isin(open_play)})
+
+
+def b08() -> dict:
+    sub = next(e for e in raw_events() if _type(e) == "Substitution"
+               and e["substitution"]["replacement"]["name"] == "Randal Kolo Muani")
+    cuts = substitution_cuts(_player(sub))
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, cut=list(cuts),
+                                     direction=("both directions", "to Mbappé", "from Mbappé")):
+        p = team_passes(FRA, PASS_SETS[r["passes"]], cuts[r["cut"]])
+        to, frm = Counter(p[p.receiver == MBAPPE].player_name), Counter(p[p.player_name == MBAPPE].receiver)
+        out[label] = leader({"both directions": to + frm, "to Mbappé": to, "from Mbappé": frm}[r["direction"]])
+    return out
+
+
+def b09() -> dict:
+    cuts = substitution_cuts(DI_MARIA)
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, cut=list(cuts)):
+        p = team_passes(ARG, PASS_SETS[r["passes"]], cuts[r["cut"]])
+        out[label] = leader(Counter(p.receiver))
+    return out
+
+
 ANSWERS = {name: fn for name, fn in globals().items() if callable(fn) and name[:1] in ORDER
            and name[1:].isdigit()}
 

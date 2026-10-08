@@ -2417,6 +2417,65 @@
       }
     }
   },
+  "p08": {
+    "players": null,
+    "value": null,
+    "no_data": false,
+    "stable": false,
+    "readings": {
+      "defensive third": {
+        "players": [
+          "Randal Kolo Muani"
+        ],
+        "value": 4
+      },
+      "own half": {
+        "tie": [
+          "Aurélien Djani Tchouaméni",
+          "Jules Koundé",
+          "Randal Kolo Muani"
+        ]
+      }
+    }
+  },
+  "p09": {
+    "players": [],
+    "value": 2,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "last action is a shot": {
+        "players": [],
+        "value": 2
+      },
+      "a shot in the possession": {
+        "players": [],
+        "value": 2
+      }
+    }
+  },
+  "p10": {
+    "players": [
+      "Lionel Andrés Messi Cuccittini"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "every goal": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini"
+        ],
+        "value": 3
+      },
+      "penalty goals left out": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini"
+        ],
+        "value": 2
+      }
+    }
+  },
   "b01": {
     "players": [
       "Enzo Fernandez",
@@ -2774,6 +2833,120 @@
           "Enzo Fernandez",
           "Rodrigo Javier De Paul"
         ]
+      }
+    }
+  },
+  "b08": {
+    "players": null,
+    "value": null,
+    "no_data": false,
+    "stable": false,
+    "readings": {
+      "all passes / after the substitution (raw JSON) / both directions": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 6
+      },
+      "all passes / after the substitution (raw JSON) / to Mbappé": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 6
+      },
+      "all passes / after the substitution (raw JSON) / from Mbappé": {
+        "players": [
+          "Randal Kolo Muani"
+        ],
+        "value": 3
+      },
+      "all passes / after the player's last action / both directions": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 7
+      },
+      "all passes / after the player's last action / to Mbappé": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 6
+      },
+      "all passes / after the player's last action / from Mbappé": {
+        "players": [
+          "Randal Kolo Muani"
+        ],
+        "value": 3
+      },
+      "open-play passes / after the substitution (raw JSON) / both directions": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 6
+      },
+      "open-play passes / after the substitution (raw JSON) / to Mbappé": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 6
+      },
+      "open-play passes / after the substitution (raw JSON) / from Mbappé": {
+        "players": [
+          "Randal Kolo Muani"
+        ],
+        "value": 3
+      },
+      "open-play passes / after the player's last action / both directions": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 7
+      },
+      "open-play passes / after the player's last action / to Mbappé": {
+        "players": [
+          "Adrien Rabiot"
+        ],
+        "value": 6
+      },
+      "open-play passes / after the player's last action / from Mbappé": {
+        "players": [
+          "Randal Kolo Muani"
+        ],
+        "value": 3
+      }
+    }
+  },
+  "b09": {
+    "players": [
+      "Enzo Fernandez"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / after the substitution (raw JSON)": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 41
+      },
+      "all passes / after the player's last action": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 42
+      },
+      "open-play passes / after the substitution (raw JSON)": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 37
+      },
+      "open-play passes / after the player's last action": {
+        "players": [
+          "Enzo Fernandez"
+        ],
+        "value": 38
       }
     }
   }

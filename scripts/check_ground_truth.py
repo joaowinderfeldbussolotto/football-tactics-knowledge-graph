@@ -168,6 +168,11 @@ RECIPES = {
     "b03": lambda tb: top_passer_to(tb, "France", "Mbappé", {"second_from": after_last_action(tb, "Dembélé")}),
     "b04": lambda tb: top_triangle(tb, "France", {"second_from": after_last_action(tb, "Dembélé")}),
     "b05": lambda tb: top_receiver(tb, "France", "Mbappé", {"second_from": after_last_action(tb, "Dembélé")}),
+    "p09": lambda tb: tb.query_possessions("France", period=[3, 4], ends_with=SHOTS,
+                                           includes_players=["Mbappé"])["possessions"],
+    "b09": lambda tb: [next(r["receiver"] for r in tb.query_actions(
+        {"team": "Argentina", "action": list(PASS_ACTIONS), "success": True,
+         "second_from": after_last_action(tb, "Di María")}, ["receiver"], top=5) if r["receiver"])],
 }
 
 

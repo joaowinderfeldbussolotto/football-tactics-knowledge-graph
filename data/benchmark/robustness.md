@@ -69,6 +69,9 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [p05](#p05) | play | graph | sim | 2 |
 | [p06](#p06) | play | graph | sim | 2 |
 | [p07](#p07) | play | removed | **não** | 1 |
+| [p08](#p08) | play | removed | **não** | 2 |
+| [p09](#p09) | play | graph | sim | 2 |
+| [p10](#p10) | play | candidate | sim | 2 |
 | [b01](#b01) | substitution | graph | sim | 8 |
 | [b02](#b02) | substitution | graph | sim | 4 |
 | [b03](#b03) | substitution | graph | sim | 4 |
@@ -76,6 +79,8 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [b05](#b05) | substitution | graph | sim | 4 |
 | [b06](#b06) | substitution | removed | **não** | 8 |
 | [b07](#b07) | substitution | removed | **não** | 4 |
+| [b08](#b08) | substitution | removed | **não** | 12 |
+| [b09](#b09) | substitution | graph | sim | 4 |
 
 ## fact
 
@@ -1043,6 +1048,45 @@ Nota: Empate entre Rabiot e Tchouaméni e Rabiot e Mbappé.
 |---|---|
 | reaches the attacking third | **empate:** Adrien Rabiot e Aurélien Djani Tchouaméni; Adrien Rabiot e Kylian Mbappé Lottin |
 
+### p08
+
+> Quem participou de mais jogadas da França que levaram a bola da defesa até o terço final no segundo tempo?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a leitura: Kolo Muani se a jogada começa no terço de defesa; empate de três se começa no próprio campo.
+
+| leitura | resposta |
+|---|---|
+| defensive third | Randal Kolo Muani · 4 |
+| own half | **empate:** Aurélien Djani Tchouaméni; Jules Koundé; Randal Kolo Muani |
+
+### p09
+
+> Em quantas jogadas da França que terminaram em finalização na prorrogação Mbappé participou?
+
+Estágio: **graph** · conferência: `value` · estável: **sim**
+
+Nota: 2.
+
+| leitura | resposta |
+|---|---|
+| last action is a shot | 2 |
+| a shot in the possession | 2 |
+
+### p10
+
+> Qual jogador participou de mais jogadas da Argentina que terminaram em gol?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: Messi (3). Fica de reserva: as ferramentas não identificam a jogada de cada gol, e a conferência pelo grafo não tem como responder.
+
+| leitura | resposta |
+|---|---|
+| every goal | Lionel Andrés Messi Cuccittini · 3 |
+| penalty goals left out | Lionel Andrés Messi Cuccittini · 2 |
+
 ## substitution
 
 ### b01
@@ -1161,3 +1205,41 @@ Nota: Empate entre Enzo Fernández e De Paul quando só contam passes de bola ro
 | all passes / after the player's last action | Enzo Fernandez · 6 |
 | open-play passes / after the substitution (raw JSON) | **empate:** Enzo Fernandez; Rodrigo Javier De Paul |
 | open-play passes / after the player's last action | **empate:** Enzo Fernandez; Rodrigo Javier De Paul |
+
+### b08
+
+> Depois que Kolo Muani entrou, ele se tornou o principal parceiro de Mbappé? Com quem Mbappé mais combinou a partir dali?
+
+Estágio: **removed** · conferência: `player` · estável: **não**
+
+Nota: Muda com a leitura: Rabiot contando os passes para Mbappé ou as duas direções; Kolo Muani contando só os passes de Mbappé.
+
+| leitura | resposta |
+|---|---|
+| all passes / after the substitution (raw JSON) / both directions | Adrien Rabiot · 6 |
+| all passes / after the substitution (raw JSON) / to Mbappé | Adrien Rabiot · 6 |
+| all passes / after the substitution (raw JSON) / from Mbappé | Randal Kolo Muani · 3 |
+| all passes / after the player's last action / both directions | Adrien Rabiot · 7 |
+| all passes / after the player's last action / to Mbappé | Adrien Rabiot · 6 |
+| all passes / after the player's last action / from Mbappé | Randal Kolo Muani · 3 |
+| open-play passes / after the substitution (raw JSON) / both directions | Adrien Rabiot · 6 |
+| open-play passes / after the substitution (raw JSON) / to Mbappé | Adrien Rabiot · 6 |
+| open-play passes / after the substitution (raw JSON) / from Mbappé | Randal Kolo Muani · 3 |
+| open-play passes / after the player's last action / both directions | Adrien Rabiot · 7 |
+| open-play passes / after the player's last action / to Mbappé | Adrien Rabiot · 6 |
+| open-play passes / after the player's last action / from Mbappé | Randal Kolo Muani · 3 |
+
+### b09
+
+> Depois que Di María foi substituído, quem passou a ser o jogador da Argentina mais procurado pelos companheiros?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Enzo Fernández, o que mais recebeu passes.
+
+| leitura | resposta |
+|---|---|
+| all passes / after the substitution (raw JSON) | Enzo Fernandez · 41 |
+| all passes / after the player's last action | Enzo Fernandez · 42 |
+| open-play passes / after the substitution (raw JSON) | Enzo Fernandez · 37 |
+| open-play passes / after the player's last action | Enzo Fernandez · 38 |
