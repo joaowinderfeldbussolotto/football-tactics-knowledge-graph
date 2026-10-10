@@ -708,6 +708,35 @@ def trio_after_readings(team: str, player: str) -> dict:
 
 
 def b01() -> dict: return trio_after_readings(ARG, DI_MARIA)
+def side_cuts(side: str, extra=None) -> dict:
+    """'Through the left/right, in the attacking half': the corridor of layer 0 (rows of the
+    zone grid) or a plain third of the pitch width, crossed with the opponent half or the
+    attacking third. Coordinates already run left to right, so y high is the left."""
+    sides = {"left": {"corridor": lambda d: d.corredor == "esquerda", "width third": lambda d: d.start_y > 68 * 2 / 3},
+             "right": {"corridor": lambda d: d.corredor == "direita", "width third": lambda d: d.start_y < 68 / 3}}
+    ahead = {"opponent half": lambda d: d.zone_start // 8 >= 6, "attacking third": lambda d: d.terco == "ataque"}
+    return {f"{sl} / {al}": (lambda sm, am: lambda d: sm(d) & am(d) & (extra(d) if extra else True))(sm, am)
+            for sl, sm in sides[side].items() for al, am in ahead.items()}
+
+
+def most_sought_readings(team: str, cuts: dict) -> dict:
+    """'The player most sought by his teammates': most passes received."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, cut=list(cuts)):
+        out[label] = leader(Counter(team_passes(team, PASS_SETS[r["passes"]], cuts[r["cut"]]).receiver))
+    return out
+
+
+def s10() -> dict: return pair_readings(ARG, side_cuts("right"))
+def s11() -> dict: return most_sought_readings(ARG, side_cuts("left"))
+def s12() -> dict:
+    return most_sought_readings(FRA, {"goals included": between(goal_order(2), goal_order(3), True),
+                                      "goals excluded": between(goal_order(2), goal_order(3), False)})
+def s13() -> dict:
+    return most_sought_readings(FRA, {"with the 2-2 goal": after(goal_order(4), True),
+                                      "without the 2-2 goal": after(goal_order(4), False)})
+
+
 def b02() -> dict: return passers_to_readings(MESSI, substitution_cuts(DI_MARIA))
 def b03() -> dict: return passers_to_readings(MBAPPE, substitution_cuts(DEMBELE))
 def b04() -> dict: return trio_after_readings(FRA, DEMBELE)

@@ -40,6 +40,10 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [s07](#s07) | network_slice | full | sim | 8 |
 | [s08](#s08) | network_slice | removed | **não** | 6 |
 | [s09](#s09) | network_slice | removed | **não** | 6 |
+| [s10](#s10) | network_slice | candidate | sim | 16 |
+| [s11](#s11) | network_slice | candidate | sim | 8 |
+| [s12](#s12) | network_slice | candidate | sim | 4 |
+| [s13](#s13) | network_slice | candidate | sim | 4 |
 | [u01](#u01) | unanswerable | pilot | sim | – |
 | [u02](#u02) | unanswerable | full | sim | – |
 | [u03](#u03) | unanswerable | pilot | sim | – |
@@ -618,6 +622,82 @@ Nota: Empate entre Enzo Fernández e Otamendi numa leitura (só passes de bola r
 | open-play passes / either direction / extra time | Enzo Fernandez · 11 |
 | open-play passes / passed to / extra time | **empate:** Enzo Fernandez; Nicolás Hernán Otamendi |
 | open-play passes / received from / extra time | Enzo Fernandez · 9 |
+
+### s10
+
+> No campo de ataque, pelo lado direito, quais dois jogadores da Argentina mais trocaram passes entre si?
+
+Estágio: **candidate** · conferência: `set` · estável: **sim**
+
+Nota: Messi e De Paul. Leitura tática: por onde a Argentina combinava pela direita.
+
+| leitura | resposta |
+|---|---|
+| all passes / directed / corridor / opponent half | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 8 |
+| all passes / directed / corridor / attacking third | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 7 |
+| all passes / directed / width third / opponent half | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 8 |
+| all passes / directed / width third / attacking third | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 7 |
+| all passes / undirected / corridor / opponent half | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 14 |
+| all passes / undirected / corridor / attacking third | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 10 |
+| all passes / undirected / width third / opponent half | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 14 |
+| all passes / undirected / width third / attacking third | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 10 |
+| open-play passes / directed / corridor / opponent half | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 8 |
+| open-play passes / directed / corridor / attacking third | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 7 |
+| open-play passes / directed / width third / opponent half | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 8 |
+| open-play passes / directed / width third / attacking third | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 7 |
+| open-play passes / undirected / corridor / opponent half | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 13 |
+| open-play passes / undirected / corridor / attacking third | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 9 |
+| open-play passes / undirected / width third / opponent half | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 13 |
+| open-play passes / undirected / width third / attacking third | Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 9 |
+
+### s11
+
+> No campo de ataque, pelo lado esquerdo, quem foi o jogador da Argentina mais procurado pelos companheiros?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: Mac Allister, não Di María. Leitura tática: quem era a referência do lado esquerdo.
+
+| leitura | resposta |
+|---|---|
+| all passes / corridor / opponent half | Alexis Mac Allister · 17 |
+| all passes / corridor / attacking third | Alexis Mac Allister · 11 |
+| all passes / width third / opponent half | Alexis Mac Allister · 17 |
+| all passes / width third / attacking third | Alexis Mac Allister · 11 |
+| open-play passes / corridor / opponent half | Alexis Mac Allister · 15 |
+| open-play passes / corridor / attacking third | Alexis Mac Allister · 10 |
+| open-play passes / width third / opponent half | Alexis Mac Allister · 15 |
+| open-play passes / width third / attacking third | Alexis Mac Allister · 10 |
+
+### s12
+
+> Enquanto a França perdia por 2 a 0, quem foi o jogador francês mais procurado pelos companheiros?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: Upamecano. Leitura tática: a França rodava a bola atrás sem conseguir avançar.
+
+| leitura | resposta |
+|---|---|
+| all passes / goals included | Dayotchanculle Upamecano · 32 |
+| all passes / goals excluded | Dayotchanculle Upamecano · 32 |
+| open-play passes / goals included | Dayotchanculle Upamecano · 29 |
+| open-play passes / goals excluded | Dayotchanculle Upamecano · 29 |
+
+### s13
+
+> Depois do gol que deixou o placar em 2 a 2 no tempo normal, quem passou a ser o jogador da França mais procurado pelos companheiros?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: Koundé.
+
+| leitura | resposta |
+|---|---|
+| all passes / with the 2-2 goal | Jules Koundé · 19 |
+| all passes / without the 2-2 goal | Jules Koundé · 19 |
+| open-play passes / with the 2-2 goal | Jules Koundé · 15 |
+| open-play passes / without the 2-2 goal | Jules Koundé · 15 |
 
 ## unanswerable
 

@@ -101,6 +101,12 @@ def top_partner(tb: Toolbox, team: str, player: str) -> list[str]:
     return [next(r["player"] for r in ranking if r["player"] != name)]
 
 
+def top_sought(tb: Toolbox, filters: dict) -> list[str]:
+    """Most passes received: completed passes grouped by receiver."""
+    rows = tb.query_actions({**filters, "action": list(PASS_ACTIONS), "success": True}, ["receiver"], top=5)
+    return [next(r["receiver"] for r in rows if r["receiver"])]
+
+
 # One recipe per question: the tool calls, in order, that answer it.
 RECIPES = {
     "f01": lambda tb: [tb.list_actions({"yellow_card": True}, limit=1)["actions"][0]["player"]],
@@ -168,6 +174,11 @@ RECIPES = {
     "b03": lambda tb: top_passer_to(tb, "France", "Mbappé", {"second_from": after_last_action(tb, "Dembélé")}),
     "b04": lambda tb: top_triangle(tb, "France", {"second_from": after_last_action(tb, "Dembélé")}),
     "b05": lambda tb: top_receiver(tb, "France", "Mbappé", {"second_from": after_last_action(tb, "Dembélé")}),
+    "s10": lambda tb: top_pair(tb, "Argentina", {"corridor": "right", "third": "attacking"}),
+    "s11": lambda tb: top_sought(tb, {"team": "Argentina", "corridor": "left", "third": "attacking"}),
+    "s12": lambda tb: top_sought(tb, {"team": "France", "second_from": goal_second(tb, 2),
+                                      "second_to": goal_second(tb, 3)}),
+    "s13": lambda tb: top_sought(tb, {"team": "France", "second_from": goal_second(tb, 4)}),
     "p09": lambda tb: tb.query_possessions("France", period=[3, 4], ends_with=SHOTS,
                                            includes_players=["Mbappé"])["possessions"],
     "b09": lambda tb: [next(r["receiver"] for r in tb.query_actions(

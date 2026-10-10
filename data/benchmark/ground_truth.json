@@ -1446,6 +1446,255 @@
       }
     }
   },
+  "s10": {
+    "players": [
+      "Lionel Andrés Messi Cuccittini",
+      "Rodrigo Javier De Paul"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / directed / corridor / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 8
+      },
+      "all passes / directed / corridor / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 7
+      },
+      "all passes / directed / width third / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 8
+      },
+      "all passes / directed / width third / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 7
+      },
+      "all passes / undirected / corridor / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 14
+      },
+      "all passes / undirected / corridor / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 10
+      },
+      "all passes / undirected / width third / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 14
+      },
+      "all passes / undirected / width third / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 10
+      },
+      "open-play passes / directed / corridor / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 8
+      },
+      "open-play passes / directed / corridor / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 7
+      },
+      "open-play passes / directed / width third / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 8
+      },
+      "open-play passes / directed / width third / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 7
+      },
+      "open-play passes / undirected / corridor / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 13
+      },
+      "open-play passes / undirected / corridor / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 9
+      },
+      "open-play passes / undirected / width third / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 13
+      },
+      "open-play passes / undirected / width third / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 9
+      }
+    }
+  },
+  "s11": {
+    "players": [
+      "Alexis Mac Allister"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / corridor / opponent half": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 17
+      },
+      "all passes / corridor / attacking third": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 11
+      },
+      "all passes / width third / opponent half": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 17
+      },
+      "all passes / width third / attacking third": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 11
+      },
+      "open-play passes / corridor / opponent half": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 15
+      },
+      "open-play passes / corridor / attacking third": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 10
+      },
+      "open-play passes / width third / opponent half": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 15
+      },
+      "open-play passes / width third / attacking third": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 10
+      }
+    }
+  },
+  "s12": {
+    "players": [
+      "Dayotchanculle Upamecano"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / goals included": {
+        "players": [
+          "Dayotchanculle Upamecano"
+        ],
+        "value": 32
+      },
+      "all passes / goals excluded": {
+        "players": [
+          "Dayotchanculle Upamecano"
+        ],
+        "value": 32
+      },
+      "open-play passes / goals included": {
+        "players": [
+          "Dayotchanculle Upamecano"
+        ],
+        "value": 29
+      },
+      "open-play passes / goals excluded": {
+        "players": [
+          "Dayotchanculle Upamecano"
+        ],
+        "value": 29
+      }
+    }
+  },
+  "s13": {
+    "players": [
+      "Jules Koundé"
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / with the 2-2 goal": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 19
+      },
+      "all passes / without the 2-2 goal": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 19
+      },
+      "open-play passes / with the 2-2 goal": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 15
+      },
+      "open-play passes / without the 2-2 goal": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 15
+      }
+    }
+  },
   "u01": {
     "players": [],
     "value": null,

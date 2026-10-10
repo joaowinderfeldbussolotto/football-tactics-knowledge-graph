@@ -317,6 +317,38 @@ questions:
       Na prorrogação, qual jogador da Argentina trocou passes com o maior número de companheiros diferentes?
     note: >-
       Empate entre Enzo Fernández e Otamendi numa leitura (só passes de bola rolando, para quem passou).
+  - id: s10
+    type: network_slice
+    stage: candidate
+    check: set
+    text: >-
+      No campo de ataque, pelo lado direito, quais dois jogadores da Argentina mais trocaram passes entre si?
+    note: >-
+      Messi e De Paul. Leitura tática: por onde a Argentina combinava pela direita.
+  - id: s11
+    type: network_slice
+    stage: candidate
+    check: player
+    text: >-
+      No campo de ataque, pelo lado esquerdo, quem foi o jogador da Argentina mais procurado pelos companheiros?
+    note: >-
+      Mac Allister, não Di María. Leitura tática: quem era a referência do lado esquerdo.
+  - id: s12
+    type: network_slice
+    stage: candidate
+    check: player
+    text: >-
+      Enquanto a França perdia por 2 a 0, quem foi o jogador francês mais procurado pelos companheiros?
+    note: >-
+      Upamecano. Leitura tática: a França rodava a bola atrás sem conseguir avançar.
+  - id: s13
+    type: network_slice
+    stage: candidate
+    check: player
+    text: >-
+      Depois do gol que deixou o placar em 2 a 2 no tempo normal, quem passou a ser o jogador da França mais procurado pelos companheiros?
+    note: >-
+      Koundé.
 
   # ---- unanswerable: parece respondível com eventos, mas os dados não têm
   - id: u01
