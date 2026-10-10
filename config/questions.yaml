@@ -166,6 +166,22 @@ questions:
       No primeiro tempo, quem fez mais interceptações?
     note: >-
       Muda com a fonte: no JSON bruto (toda interceptação) é Tchouaméni; na camada 0 (só as certas) é Rabiot.
+  - id: a10
+    type: filtered_aggregation
+    stage: candidate
+    check: player
+    text: >-
+      Vou enfrentar a Argentina e preciso preparar a bola parada: quem cobra os escanteios do time?
+    note: >-
+      Messi (6 de 6). Visão do técnico adversário.
+  - id: a11
+    type: filtered_aggregation
+    stage: candidate
+    check: player
+    text: >-
+      Vou enfrentar a França e preciso preparar a bola parada: quem cobrou mais escanteios pelo time?
+    note: >-
+      Coman (3), à frente de Griezmann (2). Visão do técnico adversário.
 
   # ---- network: um conceito de rede de passes na partida inteira
   - id: n01
@@ -243,6 +259,14 @@ questions:
     check: set
     text: >-
       Qual sequência de três jogadores da Argentina, com a bola passando de um para o outro, mais se repetiu na final?
+  - id: n11
+    type: network
+    stage: candidate
+    check: player
+    text: >-
+      Para cortar a bola que chega a Messi, preciso saber: qual companheiro mais passou a bola para ele na final?
+    note: >-
+      De Paul. Visão do técnico adversário.
 
   # ---- network_slice: rede num recorte, ou comparação entre recortes
   - id: s01
@@ -319,7 +343,7 @@ questions:
       Empate entre Enzo Fernández e Otamendi numa leitura (só passes de bola rolando, para quem passou).
   - id: s10
     type: network_slice
-    stage: candidate
+    stage: graph
     check: set
     text: >-
       No campo de ataque, pelo lado direito, quais dois jogadores da Argentina mais trocaram passes entre si?
@@ -327,7 +351,7 @@ questions:
       Messi e De Paul. Leitura tática: por onde a Argentina combinava pela direita.
   - id: s11
     type: network_slice
-    stage: candidate
+    stage: graph
     check: player
     text: >-
       No campo de ataque, pelo lado esquerdo, quem foi o jogador da Argentina mais procurado pelos companheiros?
@@ -335,7 +359,7 @@ questions:
       Mac Allister, não Di María. Leitura tática: quem era a referência do lado esquerdo.
   - id: s12
     type: network_slice
-    stage: candidate
+    stage: graph
     check: player
     text: >-
       Enquanto a França perdia por 2 a 0, quem foi o jogador francês mais procurado pelos companheiros?
@@ -343,7 +367,7 @@ questions:
       Upamecano. Leitura tática: a França rodava a bola atrás sem conseguir avançar.
   - id: s13
     type: network_slice
-    stage: candidate
+    stage: graph
     check: player
     text: >-
       Depois do gol que deixou o placar em 2 a 2 no tempo normal, quem passou a ser o jogador da França mais procurado pelos companheiros?

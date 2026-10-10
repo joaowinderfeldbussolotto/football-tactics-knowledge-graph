@@ -21,6 +21,8 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [a07](#a07) | filtered_aggregation | full | sim | 2 |
 | [a08](#a08) | filtered_aggregation | candidate | sim | 2 |
 | [a09](#a09) | filtered_aggregation | removed | **não** | 2 |
+| [a10](#a10) | filtered_aggregation | candidate | sim | 3 |
+| [a11](#a11) | filtered_aggregation | candidate | sim | 3 |
 | [n01](#n01) | network | removed | **não** | 12 |
 | [n02](#n02) | network | removed | **não** | 12 |
 | [n03](#n03) | network | pilot | sim | 2 |
@@ -31,6 +33,7 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [n08](#n08) | network | candidate | sim | 2 |
 | [n09](#n09) | network | full | sim | 8 |
 | [n10](#n10) | network | candidate | sim | 8 |
+| [n11](#n11) | network | candidate | sim | 2 |
 | [s01](#s01) | network_slice | pilot | sim | 12 |
 | [s02](#s02) | network_slice | removed | **não** | 24 |
 | [s03](#s03) | network_slice | full | sim | 8 |
@@ -40,10 +43,10 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [s07](#s07) | network_slice | full | sim | 8 |
 | [s08](#s08) | network_slice | removed | **não** | 6 |
 | [s09](#s09) | network_slice | removed | **não** | 6 |
-| [s10](#s10) | network_slice | candidate | sim | 16 |
-| [s11](#s11) | network_slice | candidate | sim | 8 |
-| [s12](#s12) | network_slice | candidate | sim | 4 |
-| [s13](#s13) | network_slice | candidate | sim | 6 |
+| [s10](#s10) | network_slice | graph | sim | 16 |
+| [s11](#s11) | network_slice | graph | sim | 8 |
+| [s12](#s12) | network_slice | graph | sim | 4 |
+| [s13](#s13) | network_slice | graph | sim | 6 |
 | [u01](#u01) | unanswerable | pilot | sim | – |
 | [u02](#u02) | unanswerable | full | sim | – |
 | [u03](#u03) | unanswerable | pilot | sim | – |
@@ -277,6 +280,34 @@ Nota: Muda com a fonte: no JSON bruto (toda interceptação) é Tchouaméni; na 
 | raw JSON (every interception) | Aurélien Djani Tchouaméni · 3 |
 | layer 0 (successful only) | Adrien Rabiot · 4 |
 
+### a10
+
+> Vou enfrentar a Argentina e preciso preparar a bola parada: quem cobra os escanteios do time?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: Messi (6 de 6). Visão do técnico adversário.
+
+| leitura | resposta |
+|---|---|
+| raw JSON | Lionel Andrés Messi Cuccittini · 6 |
+| layer 0 (short and into the box) | Lionel Andrés Messi Cuccittini · 6 |
+| layer 0 (into the box only) | Lionel Andrés Messi Cuccittini · 5 |
+
+### a11
+
+> Vou enfrentar a França e preciso preparar a bola parada: quem cobrou mais escanteios pelo time?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: Coman (3), à frente de Griezmann (2). Visão do técnico adversário.
+
+| leitura | resposta |
+|---|---|
+| raw JSON | Kingsley Coman · 3 |
+| layer 0 (short and into the box) | Kingsley Coman · 3 |
+| layer 0 (into the box only) | Kingsley Coman · 3 |
+
 ## network
 
 ### n01
@@ -444,6 +475,19 @@ Estágio: **candidate** · conferência: `set` · estável: **sim**
 | open-play passes / same possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
 | open-play passes / any possession / consecutive passes | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
 | open-play passes / any possession / other passes between allowed | Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez · 5 |
+
+### n11
+
+> Para cortar a bola que chega a Messi, preciso saber: qual companheiro mais passou a bola para ele na final?
+
+Estágio: **candidate** · conferência: `player` · estável: **sim**
+
+Nota: De Paul. Visão do técnico adversário.
+
+| leitura | resposta |
+|---|---|
+| all passes | Rodrigo Javier De Paul · 14 |
+| open-play passes | Rodrigo Javier De Paul · 13 |
 
 ## network_slice
 
@@ -627,7 +671,7 @@ Nota: Empate entre Enzo Fernández e Otamendi numa leitura (só passes de bola r
 
 > No campo de ataque, pelo lado direito, quais dois jogadores da Argentina mais trocaram passes entre si?
 
-Estágio: **candidate** · conferência: `set` · estável: **sim**
+Estágio: **graph** · conferência: `set` · estável: **sim**
 
 Nota: Messi e De Paul. Leitura tática: por onde a Argentina combinava pela direita.
 
@@ -654,7 +698,7 @@ Nota: Messi e De Paul. Leitura tática: por onde a Argentina combinava pela dire
 
 > No campo de ataque, pelo lado esquerdo, quem foi o jogador da Argentina mais procurado pelos companheiros?
 
-Estágio: **candidate** · conferência: `player` · estável: **sim**
+Estágio: **graph** · conferência: `player` · estável: **sim**
 
 Nota: Mac Allister, não Di María. Leitura tática: quem era a referência do lado esquerdo.
 
@@ -673,7 +717,7 @@ Nota: Mac Allister, não Di María. Leitura tática: quem era a referência do l
 
 > Enquanto a França perdia por 2 a 0, quem foi o jogador francês mais procurado pelos companheiros?
 
-Estágio: **candidate** · conferência: `player` · estável: **sim**
+Estágio: **graph** · conferência: `player` · estável: **sim**
 
 Nota: Upamecano. Leitura tática: a França rodava a bola atrás sem conseguir avançar.
 
@@ -688,7 +732,7 @@ Nota: Upamecano. Leitura tática: a França rodava a bola atrás sem conseguir a
 
 > Depois do gol que deixou o placar em 2 a 2 no tempo normal, quem passou a ser o jogador da França mais procurado pelos companheiros?
 
-Estágio: **candidate** · conferência: `player` · estável: **sim**
+Estágio: **graph** · conferência: `player` · estável: **sim**
 
 Nota: Koundé.
 
