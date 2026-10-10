@@ -21,6 +21,8 @@ from pathlib import Path
 
 import yaml
 
+from football_graphrag.benchmark import arms as arm_defs
+from football_graphrag.benchmark import cypher
 from football_graphrag.benchmark import paper_stats as ps
 from football_graphrag.benchmark.questions import GROUPS
 
@@ -30,6 +32,8 @@ PAPER = ROOT / "paper"
 GENERATED = PAPER / "generated"
 # Pairs of neighbouring steps of the ladder, in the order of the paper's table.
 PAIRS = (("text_to_cypher", "events_in_prompt"), ("graph_tools", "text_to_cypher"), ("graph_tools", "events_in_prompt"))
+# The match data (paper/ALERTAS.md, checked on 10/10/2026 against the StatsBomb file and the Parquet table).
+N_RAW_EVENTS, N_ACTIONS = 4407, 2585
 # Display names of the arms in the paper: (full, short for table headers). The code identifiers do not change.
 ARM_NAMES = {
     "no_context": ("Sem dados", "Sem dados"),
@@ -80,6 +84,11 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
         "nRepeats": str(n_repeats),
         "modelName": "Claude Haiku 5.5",
     }
+    m.update({
+        "nEvents": num(N_RAW_EVENTS), "nActions": num(N_ACTIONS),
+        "nMaxCalls": str(arm_defs.MAX_TOOL_CALLS), "nTopK": str(arm_defs.VECTOR_TOP_K), "nTools": str(len(arm_defs.TOOLS)),
+        "nMaxRows": str(cypher.MAX_ROWS), "nTimeoutS": num(cypher.TIMEOUT_S), "ciLevel": "95\\%",
+    })
     for a, (full, short) in ARM_NAMES.items():  # the names the paper uses; the identifiers stay in the code
         m[f"arm{ps.ARM_KEYS[a]}"], m[f"armShort{ps.ARM_KEYS[a]}"] = full, short
     for g in GROUP_ORDER:
