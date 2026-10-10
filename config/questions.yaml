@@ -245,7 +245,7 @@ questions:
       Qual sequência de três jogadores da Argentina, com a bola passando de um para o outro, mais se repetiu na final?
   - id: n11
     type: network
-    stage: candidate
+    stage: graph
     check: player
     text: >-
       Para cortar a bola que chega a Messi, preciso saber: qual companheiro mais passou a bola para ele na final?
