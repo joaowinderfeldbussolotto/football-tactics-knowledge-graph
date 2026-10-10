@@ -52,7 +52,7 @@ def field(entry: str, name: str) -> str:
 
 def pretty(entry: str) -> str:
     """One field per line: easier to read in the Overleaf editor and in diffs."""
-    entry = " ".join(entry.split())
+    entry = " ".join(entry.split()).replace("&amp;", r"\&")  # the DOI resolver leaves HTML entities; a bare & breaks LaTeX
     head, body = entry.split(",", 1)
     body = body.strip()
     body = body[:-1].strip() if body.endswith("}") else body  # the entry's own closing brace
