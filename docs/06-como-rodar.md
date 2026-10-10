@@ -217,7 +217,9 @@ outra coisa:
 arms: [events_in_prompt, graph_tools]
 ```
 
-Para a rodada que consolida os resultados, liste os cinco. Na linha de
+Para a rodada que consolida os resultados, liste os cinco. O sexto braço,
+`text_to_cypher` (capítulo 4, seção 4.7), é opcional e só roda quando é
+listado. Na linha de
 comando, `--arms` (no `run_benchmark.py`) ou `--arm` (no `ask.py`) sobrepõe o
 arquivo.
 

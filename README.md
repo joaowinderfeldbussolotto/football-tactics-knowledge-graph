@@ -8,9 +8,11 @@ Um benchmark que responde uma pergunta:
 > por ferramentas?
 
 Os dados são a final da Copa do Mundo de 2022, Argentina x França (StatsBomb
-Open Data). São 25 perguntas fechadas, cada uma com resposta certa calculada
-por código, testada em todas as leituras razoáveis da pergunta, e corrigida
-por código; nenhum LLM dá nota.
+Open Data). São 52 perguntas fechadas (as 25 do benchmark original mais 27 de grafo e de
+leitura tática), cada uma com resposta certa calculada por código, testada
+em todas as leituras razoáveis da pergunta, e corrigida por código; nenhum
+LLM dá nota. Há cinco braços principais e um sexto, opcional
+(`text_to_cypher`).
 
 ## Comece por aqui
 
@@ -58,7 +60,7 @@ Com Docker e Python 3.11 (detalhes e caminho só com Docker no
 cp .env.example .env                       # preencha as chaves de LLM e de embeddings
 scripts/local_setup.sh                     # ambiente, Neo4j e camadas de dados, sem custo de API
 source .venv/bin/activate
-python scripts/check_ground_truth.py       # gabarito x grafo: tem de dar 25/25
+python scripts/check_ground_truth.py       # gabarito x grafo: tem de dar 52/52
 python scripts/run_benchmark.py --sample   # 1 pergunta por tipo, centavos
 ```
 
@@ -82,6 +84,20 @@ rápido do que consultar os cinco.
 
 ## Resultados
 
-As execuções ainda estão em andamento e os números não são finais. Cada
-execução, com configuração, custo, resultado e links para os traces, fica
-registrada em [`docs/execucoes/`](docs/execucoes/README.md).
+Rodada consolidada: 52 perguntas × 6 braços × 1 repetição, Claude Haiku 5.5,
+custo de US$ 1,04 (arquivo [`data/benchmark/final_results.jsonl`](data/benchmark/final_results.jsonl),
+página [`docs/execucoes/2026-10-10_14_final.md`](docs/execucoes/2026-10-10_14_final.md)).
+
+| Braço | Acertos | Sem as 5 perguntas sem resposta |
+|---|---|---|
+| `graph_tools` | 45/52 (87%) | 41/47 (87%) |
+| `text_to_cypher` | 37/52 (71%) | 33/47 (70%) |
+| `events_in_prompt` | 26/52 (50%) | 21/47 (45%) |
+| `vector` | 10/52 (19%) | 5/47 (11%) |
+| `no_context` | 5/52 (10%) | 0/47 |
+| `stats_in_prompt` | 5/52 (10%) | 0/47 |
+
+Com 1 repetição por pergunta, são números de uma amostra: a rodada do
+artigo repete 3 vezes. Cada execução, com configuração, custo, resultado e
+links para os traces, fica registrada em
+[`docs/execucoes/`](docs/execucoes/README.md).
