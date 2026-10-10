@@ -1,0 +1,21 @@
+% F2: o ciclo do agente nos braços de consulta e de ferramentas. Diagrama em TikZ.
+\begin{figure}[H]
+\centering\small
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt, minimum height=7mm},
+  arr/.style={-{Stealth[length=2mm]}}]
+\node[box, text width=0.24\columnwidth] (q) at (-0.36\columnwidth,0) {Pergunta};
+\node[box, text width=0.24\columnwidth] (m) at (0,0) {Modelo};
+\node[box, text width=0.24\columnwidth] (a) at (0.36\columnwidth,0) {Resposta};
+\node[box, text width=0.5\columnwidth] (t) at (0,-1.8) {Ferramenta};
+\node[box, text width=0.5\columnwidth] (g) at (0,-3.4) {Grafo Neo4j};
+\draw[arr] (q) -- (m);
+\draw[arr] (m) -- (a);
+\draw[arr] ([xshift=-4mm]m.south) -- node[left] {chamada} ([xshift=-4mm]t.north);
+\draw[arr] ([xshift=4mm]t.north) -- node[right] {resultado} ([xshift=4mm]m.south);
+\draw[arr] ([xshift=-4mm]t.south) -- ([xshift=-4mm]g.north);
+\draw[arr] ([xshift=4mm]g.north) -- ([xshift=4mm]t.south);
+\node[align=left] at (0.385\columnwidth,-1.8) {até \nMaxCalls{}\\ chamadas};
+\end{tikzpicture}
+\caption{Ciclo do agente em \armTextToCypher{} e \armGraphTools{}. No primeiro, a ferramenta executa a consulta Cypher que o modelo escreve; no segundo, é uma das \nTools{} funções prontas, escolhida pelo modelo com seus argumentos.}\label{fig:agente}
+\end{figure}

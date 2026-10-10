@@ -1,83 +1,141 @@
-% Seção: Metodologia  (orçamento: 2.5 página(s))
+% Seção: Metodologia  (orçamento: 2.5 página(s); passou disso por pedido do autor: duas figuras e três tabelas)
 %
 % Referências previstas (chaves de refs.bib): schroer2021crispdm, martinezplumed2021crispdm, shimaoka2024crispdm, decroos2019actions, brandes2001faster, yao2023react, ozsoy2025text2cypher, lewis2020rag, sainz2023nlp, ji2023survey
-% Figuras e tabelas ainda a fazer: F1 (arquitetura), F5 (exemplo de robustez).
+% Figuras e tabelas ainda a fazer: F5 (exemplo de robustez).
+% O modelo é a macro \modelName, definida no preâmbulo (main.tex); trocar lá.
 
 \section{Metodologia}\label{sec:metodologia}
 
 O trabalho seguiu as seis fases do CRISP-DM~\cite{schroer2021crispdm}: entendimento do problema, entendimento
-dos dados, preparação, modelagem, avaliação e implantação. A pergunta de partida é quem faz o cálculo quando um modelo de
-linguagem responde sobre dados de eventos de futebol: o próprio modelo, uma consulta que ele escreve ou código que
-já está escrito.
+dos dados, preparação, modelagem, avaliação e implantação. A pergunta de partida é quem faz o cálculo quando um
+modelo de linguagem responde sobre dados de eventos de futebol: o próprio modelo, uma consulta que ele escreve ou
+código que já está escrito.
 
-\subsection{Dados}
+\subsection{Dados e transformações}
 
 Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022. Os
 \nEvents{} eventos da partida foram convertidos em \nActions{} ações no formato SPADL~\cite{decroos2019actions},
 em uma tabela com uma linha por ação, com zona do campo, fase de posse e valor esperado de ameaça (xT). A tabela
-foi carregada em um grafo Neo4j. Uma única partida foi usada para que a tabela inteira caiba no
-contexto do modelo: ela ocupa \tokInEventsInPrompt{} tokens por pergunta.
+foi carregada em um grafo Neo4j, do qual também se calcula uma súmula com totais por jogador e por time
+(Figura~\ref{fig:dados}). Uma única partida foi usada para que a tabela inteira caiba no contexto do modelo: ela
+ocupa \tokInEventsInPrompt{} tokens por pergunta.
+
+\input{fig-dados}
 
 \subsection{Formas de acesso}
 
-Foram comparadas \nArms{} formas de acesso (braços), ordenadas por quanta lógica de consulta já está pronta antes
-de o modelo agir (Tabela~\ref{tab:bracos}). Todas usam o mesmo modelo (\modelName{}, temperatura zero), o mesmo
-prompt de sistema, que não nomeia a partida, e a mesma saída estruturada (jogadores, valor, indicação de ausência
-de dados e justificativa).
+Foram comparadas \nArms{} formas de acesso (braços), ordenadas pela complexidade do que há entre a pergunta e o
+modelo, da ausência de dados à consulta ao grafo com ferramentas (Tabela~\ref{tab:bracos}). Todas usam o mesmo
+modelo (\modelName{}, temperatura zero), o mesmo prompt de sistema, que não nomeia a partida, e a mesma saída
+estruturada (jogadores, valor, indicação de ausência de dados e justificativa).
 
 \begin{table}[H]
 \centering\small
 \begin{tabular}{p{0.34\columnwidth}p{0.58\columnwidth}} % lint: ignore
 \toprule
-Braço & O que o modelo recebe \\
+Braço & O que o modelo recebe e quem calcula \\
 \midrule
-\armNoContext{} (\texttt{no\_context}) & só a pergunta \\
-\armVector{} (\texttt{vector}) & as \nTopK{} linhas de eventos recuperadas por similaridade de vetores \\
-\armEventsInPrompt{} (\texttt{events\_in\_prompt}) & a tabela de \nActions{} ações inteira \\
-\armTextToCypher{} (\texttt{text\_to\_cypher}) & o esquema do grafo e uma ferramenta que executa a consulta Cypher escrita por ele \\
-\armGraphTools{} (\texttt{graph\_tools}) & \nTools{} ferramentas parametrizadas sobre o grafo \\
-\armStatsInPrompt{} (\texttt{stats\_in\_prompt}) & totais por jogador e por time, já calculados \\
+\armNoContext{} & só a pergunta; ninguém calcula \\
+\armEventsInPrompt{} & a tabela de \nActions{} ações inteira; o modelo calcula \\
+\armStatsInPrompt{} & totais por jogador e por time; já estão calculados \\
+\armVector{} & as \nTopK{} linhas de eventos mais parecidas com a pergunta; o modelo calcula \\
+\armTextToCypher{} & o esquema do grafo; o modelo escreve a consulta e o banco calcula \\
+\armGraphTools{} & \nTools{} funções prontas sobre o grafo; o modelo escolhe qual chamar e o código calcula \\
 \bottomrule
 \end{tabular}
-\caption{As \nArms{} formas de acesso, na ordem da escada.}\label{tab:bracos}
+\caption{As \nArms{} formas de acesso, da menos à mais complexa.}\label{tab:bracos}
 \end{table}
 
-O \armVector{} segue o padrão de recuperação aumentada por geração~\cite{lewis2020rag}. Em \armTextToCypher{} e \armGraphTools{}, o modelo consulta o mesmo grafo e dispõe de no máximo \nMaxCalls{}
-chamadas por pergunta, em um ciclo de raciocínio e ação~\cite{yao2023react}. A diferença está em quem escreve a
-lógica: no primeiro, o modelo escreve toda consulta~\cite{ozsoy2025text2cypher}, sem a biblioteca de algoritmos de
-grafos (GDS)~\cite{neo4j_gds} e sem os padrões táticos já calculados, e a ferramenta só aceita leitura, devolve até
-\nMaxRows{} linhas e interrompe a consulta após \nTimeoutS{} s; no segundo, a lógica difícil (jogadas, rede de
-passes, intermediação) está em ferramentas escritas e congeladas antes das perguntas que as testam. Esse par
-controlado isola o efeito de quem escreve a lógica.
+O braço \armVector{} segue o padrão de recuperação aumentada por geração~\cite{lewis2020rag}. Em
+\armTextToCypher{} e \armGraphTools{}, o modelo atua como agente: em vez de responder de uma vez, decide a cada
+passo qual ação tomar, recebe o resultado e decide de novo, até responder~\cite{wang2024agentssurvey,yao2023react}.
+A ação é a chamada de uma ferramenta, isto é, de uma função externa cujo nome e argumentos o modelo escolhe e
+cujo resultado volta ao seu contexto~\cite{schick2023toolformer} (Figura~\ref{fig:agente}). Cada pergunta admite no
+máximo \nMaxCalls{} chamadas, o que limita o custo e impede ciclos sem fim.
 
-A comparação do par é assimétrica. O \armGraphTools{} foi ajustado em sete versões congeladas, a partir dos erros
-observados em rodadas anteriores, e seis perguntas foram reexecutadas depois das últimas correções, de modo que o
-resultado reportado é o da segunda execução (antes dela, o braço acertou \preFixKGraphTools{} de
-\preFixNGraphTools{} perguntas). O \armTextToCypher{} foi medido em primeiro contato, sem ajuste guiado por erro.
-A diferença entre os dois tende, portanto, a superestimar o efeito da lógica pronta.
+\input{fig-agente}
 
-\subsection{Perguntas, gabarito e métricas}
+Os dois braços de agente consultam o mesmo grafo. A diferença está em quem escreve a lógica: em
+\armTextToCypher{}, o modelo escreve toda consulta~\cite{ozsoy2025text2cypher}, sem a biblioteca de algoritmos de
+grafos (GDS)~\cite{neo4j_gds} e sem os padrões táticos já calculados, e a ferramenta só aceita leitura, devolve
+até \nMaxRows{} linhas e interrompe a consulta após \nTimeoutS{} s; em \armGraphTools{}, a lógica difícil (jogadas,
+rede de passes, intermediação) está em ferramentas escritas e congeladas antes das perguntas que as testam. Esse
+par controlado isola o efeito de quem escreve a lógica.
+
+\subsection{Perguntas e gabarito}
 
 As \nQuestions{} perguntas, em linguagem de futebol e de resposta fechada (quem, quantos, quais), formam cinco
-grupos: busca e contagem (\nGroupSearch{}), relações na rede de passes (\nGroupRelations{}), jogadas e sequências
-(\nGroupPlays{}), antes e depois de um momento (\nGroupMoments{}) e controle (\nGroupControl{}). O controle reúne
-perguntas cuja resposta não existe nos dados, como as que pedem velocidade; a resposta certa é a ausência de dados.
-Os resultados são reportados com e sem ele, isto é, nas \nAnswerable{} perguntas com resposta e nas
-\nQuestions{}.
+grupos (Tabela~\ref{tab:perguntas}). O grupo de controle reúne perguntas cuja resposta não existe nos dados, como
+as que pedem velocidade ou distância percorrida; a resposta certa é a ausência de dados. Os resultados são
+reportados com e sem ele, isto é, nas \nAnswerable{} perguntas com resposta e nas \nQuestions{}.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{p{0.30\columnwidth}p{0.62\columnwidth}} % lint: ignore
+\toprule
+Grupo & Exemplo (resposta esperada) \\
+\midrule
+Busca e contagem (\nGroupSearch{}) & Quem recebeu o primeiro cartão amarelo da final? (jogador) \\
+Relações na rede de passes (\nGroupRelations{}) & Qual dupla da França mais trocou passes entre si na final? (conjunto de jogadores) \\
+Jogadas e sequências (\nGroupPlays{}) & Qual jogador participou de mais jogadas da Argentina que terminaram em finalização? (jogador) \\
+Antes e depois de um momento (\nGroupMoments{}) & Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé? (jogador) \\
+Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo De Paul na final? (ausência de dados) \\
+\bottomrule
+\end{tabular}
+\caption{Os cinco grupos de perguntas, com o número de perguntas de cada um e um exemplo.}\label{tab:perguntas}
+\end{table}
 
 O gabarito foi calculado sem o Neo4j e sem o modelo, com pandas sobre os dados brutos e networkx para as redes, e
-a intermediação segue o algoritmo de Brandes~\cite{brandes2001faster}. Cada pergunta foi resolvida em todas as
-leituras razoáveis (por exemplo, rede dirigida ou não, passes ou xT como peso). Só permaneceram as perguntas
-cuja resposta não muda entre leituras. A conferência compara a resposta do modelo com o gabarito conforme o tipo
+a intermediação segue o algoritmo de Brandes~\cite{brandes2001faster}. Só permaneceram as perguntas cuja resposta
+não depende de como a pergunta é lida. A conferência compara a resposta do modelo com o gabarito conforme o tipo
 (jogador, valor, conjunto, jogador e valor, ou ausência de dados), com nomes normalizados pelos apelidos das
 escalações.
 
-Cada execução (uma pergunta em um braço) é classificada como acerto, alucinação (resposta errada dada como
-resposta), abstenção ou erro de formato; também se registram tokens, chamadas de ferramenta e latência. O acerto de
-um braço é a proporção de perguntas respondidas corretamente, com intervalo de Wilson de \ciLevel{}, tomando a
-pergunta como unidade. Os braços respondem às mesmas perguntas, e por isso os pares de degraus vizinhos são
-comparados pelo teste exato de McNemar, com ajuste de Holm para os três testes. A rodada tem \nRepeats{} repetição
-por pergunta; as conclusões são lidas como indícios, e não como demonstração.
+\subsection{Resultados de uma execução e métricas}
+
+Cada execução (uma pergunta feita a um braço) termina em um de quatro resultados (Tabela~\ref{tab:resultados}).
+O termo alucinação é usado aqui em sentido operacional, mais estreito que o da literatura~\cite{ji2023survey}:
+uma resposta errada apresentada como resposta. A abstenção é o oposto prudente e igualmente errado: o modelo
+declara que não há dados em uma pergunta que tem resposta. Além do resultado, registram-se tokens, chamadas de
+ferramenta e latência.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{p{0.27\columnwidth}p{0.65\columnwidth}} % lint: ignore
+\toprule
+Resultado & Definição \\
+\midrule
+Acerto & a resposta confere com o gabarito; no controle, o modelo indica que não há dados \\
+Alucinação & o modelo dá uma resposta e ela está errada, inclusive um valor para uma pergunta do controle \\
+Abstenção & o modelo indica que não há dados em uma pergunta que tem resposta \\
+Erro de formato & não há resposta estruturada válida ao fim das tentativas \\
+\bottomrule
+\end{tabular}
+\caption{Os quatro resultados possíveis de uma execução.}\label{tab:resultados}
+\end{table}
+
+O acerto de um braço é a proporção de perguntas respondidas corretamente. Três ferramentas estatísticas o
+acompanham.
+
+\emph{Intervalo de Wilson.} É o intervalo de confiança de uma proporção proposto por Wilson~\cite{wilson1927probable}.
+Calculado a partir da proporção observada e do número de perguntas, nunca sai do intervalo entre zero e cem por cento, o que
+importa aqui porque o número de perguntas é pequeno e há braços em zero por cento. O nível usado é \ciLevel{}.
+
+\emph{Teste de McNemar.} Compara dois braços respondendo às mesmas perguntas~\cite{mcnemar1947note}. Só contam as
+perguntas em que um braço acerta e o outro erra. Se os braços fossem equivalentes, cada lado teria a mesma chance
+de ganhar essas discordâncias; a versão exata calcula a probabilidade, pela distribuição binomial, de uma divisão
+tão desigual quanto a observada ou mais. Com uma única execução por pergunta, esse é o teste com taxa baixa de
+falso positivo entre os comparados por Dietterich~\cite{dietterich1998approximate}.
+
+\emph{Ajuste de Holm.} Quanto mais testes se fazem, maior a chance de ao menos um falso positivo. O procedimento de
+Holm~\cite{holm1979simple} ordena os valores $p$ e os compara, do menor ao maior, com limites cada vez menos
+rigorosos, de modo que a chance de qualquer falso positivo no conjunto permaneça no nível escolhido, com mais poder
+que a divisão simples do nível pelo número de testes (Bonferroni). Foram feitas três comparações: \armTextToCypher{}
+contra \armEventsInPrompt{}, \armGraphTools{} contra \armTextToCypher{} e \armGraphTools{} contra
+\armEventsInPrompt{}.
+
+A unidade das três é a pergunta. A rodada tem \nRepeats{} repetição por pergunta; as conclusões são lidas como
+indícios, e não como demonstração.
 
 \subsection{Escopo}
 

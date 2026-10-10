@@ -170,8 +170,8 @@ def test_every_reference_in_the_table_is_in_refs_bib_and_balanced():
     bib = (PAPER / "refs.bib").read_text(encoding="utf-8")
     keys = set(cite.parse_bib(bib))
     rows = list(csv.DictReader((PAPER / "refs" / "references.tsv").open(encoding="utf-8"), delimiter="\t"))
-    assert len(rows) == 27 and all(r["key"] in keys for r in rows)
-    assert {"statsbomb_opendata", "neo4j_gds", "networkx", "pydanticai", "langfuse", "socceraction"} <= keys
+    assert len(rows) == 32 and all(r["key"] in keys for r in rows)
+    assert {"statsbomb_opendata", "neo4j_gds", "networkx", "pydanticai", "langfuse", "socceraction", "holm1979simple"} <= keys
     assert all(r["status"] == "confirmado" for r in rows)
     for entry in re.split(r"\n\n(?=@)", bib):
         assert entry.count("{") == entry.count("}"), entry[:60]

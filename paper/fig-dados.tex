@@ -1,0 +1,18 @@
+% F1: das transformações dos dados aos braços. Diagrama em TikZ (nenhum dado de resultado).
+% Fica na raiz de paper/ porque o Overleaf do artigo não tem pastas.
+\begin{figure}[H]
+\centering\small
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt, minimum height=8mm, text width=0.44\columnwidth},
+  note/.style={align=left, inner sep=1pt, text width=0.40\columnwidth},
+  arr/.style={-{Stealth[length=2mm]}}]
+\node[box] (raw) at (0,0) {Eventos brutos\\ \nEvents{} eventos};
+\node[box] (act) at (0,-2.4) {Tabela de ações\\ \nActions{} ações};
+\node[box] (grafo) at (0,-4.8) {Grafo Neo4j\\ e súmula agregada};
+\draw[arr] (raw) -- node[right, align=left, xshift=1mm] {SPADL, zonas,\\ posse e xT} (act);
+\draw[arr] (act) -- node[right, align=left, xshift=1mm] {carga no banco} (grafo);
+\node[note, anchor=west] at ([xshift=3mm]act.east) {lida por \armEventsInPrompt{}, \armVector{} e pelo gabarito};
+\node[note, anchor=west] at ([xshift=3mm]grafo.east) {lido por \armStatsInPrompt{}, \armTextToCypher{} e \armGraphTools{}};
+\end{tikzpicture}
+\caption{Transformações dos dados e braços que leem cada camada.}\label{fig:dados}
+\end{figure}

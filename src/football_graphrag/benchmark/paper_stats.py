@@ -30,10 +30,9 @@ from football_graphrag.benchmark.arms import ARMS
 from football_graphrag.benchmark.questions import GROUPS
 
 CONTROL = "Controle: sem resposta"
-# Arms in the order of the abstraction ladder: how much of the query logic is ready before the
-# model starts (nothing, retrieved lines, the whole match, the model's own queries, ready tools,
-# fixed aggregates).
-LADDER = ("no_context", "vector", "events_in_prompt", "text_to_cypher", "graph_tools", "stats_in_prompt")
+# Arms in the order of the paper: by the complexity of what sits between the question and the model
+# (nothing, the raw table, fixed aggregates, retrieval, the model's own queries, ready tools).
+LADDER = ("no_context", "events_in_prompt", "stats_in_prompt", "vector", "text_to_cypher", "graph_tools")
 # Macro-safe names (LaTeX control sequences have letters only).
 ARM_KEYS = {"no_context": "NoContext", "vector": "Vector", "events_in_prompt": "EventsInPrompt",
             "stats_in_prompt": "StatsInPrompt", "graph_tools": "GraphTools", "text_to_cypher": "TextToCypher"}

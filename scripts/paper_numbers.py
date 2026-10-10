@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / "data" / "benchmark"
 PAPER = ROOT / "paper"
 GENERATED = PAPER / "generated"
-# Pairs of neighbouring steps of the ladder, in the order of the paper's table.
+# The three comparisons of the paper, in the order of its table.
 PAIRS = (("text_to_cypher", "events_in_prompt"), ("graph_tools", "text_to_cypher"), ("graph_tools", "events_in_prompt"))
 # The match data (paper/ALERTAS.md, checked on 10/10/2026 against the StatsBomb file and the Parquet table).
 N_RAW_EVENTS, N_ACTIONS = 4407, 2585
@@ -82,7 +82,6 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
         "nQuestions": str(len(types)), "nAnswerable": str(len(answerable)),
         "nControl": str(len(types) - len(answerable)), "nArms": str(len(arms)), "nRuns": str(len(rows)),
         "nRepeats": str(n_repeats),
-        "modelName": "Claude Haiku 5.5",
     }
     m.update({
         "nEvents": num(N_RAW_EVENTS), "nActions": num(N_ACTIONS),
