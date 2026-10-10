@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from football_graphrag.ingestion import tactical_metrics as tm
+from tests.conftest import requires_data
 
 
 def make_actions(rows):
@@ -120,3 +121,38 @@ def test_dicionario_de_dados_cobre_todas_as_colunas():
     reais = set(pd.read_parquet(get_settings().processed_dir / "3869685.parquet").columns)
     assert reais - documentadas == set(), f"colunas sem entrada no SCHEMA_DOC: {sorted(reais - documentadas)}"
     assert documentadas - reais == set(), f"SCHEMA_DOC descreve colunas inexistentes: {sorted(documentadas - reais)}"
+
+
+def test_kloppy_orientation_is_flipped_to_left_to_right():
+    """kloppy's HOME_AWAY: home attacks left to right in odd periods, sides switch every period."""
+    from football_graphrag.ingestion.spadl_transform import _play_left_to_right
+
+    acts = make_actions([
+        {"team_id": "H", "period_id": 1, "start_x": 90.0, "end_x": 95.0, "start_y": 10.0, "end_y": 10.0},
+        {"team_id": "H", "period_id": 2, "start_x": 15.0, "end_x": 10.0, "start_y": 10.0, "end_y": 10.0},
+        {"team_id": "A", "period_id": 3, "start_x": 15.0, "end_x": 10.0, "start_y": 10.0, "end_y": 10.0},
+        {"team_id": "A", "period_id": 4, "start_x": 90.0, "end_x": 95.0, "start_y": 10.0, "end_y": 10.0},
+    ])
+    out = _play_left_to_right(acts, "H")
+    assert out.start_x.tolist() == [90.0, 90.0, 90.0, 90.0]
+    assert out.end_x.tolist() == [95.0, 95.0, 95.0, 95.0]
+    assert out.start_y.tolist() == [10.0, 58.0, 58.0, 10.0]
+
+
+@requires_data
+def test_final_actions_attack_left_to_right_like_the_raw_json():
+    """Every action in the same place as in the raw StatsBomb JSON (which is
+    always seen from the acting team), and every shot in the attacking third."""
+    import json
+
+    from football_graphrag.config import get_settings
+
+    s = get_settings()
+    df = pd.read_parquet(s.processed_dir / "3869685.parquet")
+    raw = {e["id"]: e for e in json.loads((s.raw_dir / "statsbomb" / "events" / "3869685.json").read_text())}
+    loc = df.original_event_id.map(lambda i: (raw.get(i) or {}).get("location"))
+    has = loc.notna()
+    raw_x = loc[has].map(lambda xy: xy[0] * 105 / 120)
+    assert (df.start_x[has] - raw_x).abs().max() < 1.5
+    shots = df[df.grupo_acao == "finalizacao"]
+    assert (shots.terco == "ataque").all()

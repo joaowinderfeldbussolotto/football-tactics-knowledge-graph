@@ -209,6 +209,9 @@ def _load_models(models_dir: Path, raw_dir: Path, loader: StatsBombLoader, games
         for _, g in training_games.iterrows():
             events = loader.events(g.game_id)
             acts = spadl.statsbomb.convert_to_actions(events, home_team_id=g.home_team_id)
+            # xT is a grid seen from the attacking team: every action must
+            # attack left to right (native SPADL keeps the away team mirrored).
+            acts = spadl.play_left_to_right(acts, g.home_team_id)
             parts.append(spadl.add_names(acts))
         training_actions = pd.concat(parts, ignore_index=True)
 

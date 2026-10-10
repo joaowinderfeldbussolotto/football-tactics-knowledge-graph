@@ -8,6 +8,7 @@ Por isso o canal de notificações fica em WARNING.
 """
 
 import logging
+import os
 
 # Canais silenciados e até que nível. O do Neo4j vai para ERROR porque além
 # do falso positivo de cartesian product ele repete, a cada projeção do GDS,
@@ -23,5 +24,7 @@ RUIDOSOS = {
 def setup(level: int = logging.INFO, formato: str = "%(asctime)s %(name)s %(message)s") -> None:
     """Liga o log da aplicação e cala as bibliotecas ruidosas."""
     logging.basicConfig(level=level, format=formato)
+    # PydanticAI imprime um banner promocional na primeira execução.
+    os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
     for nome, nivel in RUIDOSOS.items():
         logging.getLogger(nome).setLevel(nivel)

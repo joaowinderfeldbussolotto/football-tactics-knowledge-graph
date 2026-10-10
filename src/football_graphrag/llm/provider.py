@@ -11,22 +11,15 @@ NATIVOS de cada SDK, configurados aqui uma única vez a partir do .env:
     ``max_delay`` — dimensionado para atravessar a janela de 1 min das cotas
     free-tier do Gemini, cujo retryDelay chega a ~50 s);
   - mistralai: ``RetryConfig(strategy="backoff")``.
-- Concorrência continua sendo só o ``SEMAPHORE_LIMIT`` (lido pelo Graphiti e
-  reaproveitado no semáforo de aplicação em api/agents.py).
-- O único pacing proativo do projeto fica na indexação do Graphiti
-  (``GRAPHITI_PACE_SECONDS``, ver graph/communities.py), porque lá o número
-  de chamadas é previsível e evitar o 429 é mais barato que absorvê-lo.
 
-Validações ao vivo registradas no ADR-5/ADR-7 de docs/05-decisoes.md.
 """
 
-from graphiti_core.cross_encoder.client import CrossEncoderClient
-from graphiti_core.embedder import EmbedderClient, OpenAIEmbedder, OpenAIEmbedderConfig
-from graphiti_core.llm_client import LLMClient, LLMConfig
+import logging
 
 from football_graphrag.config import Settings
 
-MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
+logger = logging.getLogger(__name__)
+
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 # Prefixo de modelo do PydanticAI por provedor (docs do PydanticAI).
@@ -36,16 +29,6 @@ _PYDANTIC_AI_PREFIX = {
     "gemini": "google-gla",
     "openrouter": "openrouter",
 }
-
-# Provedores servidos por um endpoint compatível com OpenAI (Mistral e
-# OpenRouter caem no mesmo caminho no Graphiti: OpenAIGenericClient/
-# OpenAIEmbedder/OpenAIRerankerClient, só muda a base URL).
-_OPENAI_COMPAT_BASE_URL = {"mistral": MISTRAL_BASE_URL, "openrouter": OPENROUTER_BASE_URL}
-
-
-def _openai_compat_base_url(provider: str) -> str | None:
-    """Base URL do endpoint compatível com OpenAI, ou None (endpoint OpenAI real)."""
-    return _OPENAI_COMPAT_BASE_URL.get(provider)
 
 
 # ---------------------------------------------------------------------------
@@ -83,16 +66,6 @@ def _genai_retry_options(settings: Settings):
     )
 
 
-def _genai_sdk_client(api_key: str, settings: Settings):
-    from google import genai
-    from google.genai import types
-
-    return genai.Client(
-        api_key=api_key,
-        http_options=types.HttpOptions(retry_options=_genai_retry_options(settings)),
-    )
-
-
 def _mistral_sdk_client(settings: Settings):
     from mistralai.client import Mistral
     from mistralai.client.utils.retries import BackoffStrategy, RetryConfig
@@ -113,7 +86,7 @@ def _mistral_sdk_client(settings: Settings):
 
 
 # ---------------------------------------------------------------------------
-# PydanticAI (agentes das camadas 3 e avaliação)
+# PydanticAI
 # ---------------------------------------------------------------------------
 
 def pydantic_ai_model_name(settings: Settings) -> str:
@@ -145,11 +118,15 @@ def pydantic_ai_model(settings: Settings):
             provider=MistralProvider(mistral_client=_mistral_sdk_client(settings)),
         )
     if settings.llm_provider == "openrouter":
-        from pydantic_ai.models.openai import OpenAIChatModel
+        # OpenRouterModel (not the generic OpenAIChatModel): it is the class
+        # that turns a CachePoint into the `cache_control` breakpoint that
+        # Anthropic models need for prompt caching. The generic class drops
+        # the CachePoint silently. Models without explicit caching ignore it.
+        from pydantic_ai.models.openrouter import OpenRouterModel
         from pydantic_ai.providers.openrouter import OpenRouterProvider
 
         openai_client = _openai_compat_sdk_client(settings.llm_api_key, OPENROUTER_BASE_URL, settings)
-        return OpenAIChatModel(
+        return OpenRouterModel(
             settings.llm_model,
             provider=OpenRouterProvider(
                 openai_client=openai_client,
@@ -167,125 +144,66 @@ def pydantic_ai_model(settings: Settings):
     )
 
 
-# ---------------------------------------------------------------------------
-# Graphiti (camada 3: indexação, comunidades, busca híbrida)
-# ---------------------------------------------------------------------------
+def pydantic_ai_model_settings(settings: Settings) -> dict:
+    """Settings de chamada dos agentes (``Agent(model_settings=...)``).
 
-def _classe_cliente_resiliente():
-    """Cliente do Graphiti que aguenta resposta sem ``choices``.
+    Fica aqui porque o que muda de provedor para provedor é responsabilidade
+    desta camada — e porque a ``extra_body`` que o
+    OpenRouter entende não existe nos outros.
 
-    Defeito real, observado ao indexar com OpenRouter: o cliente genérico do
-    Graphiti faz ``response.choices[0]`` sem checar nada. Quando o provedor
-    devolve resposta sem ``choices`` — acontece com agregadores, em resposta
-    vazia ou filtrada —, estoura ``TypeError: 'NoneType' object is not
-    subscriptable`` lá dentro. O retry do tenacity não reconhece isso como
-    erro retentável, e a indexação inteira morre no meio (aconteceu, com 22
-    de 73 padrões indexados).
-
-    A resposta vazia é intermitente: repetir a chamada resolve. A subclasse é
-    montada dentro da função, e não no topo do módulo, porque ``graphiti_core``
-    é dependência pesada que o projeto só importa onde precisa.
+    ``max_tokens`` vem de ``LLM_MAX_TOKENS``. ``LLM_REASONING_EFFORT`` só é
+    traduzido para o OpenRouter, via ``extra_body["reasoning"]``, que o
+    OpenAI SDK repassa como está. Em outro provedor a opção é
+    ignorada COM aviso — ignorar em silêncio faria parecer que o botão
+    funciona.
     """
-    from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
-
-    class ClienteResiliente(OpenAIGenericClient):
-        TENTATIVAS = 3
-
-        async def _generate_response(self, *args, **kwargs):
-            ultimo = None
-            for tentativa in range(1, self.TENTATIVAS + 1):
-                try:
-                    return await super()._generate_response(*args, **kwargs)
-                except TypeError as exc:
-                    # a assinatura exata do defeito: choices ausente/None
-                    if "subscriptable" not in str(exc):
-                        raise
-                    ultimo = exc
-                    logger.warning(
-                        "resposta sem choices (tentativa %d/%d); repetindo",
-                        tentativa, self.TENTATIVAS,
-                    )
-            raise ultimo
-
-    return ClienteResiliente
+    configuradas: dict = {"max_tokens": settings.llm_max_tokens}
+    esforco = settings.llm_reasoning_effort
+    if esforco:
+        if settings.llm_provider == "openrouter":
+            configuradas["extra_body"] = {"reasoning": {"effort": esforco}}
+        else:
+            logger.warning(
+                "LLM_REASONING_EFFORT=%s ignorado: só é traduzido para o provedor openrouter "
+                "(provedor atual: %s)",
+                esforco, settings.llm_provider,
+            )
+    return configuradas
 
 
-def graphiti_llm_client(settings: Settings) -> LLMClient:
-    """Cliente de LLM do Graphiti com o cliente SDK (e seu retry) injetado."""
-    config = LLMConfig(
-        api_key=settings.llm_api_key,
-        model=settings.llm_model,
-        small_model=settings.llm_small_model or settings.llm_model,
-    )
-    base_url = _openai_compat_base_url(settings.llm_provider)
-    if base_url is not None:
-        # Endpoint compatível com OpenAI (Mistral, OpenRouter). Ver
-        # docs/05-decisoes.md sobre structured_output_mode caso o json_schema
-        # falhe num modelo específico — botão exposto em LLM_STRUCTURED_OUTPUT_MODE.
-        config.base_url = base_url
-        return _classe_cliente_resiliente()(
-            config=config,
-            client=_openai_compat_sdk_client(settings.llm_api_key, base_url, settings),
-            structured_output_mode=settings.llm_structured_output_mode,
-        )
-    if settings.llm_provider == "anthropic":
-        from graphiti_core.llm_client.anthropic_client import AnthropicClient
+# ---------------------------------------------------------------------------
+# Embeddings (the benchmark's "vector" arm)
+# ---------------------------------------------------------------------------
 
-        return AnthropicClient(config=config, client=_anthropic_sdk_client(settings))
-    from graphiti_core.llm_client.gemini_client import GeminiClient
-
-    return GeminiClient(config=config, client=_genai_sdk_client(settings.llm_api_key, settings))
+MISTRAL_BASE_URL = "https://api.mistral.ai/v1"
+EMBED_BATCH = 100  # Gemini's batch limit; fine for OpenAI-compatible endpoints too
 
 
-def graphiti_embedder(settings: Settings) -> EmbedderClient:
-    """Embedder do Graphiti com retry nativo. Anthropic não tem API de
-    embeddings, então o provedor de embeddings é configurado à parte
-    (EMBEDDER_PROVIDER)."""
+async def embed_texts(texts: list[str], settings: Settings) -> list[list[float]]:
+    """Embed texts in batches with the provider configured in EMBEDDER_*.
+
+    One request per batch of 100, so the 2.6k event lines of a match cost
+    ~26 requests (the Gemini free tier allows 100 requests per minute).
+    Retries are the SDK's own (LLM_MAX_RETRIES), as everywhere else.
+    """
+    vectors: list[list[float]] = []
+    batches = [texts[i : i + EMBED_BATCH] for i in range(0, len(texts), EMBED_BATCH)]
     if settings.embedder_provider == "gemini":
-        from graphiti_core.embedder.gemini import GeminiEmbedder, GeminiEmbedderConfig
+        from google import genai
+        from google.genai import types
 
-        return GeminiEmbedder(
-            config=GeminiEmbedderConfig(
-                api_key=settings.embedder_api_key, embedding_model=settings.embedder_model
-            ),
-            client=_genai_sdk_client(settings.embedder_api_key, settings),
-        )
-    # Default: qualquer endpoint compatível com OpenAI (inclui mistral-embed).
-    base_url = MISTRAL_BASE_URL if settings.embedder_provider == "mistral" else None
-    return OpenAIEmbedder(
-        config=OpenAIEmbedderConfig(
+        client = genai.Client(
             api_key=settings.embedder_api_key,
-            embedding_model=settings.embedder_model,
-            base_url=base_url,
-        ),
-        client=_openai_compat_sdk_client(settings.embedder_api_key, base_url, settings),
-    )
-
-
-def graphiti_cross_encoder(settings: Settings) -> CrossEncoderClient:
-    """Reranker da busca híbrida, também com retry nativo. Atenção (validado
-    ao vivo, ADR-5): passar None faria o Graphiti instanciar o
-    OpenAIRerankerClient default, que exige OPENAI_API_KEY — não existe
-    fallback "sem reranker". Então:
-    - provedor gemini, ou embedder gemini: GeminiRerankerClient (usa a chave
-      Gemini disponível; modelo default do próprio cliente);
-    - mistral/openrouter: OpenAIRerankerClient apontado para o endpoint compatível.
-    """
-    if settings.llm_provider == "gemini" or settings.embedder_provider == "gemini":
-        from graphiti_core.cross_encoder.gemini_reranker_client import GeminiRerankerClient
-
-        api_key = settings.llm_api_key if settings.llm_provider == "gemini" else settings.embedder_api_key
-        return GeminiRerankerClient(
-            config=LLMConfig(api_key=api_key), client=_genai_sdk_client(api_key, settings)
+            http_options=types.HttpOptions(retry_options=_genai_retry_options(settings)),
         )
-    from graphiti_core.cross_encoder.openai_reranker_client import OpenAIRerankerClient
-
-    base_url = _openai_compat_base_url(settings.llm_provider)
-    return OpenAIRerankerClient(
-        config=LLMConfig(
-            api_key=settings.llm_api_key,
-            model=settings.llm_small_model or settings.llm_model,
-            base_url=base_url,
-        ),
-        client=_openai_compat_sdk_client(settings.llm_api_key, base_url, settings),
-    )
+        for batch in batches:
+            result = await client.aio.models.embed_content(model=settings.embedder_model, contents=batch)
+            vectors.extend(e.values for e in result.embeddings)
+        return vectors
+    # Default: any OpenAI-compatible endpoint (includes mistral-embed).
+    base_url = MISTRAL_BASE_URL if settings.embedder_provider == "mistral" else None
+    client = _openai_compat_sdk_client(settings.embedder_api_key, base_url, settings)
+    for batch in batches:
+        result = await client.embeddings.create(model=settings.embedder_model, input=batch)
+        vectors.extend(d.embedding for d in result.data)
+    return vectors

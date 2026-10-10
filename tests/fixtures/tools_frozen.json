@@ -1,0 +1,14 @@
+{
+  "tag": "v3.1-tools-frozen",
+  "definitions_sha256": "3dc62c9211727f5539224f64fff902e342cc19d6cf0603adc30e0eb56fb188bb",
+  "tools_py_sha256": "405e8bb4467006c8ad8fe7753ca6ee5a826533baecbfe9e3450e5a60ccca199a",
+  "approved_changes": [
+    "list_actions shows the second with 3 decimals and the time filters compare at that precision, so a second read from list_actions keeps its own action (approved by the user at checkpoint 2)",
+    "v2.1, after the pilot (approved by the user): period takes a list; pass_network, network_metric, network_edges and pass_paths repeat the team and filters; tool calls are sequential; the shared system prompt forbids approximate answers",
+    "v2.2 (approved by the user): list_actions shows the score before each action",
+    "v2.3 (approved by the user): in list_actions, a goal's outcome also shows the score after it",
+    "v2.4 (approved by the user): pass_paths takes the number of players (3 to 5), not of passes",
+    "v3 (approved by the user), before the graph questions were written: pass_network without_players; network_metric triangles; pass_paths players 2-5 and then_action; new tool query_possessions",
+    "v3.1 (approved by the user): receiver filter; pass_network lists the players left without connection when players are removed"
+  ]
+}
