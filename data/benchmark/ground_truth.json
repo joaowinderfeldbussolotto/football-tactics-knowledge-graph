@@ -1681,6 +1681,12 @@
         ],
         "value": 19
       },
+      "all passes / regular time only": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 9
+      },
       "open-play passes / with the 2-2 goal": {
         "players": [
           "Jules Koundé"
@@ -1692,6 +1698,12 @@
           "Jules Koundé"
         ],
         "value": 15
+      },
+      "open-play passes / regular time only": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 6
       }
     }
   },

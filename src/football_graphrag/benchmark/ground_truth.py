@@ -734,7 +734,8 @@ def s12() -> dict:
                                       "goals excluded": between(goal_order(2), goal_order(3), False)})
 def s13() -> dict:
     return most_sought_readings(FRA, {"with the 2-2 goal": after(goal_order(4), True),
-                                      "without the 2-2 goal": after(goal_order(4), False)})
+                                      "without the 2-2 goal": after(goal_order(4), False),
+                                      "regular time only": lambda d: after(goal_order(4), False)(d) & (d.period_id == 2)})
 
 
 def b02() -> dict: return passers_to_readings(MESSI, substitution_cuts(DI_MARIA))

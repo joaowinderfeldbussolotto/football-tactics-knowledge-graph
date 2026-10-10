@@ -43,7 +43,7 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [s10](#s10) | network_slice | candidate | sim | 16 |
 | [s11](#s11) | network_slice | candidate | sim | 8 |
 | [s12](#s12) | network_slice | candidate | sim | 4 |
-| [s13](#s13) | network_slice | candidate | sim | 4 |
+| [s13](#s13) | network_slice | candidate | sim | 6 |
 | [u01](#u01) | unanswerable | pilot | sim | – |
 | [u02](#u02) | unanswerable | full | sim | – |
 | [u03](#u03) | unanswerable | pilot | sim | – |
@@ -696,8 +696,10 @@ Nota: Koundé.
 |---|---|
 | all passes / with the 2-2 goal | Jules Koundé · 19 |
 | all passes / without the 2-2 goal | Jules Koundé · 19 |
+| all passes / regular time only | Jules Koundé · 9 |
 | open-play passes / with the 2-2 goal | Jules Koundé · 15 |
 | open-play passes / without the 2-2 goal | Jules Koundé · 15 |
+| open-play passes / regular time only | Jules Koundé · 6 |
 
 ## unanswerable
 
