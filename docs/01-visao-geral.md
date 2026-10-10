@@ -34,7 +34,7 @@ são cinco jornalistas que recebem materiais diferentes, mais um sexto, opcional
 |---|---|---|
 | `no_context` | nada; responde de cabeça | só a pergunta |
 | `vector` | as 30 fichas do arquivo que mais se parecem com a pergunta | as 30 linhas da tabela de eventos com texto mais parecido com a pergunta |
-| `events_in_prompt` | o arquivo inteiro do jogo, lance por lance | uma tabela com todos os 2.585 lances da partida (~63 mil tokens) |
+| `events_in_prompt` | o arquivo inteiro do jogo, lance por lance | uma tabela com todos os 2.585 lances da partida (~115 mil tokens) |
 | `stats_in_prompt` | a súmula estatística pronta | uma tabela com as estatísticas de cada jogador e de cada time |
 | `graph_tools` | um analista com um banco de dados, a quem pode fazer até 12 consultas | ferramentas (*tools*) que consultam um banco de dados em grafo |
 | `text_to_cypher` (opcional) | o banco de dados e a planta dele; escreve as próprias consultas | o schema do grafo e uma ferramenta que executa a consulta Cypher que ele escrever, só leitura |
