@@ -200,9 +200,15 @@ leituras razoáveis**:
 | Sequências | mesma posse ou não · passes consecutivos ou não | "sequência de três" |
 | Fonte | JSON bruto · camada 0 | quando as duas servem |
 
-A pergunta fica só se **todas as leituras concordam** naquilo que a
-conferência olha: o jogador, o conjunto ou o número. Um empate conta como
-discordância: "quem fez mais" com dois primeiros não tem resposta única.
+A pergunta fica só se **alguma resposta está certa em todas as leituras**,
+naquilo que a conferência olha: o jogador, o conjunto ou o número. Empate
+dentro de uma leitura não desclassifica: todos os empatados no topo valem
+naquela leitura. A resposta aceita é a que está no topo em todas. Exemplo:
+"quem mais passou a bola para Mbappé" dá Theo 8 × Rabiot 7 contando todos
+os passes e 7 × 7 só com bola rolando; Theo está no topo nas duas leituras e
+é a resposta aceita, Rabiot não. Mais de uma resposta aceita só acontece
+quando elas empatam em todas as leituras (p07). O que tira a pergunta é
+leituras que discordam sem ninguém no topo de todas.
 
 Um exemplo que saiu e um que ficou, ambos sobre o "principal elo da
 circulação de bola":

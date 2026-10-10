@@ -29,8 +29,9 @@ def main() -> None:
         "",
         "Gerado por `scripts/robustness_report.py` a partir de `ground_truth.json`. Cada pergunta "
         "escrita aparece com a resposta em cada leitura razoável. Fica no benchmark só a pergunta em "
-        "que todas as leituras concordam no que a conferência olha (o jogador, o conjunto ou o número). "
-        "Empate conta como instável.",
+        "que alguma resposta (o jogador, o conjunto ou o número) está certa em todas as leituras. "
+        "Empate dentro de uma leitura não desclassifica: todos os empatados no topo valem naquela "
+        "leitura, e a resposta aceita é a que está no topo em todas.",
         "",
         "Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes, contagem ou "
         "intermediação); ele muda entre leituras sem tornar a pergunta instável quando a conferência "
@@ -49,6 +50,9 @@ def main() -> None:
             r = gt[q.id]
             out += ["", f"### {q.id}", "", f"> {q.text}", "",
                     f"Estágio: **{q.stage}** · conferência: `{q.check}` · estável: **{'sim' if r['stable'] else 'não'}**"]
+            if len(r.get("accepted") or []) > 1:
+                out += ["", "Respostas aceitas (empatadas em todas as leituras): "
+                        + "; ".join(" e ".join(a) for a in r["accepted"])]
             if q.note:
                 out += ["", f"Nota: {q.note}"]
             if q.type == "unanswerable":

@@ -82,6 +82,17 @@ def test_set_ignores_order_but_not_members():
     assert not score(q("set"), exp, ans(["Kolo Muani", "Enzo Fernández", "Messi", "Di María"]), ALIASES).correct
 
 
+def test_answers_tied_in_every_reading_are_all_accepted():
+    pairs = {**expected(["Adrien Rabiot", "Aurélien Djani Tchouaméni"]),
+             "accepted": [["Adrien Rabiot", "Aurélien Djani Tchouaméni"], ["Adrien Rabiot", "Kylian Mbappé Lottin"]]}
+    assert score(q("set"), pairs, ans(["Kylian Mbappé Lottin", "Adrien Rabiot"]), ALIASES).correct
+    assert score(q("set"), pairs, ans(["Adrien Rabiot", "Aurélien Djani Tchouaméni"]), ALIASES).correct
+    assert not score(q("set"), pairs, ans(["Adrien Rabiot", "Theo Bernard François Hernández"]), ALIASES).correct
+    players = {**expected(["Enzo Fernandez"]), "accepted": [["Enzo Fernandez"], ["Lionel Andrés Messi Cuccittini"]]}
+    assert score(q("player"), players, ans(["Messi"]), ALIASES).correct
+    assert not score(q("player"), players, ans(["Di María"]), ALIASES).correct
+
+
 def test_player_and_value_needs_both():
     exp = expected(["Enzo Fernandez"], 79)
     assert score(q("player_and_value"), exp, ans(["Enzo Fernández"], 79), ALIASES).correct

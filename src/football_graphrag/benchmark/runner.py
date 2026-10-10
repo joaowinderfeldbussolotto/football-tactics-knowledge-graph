@@ -29,7 +29,7 @@ def result_row(question: Question, arm: str, repeat: int, result: ArmResult, exp
         "arm": arm,
         "repeat": repeat,
         "answer": result.answer.model_dump() if result.answer else None,
-        "expected": {k: expected[k] for k in ("players", "value", "no_data")},
+        "expected": {k: expected.get(k) for k in ("players", "accepted", "value", "no_data")},
         "correct": s.correct,
         "abstention": s.abstention,
         "format_error": s.format_error,

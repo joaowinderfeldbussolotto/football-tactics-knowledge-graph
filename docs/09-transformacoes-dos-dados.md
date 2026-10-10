@@ -344,8 +344,10 @@ Cada pergunta é respondida em **todas as leituras razoáveis**, combinando:
 | Sequências | mesma posse ou não · passes consecutivos ou não |
 | Fonte | JSON bruto · camada 0 |
 
-Uma pergunta só fica no benchmark se todas as leituras dão a mesma resposta
-naquilo que a conferência olha. Empate conta como resposta instável. As
+Uma pergunta só fica no benchmark se alguma resposta está certa em todas as
+leituras, naquilo que a conferência olha. Num empate dentro de uma leitura,
+todos os empatados no topo valem naquela leitura; as respostas aceitas
+(campo `accepted` do gabarito) são as que estão no topo em todas. As
 leituras de cada pergunta estão em `data/benchmark/robustness.md`.
 
 A conferência cruzada (`scripts/check_ground_truth.py`) responde cada

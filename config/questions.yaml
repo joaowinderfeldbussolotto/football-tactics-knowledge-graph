@@ -107,7 +107,7 @@ questions:
       Quem deu mais passes certos no terço final do campo pela Argentina?
   - id: a02
     type: filtered_aggregation
-    stage: removed
+    stage: graph
     check: player
     text: >-
       Quem deu mais passes certos no terço final do campo pela França?
@@ -251,6 +251,14 @@ questions:
       Para cortar a bola que chega a Messi, preciso saber: qual companheiro mais passou a bola para ele na final?
     note: >-
       De Paul. Visão do técnico adversário.
+  - id: n12
+    type: network
+    stage: graph
+    check: player
+    text: >-
+      Para marcar Mbappé, preciso saber: qual companheiro mais passou a bola para ele na final?
+    note: >-
+      Theo Hernández (8 contra 7 de Rabiot; empate em 7 contando só bola rolando). Visão do técnico adversário.
 
   # ---- network_slice: rede num recorte, ou comparação entre recortes
   - id: s01
@@ -319,7 +327,7 @@ questions:
       Muda com a leitura: Tchouaméni, Koundé, ou empate de três quando conta só de quem recebeu.
   - id: s09
     type: network_slice
-    stage: removed
+    stage: graph
     check: player
     text: >-
       Na prorrogação, qual jogador da Argentina trocou passes com o maior número de companheiros diferentes?
@@ -528,7 +536,7 @@ questions:
       Muda com a leitura: Di María contando todos os passes; Messi, ou empate Messi e Acuña, só com passes de bola rolando.
   - id: q03
     type: sequence
-    stage: removed
+    stage: graph
     check: player
     text: >-
       Quem deu mais vezes o penúltimo passe nas jogadas da Argentina que terminaram em finalização?
@@ -594,7 +602,7 @@ questions:
       Rabiot.
   - id: p07
     type: play
-    stage: removed
+    stage: graph
     check: set
     text: >-
       Quais dois jogadores franceses mais vezes participaram juntos das mesmas jogadas que chegaram ao terço final?
@@ -603,7 +611,7 @@ questions:
 
   - id: p08
     type: play
-    stage: removed
+    stage: graph
     check: player
     text: >-
       Quem participou de mais jogadas da França que levaram a bola da defesa até o terço final no segundo tempo?
@@ -657,7 +665,7 @@ questions:
     text: >-
       Depois que Dembélé foi substituído no primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
     note: >-
-      Upamecano, Koundé e Varane.
+      Retirada: a frase do trio é lida como sequência de passes.
   - id: b05
     type: substitution
     stage: graph
@@ -668,7 +676,7 @@ questions:
       Kolo Muani, que entrou no lugar de Dembélé.
   - id: b06
     type: substitution
-    stage: removed
+    stage: graph
     check: set
     text: >-
       Depois que Dembélé foi substituído no primeiro tempo, qual dupla francesa mais trocou passes entre si?
@@ -676,7 +684,7 @@ questions:
       Empate entre Koundé e Varane e Upamecano e Varane quando as duas direções se somam.
   - id: b07
     type: substitution
-    stage: removed
+    stage: graph
     check: player
     text: >-
       Depois que Di María foi substituído, qual companheiro mais recebeu passes de Messi?

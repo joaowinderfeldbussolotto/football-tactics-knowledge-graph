@@ -1,6 +1,6 @@
 # Teste de robustez do gabarito
 
-Gerado por `scripts/robustness_report.py` a partir de `ground_truth.json`. Cada pergunta escrita aparece com a resposta em cada leitura razoável. Fica no benchmark só a pergunta em que todas as leituras concordam no que a conferência olha (o jogador, o conjunto ou o número). Empate conta como instável.
+Gerado por `scripts/robustness_report.py` a partir de `ground_truth.json`. Cada pergunta escrita aparece com a resposta em cada leitura razoável. Fica no benchmark só a pergunta em que alguma resposta (o jogador, o conjunto ou o número) está certa em todas as leituras. Empate dentro de uma leitura não desclassifica: todos os empatados no topo valem naquela leitura, e a resposta aceita é a que está no topo em todas.
 
 Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes, contagem ou intermediação); ele muda entre leituras sem tornar a pergunta instável quando a conferência olha só o jogador.
 
@@ -13,7 +13,7 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [f05](#f05) | fact | full | sim | 3 |
 | [f06](#f06) | fact | candidate | sim | 1 |
 | [a01](#a01) | filtered_aggregation | full | sim | 4 |
-| [a02](#a02) | filtered_aggregation | removed | **não** | 4 |
+| [a02](#a02) | filtered_aggregation | graph | sim | 4 |
 | [a03](#a03) | filtered_aggregation | pilot | sim | 4 |
 | [a04](#a04) | filtered_aggregation | removed | **não** | 4 |
 | [a05](#a05) | filtered_aggregation | pilot | sim | 4 |
@@ -32,6 +32,7 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [n09](#n09) | network | full | sim | 8 |
 | [n10](#n10) | network | candidate | sim | 8 |
 | [n11](#n11) | network | candidate | sim | 2 |
+| [n12](#n12) | network | graph | sim | 2 |
 | [s01](#s01) | network_slice | pilot | sim | 12 |
 | [s02](#s02) | network_slice | removed | **não** | 24 |
 | [s03](#s03) | network_slice | full | sim | 8 |
@@ -40,7 +41,7 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [s06](#s06) | network_slice | full | sim | 2 |
 | [s07](#s07) | network_slice | full | sim | 8 |
 | [s08](#s08) | network_slice | removed | **não** | 6 |
-| [s09](#s09) | network_slice | removed | **não** | 6 |
+| [s09](#s09) | network_slice | graph | sim | 6 |
 | [s10](#s10) | network_slice | graph | sim | 16 |
 | [s11](#s11) | network_slice | graph | sim | 8 |
 | [s12](#s12) | network_slice | graph | sim | 4 |
@@ -65,7 +66,7 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [c05](#c05) | counterfactual | removed | **não** | 12 |
 | [q01](#q01) | sequence | graph | sim | 4 |
 | [q02](#q02) | sequence | removed | **não** | 4 |
-| [q03](#q03) | sequence | removed | **não** | 4 |
+| [q03](#q03) | sequence | graph | sim | 4 |
 | [q04](#q04) | sequence | removed | **não** | 4 |
 | [p01](#p01) | play | graph | sim | 1 |
 | [p02](#p02) | play | graph | sim | 4 |
@@ -73,17 +74,17 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [p04](#p04) | play | graph | sim | 2 |
 | [p05](#p05) | play | graph | sim | 2 |
 | [p06](#p06) | play | graph | sim | 2 |
-| [p07](#p07) | play | removed | **não** | 1 |
-| [p08](#p08) | play | removed | **não** | 2 |
+| [p07](#p07) | play | graph | sim | 1 |
+| [p08](#p08) | play | graph | sim | 2 |
 | [p09](#p09) | play | removed | **não** | 3 |
 | [p10](#p10) | play | candidate | sim | 2 |
 | [b01](#b01) | substitution | removed | **não** | 24 |
 | [b02](#b02) | substitution | graph | sim | 4 |
 | [b03](#b03) | substitution | graph | sim | 4 |
-| [b04](#b04) | substitution | removed | **não** | 24 |
+| [b04](#b04) | substitution | removed | sim | 24 |
 | [b05](#b05) | substitution | graph | sim | 4 |
-| [b06](#b06) | substitution | removed | **não** | 8 |
-| [b07](#b07) | substitution | removed | **não** | 4 |
+| [b06](#b06) | substitution | graph | sim | 8 |
+| [b07](#b07) | substitution | graph | sim | 4 |
 | [b08](#b08) | substitution | removed | **não** | 12 |
 | [b09](#b09) | substitution | graph | sim | 4 |
 
@@ -179,7 +180,7 @@ Estágio: **full** · conferência: `player` · estável: **sim**
 
 > Quem deu mais passes certos no terço final do campo pela França?
 
-Estágio: **removed** · conferência: `player` · estável: **não**
+Estágio: **graph** · conferência: `player` · estável: **sim**
 
 Nota: Muda com a leitura: Rabiot e Mbappé empatam ou se alternam conforme o terço seja o de origem ou o de destino do passe, e conforme entrem cruzamentos e bolas paradas.
 
@@ -459,6 +460,19 @@ Nota: De Paul. Visão do técnico adversário.
 | all passes | Rodrigo Javier De Paul · 14 |
 | open-play passes | Rodrigo Javier De Paul · 13 |
 
+### n12
+
+> Para marcar Mbappé, preciso saber: qual companheiro mais passou a bola para ele na final?
+
+Estágio: **graph** · conferência: `player` · estável: **sim**
+
+Nota: Theo Hernández (8 contra 7 de Rabiot; empate em 7 contando só bola rolando). Visão do técnico adversário.
+
+| leitura | resposta |
+|---|---|
+| all passes | Theo Bernard François Hernández · 8 |
+| open-play passes | **empate:** Adrien Rabiot; Theo Bernard François Hernández |
+
 ## network_slice
 
 ### s01
@@ -624,7 +638,7 @@ Nota: Muda com a leitura: Tchouaméni, Koundé, ou empate de três quando conta 
 
 > Na prorrogação, qual jogador da Argentina trocou passes com o maior número de companheiros diferentes?
 
-Estágio: **removed** · conferência: `player` · estável: **não**
+Estágio: **graph** · conferência: `player` · estável: **sim**
 
 Nota: Empate entre Enzo Fernández e Otamendi numa leitura (só passes de bola rolando, para quem passou).
 
@@ -1025,7 +1039,7 @@ Nota: Muda com a leitura: Di María contando todos os passes; Messi, ou empate M
 
 > Quem deu mais vezes o penúltimo passe nas jogadas da Argentina que terminaram em finalização?
 
-Estágio: **removed** · conferência: `player` · estável: **não**
+Estágio: **graph** · conferência: `player` · estável: **sim**
 
 Nota: Empate entre Julián Álvarez e Mac Allister quando só contam passes de bola rolando.
 
@@ -1136,7 +1150,9 @@ Nota: Rabiot.
 
 > Quais dois jogadores franceses mais vezes participaram juntos das mesmas jogadas que chegaram ao terço final?
 
-Estágio: **removed** · conferência: `set` · estável: **não**
+Estágio: **graph** · conferência: `set` · estável: **sim**
+
+Respostas aceitas (empatadas em todas as leituras): Adrien Rabiot e Aurélien Djani Tchouaméni; Adrien Rabiot e Kylian Mbappé Lottin
 
 Nota: Empate entre Rabiot e Tchouaméni e Rabiot e Mbappé.
 
@@ -1148,7 +1164,7 @@ Nota: Empate entre Rabiot e Tchouaméni e Rabiot e Mbappé.
 
 > Quem participou de mais jogadas da França que levaram a bola da defesa até o terço final no segundo tempo?
 
-Estágio: **removed** · conferência: `player` · estável: **não**
+Estágio: **graph** · conferência: `player` · estável: **sim**
 
 Nota: Muda com a leitura: Kolo Muani se a jogada começa no terço de defesa; empate de três se começa no próprio campo.
 
@@ -1255,9 +1271,9 @@ Nota: Rabiot. O recorte usa a saída de Dembélé, e não a de Giroud (no mesmo 
 
 > Depois que Dembélé foi substituído no primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
 
-Estágio: **removed** · conferência: `set` · estável: **não**
+Estágio: **removed** · conferência: `set` · estável: **sim**
 
-Nota: Upamecano, Koundé e Varane.
+Nota: Retirada: a frase do trio é lida como sequência de passes.
 
 | leitura | resposta |
 |---|---|
@@ -1305,7 +1321,7 @@ Nota: Kolo Muani, que entrou no lugar de Dembélé.
 
 > Depois que Dembélé foi substituído no primeiro tempo, qual dupla francesa mais trocou passes entre si?
 
-Estágio: **removed** · conferência: `set` · estável: **não**
+Estágio: **graph** · conferência: `set` · estável: **sim**
 
 Nota: Empate entre Koundé e Varane e Upamecano e Varane quando as duas direções se somam.
 
@@ -1324,7 +1340,7 @@ Nota: Empate entre Koundé e Varane e Upamecano e Varane quando as duas direçõ
 
 > Depois que Di María foi substituído, qual companheiro mais recebeu passes de Messi?
 
-Estágio: **removed** · conferência: `player` · estável: **não**
+Estágio: **graph** · conferência: `player` · estável: **sim**
 
 Nota: Empate entre Enzo Fernández e De Paul quando só contam passes de bola rolando.
 

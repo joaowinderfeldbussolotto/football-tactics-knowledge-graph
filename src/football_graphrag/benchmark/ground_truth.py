@@ -9,9 +9,12 @@ Robustness test: a question in football language can be read in more than
 one way ("passes" with or without set pieces, a connection weighted by the
 number of passes or by xT, "after the goal" with or without the goal
 itself...). Each answer function returns the answer under EVERY reasonable
-reading. A question is ``stable`` when all readings agree on what its check
-looks at; an unstable question leaves the benchmark (``stage: removed`` in
-the YAML). Ties count as unstable: "who did the most" has no single answer.
+reading. A question is ``stable`` when some answer is right in every
+reading; an unstable question leaves the benchmark (``stage: removed`` in
+the YAML). A tie inside a reading does not make it unstable: every player
+(pair, trio) tied at the top is right in that reading. The ``accepted``
+answers are the ones right in every reading (usually one; several only when
+they tie in all of them).
 
 Readings used:
 - pass set: every completed pass (set pieces, throw-ins, goal kicks
@@ -739,6 +742,7 @@ def s13() -> dict:
 
 
 def n11() -> dict: return passers_to_readings(MESSI)
+def n12() -> dict: return passers_to_readings(MBAPPE)
 
 
 def b02() -> dict: return passers_to_readings(MESSI, substitution_cuts(DI_MARIA))
@@ -832,15 +836,36 @@ def key(q: Question, a: dict):
     return (a["players"][:1], a["value"])  # player_and_value
 
 
+def candidates(q: Question, a: dict) -> set:
+    """The answers one reading takes as right: its answer, or everyone tied at the top."""
+    items = a["tie"] if "tie" in a else ([a["players"]] if q.check == "set" else a["players"][:1])
+    if q.check == "set":
+        return {tuple(sorted(x)) for x in items}
+    return {x[0] if isinstance(x, list) and len(x) == 1 else x for x in items if isinstance(x, str) or len(x) == 1}
+
+
+def accepted(q: Question, readings: dict) -> list:
+    """Answers right in every reading. Player and set checks take ties into account; value
+    checks need every reading to give the same number."""
+    if q.check in ("player", "set"):
+        common = set.intersection(*(candidates(q, a) for a in readings.values()))
+        return sorted([x] if isinstance(x, str) else list(x) for x in common)
+    if not _agree(q, readings):
+        return []
+    return [next(iter(readings.values()))["players"]]
+
+
 def evaluate(q: Question) -> dict:
     if q.type == "unanswerable":
         return {"players": [], "value": None, "no_data": True, "stable": True, "readings": {},
                 "detail": q.note}
     readings = ANSWERS[q.id]()
-    stable = _agree(q, readings)
+    answers = accepted(q, readings)
+    stable = bool(answers)
     first = next(iter(readings.values()))
     out = {
-        "players": first["players"] if stable else None,
+        "players": answers[0] if stable else None,
+        "accepted": answers,
         # a count that varies across readings is not part of a player check
         "value": first.get("value") if stable and q.check in ("value", "player_and_value") else None,
         "no_data": False,
