@@ -4,4 +4,6 @@
 # outra coisa (--arms em run_benchmark.py, --arm em ask.py). Para a rodada
 # que consolida os resultados, liste os cinco:
 #   no_context, vector, events_in_prompt, stats_in_prompt, graph_tools
+# Sexto braço, opcional (só roda quando listado aqui ou em --arms):
+#   text_to_cypher — o modelo escreve Cypher, uma ferramenta executa só leitura.
 arms: [events_in_prompt, graph_tools]
