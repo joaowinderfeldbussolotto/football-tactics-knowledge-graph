@@ -10,10 +10,16 @@ O que está verificado e o que não está, conferido em 10/10/2026 num contêine
 - **claudeleaf roda na nuvem:** Node 22 e npm estão no contêiner, `npx -y claudeleaf@0.2.0 mcp` sobe e expõe 17
   ferramentas (`overleaf_list_projects`, `overleaf_read_document`, `overleaf_replace_text`, `overleaf_compile`...).
   Sem sessão, ele responde "No Overleaf session found".
-- **Rede:** `registry.npmjs.org` e `www.overleaf.com` responderam, e um WebSocket de teste chegou ao servidor do
-  Overleaf (a resposta foi um erro do servidor ao *handshake* falso, não um bloqueio do proxy). A política de
-  rede do SEU ambiente pode ser mais restrita que a deste: se `www.overleaf.com` for negado, acrescente o domínio em
-  Allowed domains (menu do ambiente na barra de título da sessão, Edit, Network access).
+- **Rede:** `registry.npmjs.org` e `www.overleaf.com` responderam por HTTPS. Um WebSocket aberto contra o
+  Overleaf (e contra um servidor de eco público) completou o *handshake*, mas **o README do proxy da nuvem lista
+  "WebSocket upgrades" como não suportados**, e uma primeira tentativa, no mesmo endereço, devolveu 502. O
+  `claudeleaf` lê e edita documentos por WebSocket (ShareJS sobre Socket.IO), então a leitura e a edição só ficam
+  confirmadas com uma sessão real. A política de rede do SEU ambiente pode ser mais restrita que a deste: se
+  `www.overleaf.com` for negado, acrescente o domínio em Allowed domains (menu do ambiente na barra de título da
+  sessão, Edit, Network access).
+- **Variáveis de ambiente:** testado numa sessão em andamento, uma variável criada depois da sessão abrir não
+  aparece no contêiner (nem no `env`, nem em `/proc/*/environ`, nem em arquivo). A documentação do ambiente diz
+  que uma sessão nova a recebe. Não há, de dentro da sessão, como relê-la.
 
 ## Não verificado (precisa de você)
 
