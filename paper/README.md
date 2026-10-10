@@ -15,8 +15,9 @@ python -m pytest tests/test_paper.py -q             # deve passar
 
 Abra o Claude Code na raiz do repositório. Ele lê `CLAUDE.md` (raiz) e `paper/CLAUDE.md` e carrega as cinco
 skills de `.claude/skills/` (`paper-style-pt`, `cite-check`, `paper-numbers`, `latex-figures`, `banca-review`).
-O MCP do Overleaf e a skill de escrita acadêmica instalados por você ficam em paralelo; nada aqui depende deles,
-exceto a sincronização com o Overleaf (ver `paper/CLAUDE.md`).
+O MCP do Overleaf (`.mcp.json`) e a skill de escrita acadêmica (`.claude/skills/academic-writing`) também estão no
+repositório, para funcionar na web e na sua máquina; nada aqui depende deles, exceto a sincronização com o Overleaf.
+O passo a passo, o que foi verificado e o que falta (a sessão do Overleaf) estão em `paper/OVERLEAF.md`.
 
 **Leia `paper/ALERTAS.md` primeiro:** são dez pontos em que o dossiê não se sustenta como está escrito, e o
 mais importante é a trajetória de ajuste (item 1).

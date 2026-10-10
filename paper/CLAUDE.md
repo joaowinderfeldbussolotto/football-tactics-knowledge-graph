@@ -48,11 +48,16 @@ python -m pytest tests/test_paper.py -q
 
 ## Overleaf
 
-O repositório é a fonte da verdade e o Overleaf só compila. Sincronize pelo MCP do Overleaf (`/mcp` lista as
-ferramentas dele; não assuma nomes) e nunca edite o mesmo arquivo nos dois lados ao mesmo tempo. Suba
-`sections/`, `generated/`, `refs.bib` e `main.tex`. **Primeira coisa a fazer:** abrir o projeto da disciplina,
-descobrir a classe LaTeX e o estilo de citação, preencher `paper/template.json` e trocar o preâmbulo de
-`main.tex` pelo do template. O `refs.bib` é gerado a partir dos DOIs; o estilo de citação vem do template.
+O repositório é a fonte da verdade e o Overleaf só compila. Sincronize pelo MCP `claudeleaf` (ferramentas
+`overleaf_*`: listar projetos, ler e editar documentos, compilar) e nunca edite o mesmo arquivo nos dois lados ao
+mesmo tempo. Suba `sections/`, `generated/`, `refs.bib` e `main.tex`. O Overleaf mostra o histórico: toda
+edição do agente fica atribuída à conta dele. Configuração da sessão na web, plano B pela CLI e o que está
+verificado: `paper/OVERLEAF.md`. **Primeira coisa a fazer:** abrir o projeto da disciplina, descobrir a classe
+LaTeX e o estilo de citação, preencher `paper/template.json` e trocar o preâmbulo de `main.tex` pelo do template.
+
+**Skills.** Há a `academic-writing` (de terceiros, genérica). Quando ela conflitar com `paper-style-pt`
+(primeira pessoa do plural, travessão, estrutura IMRaD no lugar da estrutura da disciplina), vale a
+`paper-style-pt`.
 
 ## Fatos que o texto não deve errar
 
