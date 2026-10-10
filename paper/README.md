@@ -28,7 +28,7 @@ mais importante é a trajetória de ajuste (item 1).
 |---|---|
 | `paper/dossie.md` | o dossiê, sem alteração |
 | `paper/refs/references.tsv`, `paper/refs.bib` | as 27 referências com DOI, geradas do resolvedor de DOI (os três DOIs "conferir" do dossiê resolvem para os artigos certos); mais seis fontes de software e dados |
-| `paper/sections/*.tex`, `paper/main.tex` | esqueleto com o roteiro e o orçamento de páginas de cada seção, sem prosa; preâmbulo provisório |
+| `paper/sections/*.tex`, `paper/main.tex` | esqueleto com o roteiro e o orçamento de páginas de cada seção, sem prosa; preâmbulo do template (duas colunas, `plain`, babel brasileiro) |
 | `paper/generated/numbers.tex`, `tables/`, `figures/` | números, tabelas (escada, grupos, McNemar com Holm, custo) e figuras F2, F3, F4 geradas de `final_results.jsonl` |
 | `paper/scripts/lint_paper.py` | números soltos, travessão, voz, adjetivo de propaganda, glossário |
 | `paper/scripts/cite_check.py` | par frase e chave com o resumo da fonte, em `paper/claims.md` |
@@ -37,9 +37,7 @@ mais importante é a trajetória de ajuste (item 1).
 
 ## O que falta, na ordem
 
-1. **Confirmar o template** pelo MCP do Overleaf (classe LaTeX, colunas, estilo de citação). Preencher
-   `paper/template.json` com `"confirmed": true`, trocar o preâmbulo de `main.tex`, rodar `python scripts/figures.py`.
-   As figuras usam larguras provisórias até lá.
+1. ~~Confirmar o template~~ Feito em 10/10/2026 (`paper/template.json`, `confirmed: true`): `article` A4 12pt, duas colunas, `plain`. Figuras regeradas para a coluna de 3,47 pol; a F4 (largura de texto) não cabe numa coluna de `multicols*` e precisa de decisão.
 2. **Rodar as três repetições** (gasta crédito; o saldo da chave estava em US$ 2,31 em 10/10). A repetição 1 do
    `graph_tools` em `final_results.jsonl` não é limpa: 46 das 52 perguntas rodaram antes das três correções (aspas
    soltas, 12 chamadas) e seis foram reexecutadas depois. O `events_in_prompt` e o `text_to_cypher` não sofreram

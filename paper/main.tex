@@ -1,24 +1,50 @@
-% PREÂMBULO PROVISÓRIO. Antes de escrever, abrir o projeto do Overleaf da disciplina pelo MCP, ler a classe
-% LaTeX e o estilo de citação, anotar em paper/template.json (confirmed: true) e trocar este preâmbulo pelo do
-% template. Os arquivos de sections/ não dependem da classe.
-\documentclass[10pt]{article}
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage[brazil]{babel}
-\usepackage{booktabs}
+% Preâmbulo copiado do template.tex do projeto do Overleaf (projeto-final-pos-rag-futebol), lido em 10/10/2026.
+% Acréscimos ao template: booktabs e url (tabelas e números gerados).
+% Acréscimo pedido pelo autor: babel em português (o template não o tem).
+\documentclass[a4paper,12pt]{article}
+\usepackage[top=2cm, bottom=2cm, left=1.5cm, right=1.5cm]{geometry}
+\usepackage{multicol}
 \usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage{subcaption}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric, positioning, arrows.meta}
+\usepackage{authblk}
+\usepackage{abstract}
+\usepackage{float}
+\usepackage{booktabs}
 \usepackage{url}
-\usepackage[hidelinks]{hyperref}
+\usepackage[brazilian]{babel}
+
+\setlength{\absleftindent}{0pt}
+\setlength{\absrightindent}{0pt}
+
+\renewcommand{\refname}{Referências}
 
 \graphicspath{{generated/figures/}}
 \input{generated/numbers}
 
 \title{Quem faz o cálculo? Seis formas de dar a um LLM acesso a dados de eventos de futebol}
-\author{Autores}
+\author[1]{Autor A}
+\author[1]{Autor B}
+\author[1]{Autor C}
+
+\affil[1]{Pós-graduação em Inteligência Artificial Aplicada, UniSENAI}
+
 \date{}
 
+\renewcommand\Authand{ e }
+\renewcommand\Authands{ e }
+
 \begin{document}
+
 \maketitle
+
+\begin{multicols*}{2}
 
 \input{sections/00-resumo}
 \input{sections/01-introducao}
@@ -30,6 +56,9 @@
 \input{sections/07-conclusao}
 \input{sections/08-declaracao-ia}
 
-\bibliographystyle{plain}  % trocar pelo estilo do template
+\bibliographystyle{plain}
 \bibliography{refs}
+
+\end{multicols*}
+
 \end{document}

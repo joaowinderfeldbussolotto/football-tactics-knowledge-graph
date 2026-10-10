@@ -86,6 +86,9 @@ def scan(text: str, name: str = "text", allowed: set[str] | None = None,
          terms: list[tuple[re.Pattern, str]] | None = None) -> list[Finding]:
     allowed = allowlist() if allowed is None else allowed
     terms = glossary() if terms is None else terms
+    if "\\begin{document}" in text:  # the preamble is the template's, not prose; keep the line numbers
+        head, tail = text.split("\\begin{document}", 1)
+        text = "\n" * head.count("\n") + "\\begin{document}" + tail
     english = any(re.match(r"\s*%\s*lang:\s*en\b", ln) for ln in text.splitlines())
     found = []
     for i, raw in enumerate(text.splitlines(), 1):

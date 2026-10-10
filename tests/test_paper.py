@@ -202,9 +202,10 @@ def test_each_skill_has_frontmatter_matching_its_folder(name):
     assert m and m.group(1) == name and len(m.group(2)) > 80
 
 
-def test_template_is_flagged_as_unconfirmed_until_the_overleaf_project_is_read():
+def test_template_is_confirmed_from_the_overleaf_project():
     template = json.loads((PAPER / "template.json").read_text(encoding="utf-8"))
-    assert template["confirmed"] is False and template["column_width_in"] > 0 and template["text_font_pt"] > 0
+    assert template["confirmed"] is True and template["columns"] == 2
+    assert template["column_width_in"] > 0 and template["text_font_pt"] == 12
 
 
 def test_figures_are_vector_pdf_with_embedded_fonts(tmp_path):

@@ -28,7 +28,7 @@ eventos de futebol". Prazo de entrega: 18/10/2026. **Leia `paper/dossie.md` (a p
 | O quê | Onde |
 |---|---|
 | Texto, uma seção por arquivo | `paper/sections/*.tex` (roteiro em comentários; orçamento de páginas) |
-| Preâmbulo e ordem das seções | `paper/main.tex` (provisório até confirmar o template) |
+| Preâmbulo e ordem das seções | `paper/main.tex` (preâmbulo do template, confirmado em 10/10/2026) |
 | Referências | `paper/refs/references.tsv` → `paper/refs.bib` (`paper/scripts/fetch_bibtex.py`) |
 | Números, tabelas, figuras | `paper/generated/` (gerado; não editar) |
 | Afirmação contra fonte | `paper/claims.md` (gerado por `paper/scripts/cite_check.py`) |
