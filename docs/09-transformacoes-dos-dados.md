@@ -293,7 +293,7 @@ Neo4j e devolvem dados.
 
 **Execução:**
 
-- O modelo chama uma ferramenta por vez, até 8 por pergunta; da 9ª em
+- O modelo chama uma ferramenta por vez, até 12 por pergunta; da 13ª em
   diante, recebe "limite atingido".
 - Argumento inválido volta como mensagem de erro, para o modelo corrigir.
 

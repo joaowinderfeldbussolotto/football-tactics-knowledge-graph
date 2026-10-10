@@ -21,8 +21,10 @@ if __name__ == "__main__":
     parser.add_argument("--title")
     parser.add_argument("--cost", type=float, help="real cost in US$, if known")
     parser.add_argument("--command", default="", help="the command that produced the results")
+    parser.add_argument("--page", type=Path, help="rewrite this existing page instead of writing a new one")
     args = parser.parse_args()
     if not args.results.exists():
         raise SystemExit(f"{args.results} does not exist")
     summary = write_summary(args.results)
-    print(f"written {write_report(args.results, summary, RunInfo(command=args.command, cost_usd=args.cost), args.title)}")
+    print(f"written {write_report(args.results, summary, RunInfo(command=args.command, cost_usd=args.cost), args.title,
+                                     page=args.page)}")

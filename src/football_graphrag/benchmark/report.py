@@ -264,15 +264,45 @@ def add_to_index(row: str, runs_dir: Path = RUNS_DIR) -> None:
     index.write_text("\n".join(lines) + "\n")
 
 
+def _previous(page: Path) -> tuple[str, str, float | None]:
+    """Title, command and cost recorded on an existing run page."""
+    text = page.read_text()
+    title = re.search(r"^# Execução \d+: (.*)$", text, re.M)
+    command = re.search(r"^\| Comando \| (.*) \|$", text, re.M)
+    cost = re.search(r"^\| Custo real \| US\$ ([\d.]+)", text, re.M)
+    return (title.group(1) if title else "", command.group(1).strip("`") if command else "",
+            float(cost.group(1)) if cost else None)
+
+
+def replace_in_index(number: int, row: str, runs_dir: Path = RUNS_DIR) -> None:
+    index = runs_dir / "README.md"
+    if not index.exists():
+        return
+    lines = [row if line.startswith(f"| [{number:02d}](") else line for line in index.read_text().splitlines()]
+    index.write_text("\n".join(lines) + "\n")
+
+
 def write_report(results_path: Path, summary_path: Path, info: RunInfo, title: str | None = None,
-                 runs_dir: Path = RUNS_DIR) -> Path:
+                 runs_dir: Path = RUNS_DIR, page: Path | None = None) -> Path:
+    """Write a new run page, or rewrite ``page`` (an earlier page of the same results file):
+    same number and date, its cost plus this one, its command followed by this one."""
     from football_graphrag.benchmark.summary import load_rows
 
     rows = load_rows(results_path)
-    number = next_number(runs_dir)
     arms = [a for a in ARMS if any(r["arm"] == a for r in rows)]
+    if page is not None:
+        page = Path(page)
+        number, day = int(page.name.split("_")[1]), date.fromisoformat(page.name.split("_")[0])
+        old_title, old_command, old_cost = _previous(page)
+        cost = old_cost + info.cost_usd if old_cost is not None and info.cost_usd is not None else None
+        command = f"{old_command}`, depois `{info.command}" if old_command else info.command
+        info = RunInfo(command=command, cost_usd=cost, day=day, failed=info.failed)
+        title = title or old_title
+    else:
+        number = next_number(runs_dir)
     title = title or f"{len({r['question_id'] for r in rows})} perguntas, {len(arms)} braços"
-    page = runs_dir / f"{info.day.isoformat()}_{number:02d}_{_slug(results_path.stem.removesuffix('_results'))}.md"
+    new_page = page is None
+    page = page or runs_dir / f"{info.day.isoformat()}_{number:02d}_{_slug(results_path.stem.removesuffix('_results'))}.md"
 
     def rel(p: Path) -> str:
         try:
@@ -280,5 +310,6 @@ def write_report(results_path: Path, summary_path: Path, info: RunInfo, title: s
         except ValueError:
             return str(p)
     page.write_text(render(rows, number, title, info, rel(results_path), rel(summary_path), git_revision()))
-    add_to_index(index_row(number, page.name, info, title, rows), runs_dir)
+    row = index_row(number, page.name, info, title, rows)
+    add_to_index(row, runs_dir) if new_page else replace_in_index(number, row, runs_dir)
     return page

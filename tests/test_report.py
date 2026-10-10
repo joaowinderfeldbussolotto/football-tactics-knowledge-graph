@@ -44,3 +44,31 @@ def test_numbering_and_index(tmp_path):
     add_to_index(index_row(8, "p.md", RunInfo(day=date(2026, 1, 2)), "t", ROWS), tmp_path)
     lines = (tmp_path / "README.md").read_text().splitlines()
     assert lines[3].startswith("| [08](p.md) | 2026-01-02 | t | m | 8 | 3/4 | – |")
+
+
+def test_rewriting_a_page_keeps_number_and_adds_cost(tmp_path):
+    import json
+
+    from football_graphrag.benchmark.report import write_report
+
+    results = tmp_path / "x_results.jsonl"
+    results.write_text("".join(json.dumps(r) + "\n" for r in ROWS))
+    (tmp_path / "README.md").write_text("| # |\n|---|\n| [03](2026-01-01_03_x.md) | old |\n")
+    page = tmp_path / "2026-01-01_03_x.md"
+    page.write_text("# Execução 03: título\n\n| Comando | `python a` |\n| Custo real | US$ 0.80 (x) |\n")
+    write_report(results, tmp_path / "s.md", RunInfo(command="python b", cost_usd=0.1), runs_dir=tmp_path, page=page)
+    text = page.read_text()
+    assert text.startswith("# Execução 03: título") and "| Data | 2026-01-01 |" in text
+    assert "US$ 0.90" in text and "`python a`, depois `python b`" in text
+    assert "| [03](2026-01-01_03_x.md) | 2026-01-01 | título |" in (tmp_path / "README.md").read_text()
+
+
+def test_rescore_uses_the_current_ground_truth():
+    from football_graphrag.benchmark.runner import rescore
+
+    rows = [{**row("p07", "play", "graph_tools", False),
+             "answer": {"rationale": "", "players": ["Adrien Rabiot", "Aurélien Djani Tchouaméni", "Kylian Mbappé Lottin"],
+                        "value": None, "no_data": False}}]
+    truth = {"p07": {"players": ["Adrien Rabiot", "Aurélien Djani Tchouaméni"], "value": None, "no_data": False,
+                     "accepted": [["Adrien Rabiot", "Aurélien Djani Tchouaméni"], ["Adrien Rabiot", "Kylian Mbappé Lottin"]]}}
+    assert rescore(rows, truth) == 1 and rows[0]["correct"]

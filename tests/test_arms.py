@@ -97,10 +97,16 @@ async def test_graph_tools_arm_logs_calls_and_drops_its_networks():
     assert left == 0
 
 
-def test_tool_call_limit_returns_a_message_after_8_calls():
+def test_tool_call_limit_returns_a_message_after_the_limit():
     class Ctx:
         deps = arms.GraphDeps(toolbox=None, calls=[{}] * arms.MAX_TOOL_CALLS)
     assert "limit" in arms._call(Ctx(), "list_players", lambda **kw: [], team="Argentina")["error"]
+
+
+def test_stray_quotes_around_arguments_are_dropped():
+    assert arms._unquote('"player"') == "player" and arms._unquote('"player') == "player"
+    assert arms._unquote({"team": "'France'", "period": [3], "action": ['"passe"']}) == \
+        {"team": "France", "period": [3], "action": ["passe"]}
 
 
 def test_tool_calls_are_logged_as_plain_data():

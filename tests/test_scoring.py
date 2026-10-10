@@ -91,6 +91,13 @@ def test_answers_tied_in_every_reading_are_all_accepted():
     players = {**expected(["Enzo Fernandez"]), "accepted": [["Enzo Fernandez"], ["Lionel Andrés Messi Cuccittini"]]}
     assert score(q("player"), players, ans(["Messi"]), ALIASES).correct
     assert not score(q("player"), players, ans(["Di María"]), ALIASES).correct
+    # naming exactly the tied answers is right too; more or fewer is not
+    assert score(q("set"), pairs, ans(["Adrien Rabiot", "Aurélien Djani Tchouaméni", "Kylian Mbappé Lottin"]),
+                 ALIASES).correct
+    assert score(q("player"), players, ans(["Di María", "Messi"]), ALIASES).correct is False
+    assert score(q("set"), pairs, ans(["Adrien Rabiot", "Kylian Mbappé Lottin", "Theo Hernández"]), ALIASES).correct is False
+    single = {**expected(["Theo Bernard François Hernández"]), "accepted": [["Theo Bernard François Hernández"]]}
+    assert not score(q("player"), single, ans(["Rabiot", "Theo Hernández"]), ALIASES).correct
 
 
 def test_player_and_value_needs_both():

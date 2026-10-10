@@ -18,12 +18,12 @@ import time
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal, get_type_hints
 
 import numpy as np
 import pandas as pd
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai.messages import CachePoint
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
@@ -67,7 +67,7 @@ approximate measure in its place.
 Write player names exactly as they appear in the data."""
 
 VECTOR_TOP_K = 30
-MAX_TOOL_CALLS = 8
+MAX_TOOL_CALLS = 12
 # A run makes one request per tool call round, plus the final answer and up
 # to 2 output retries. Beyond this, the run is stopped (counted as no answer).
 REQUEST_LIMIT = MAX_TOOL_CALLS + 4
@@ -260,7 +260,7 @@ def _jsonable(value):
 
 
 def _call(ctx: RunContext[GraphDeps], tool_name: str, fn, **kwargs):
-    """Run one tool, log it, enforce the 8-call limit, and turn bad arguments
+    """Run one tool, log it, enforce the call limit, and turn bad arguments
     into a message the model can act on (instead of an exception)."""
     ctx.deps.calls.append({"tool": tool_name, "args": {k: _jsonable(v) for k, v in kwargs.items()}})
     if len(ctx.deps.calls) > MAX_TOOL_CALLS:
@@ -271,11 +271,28 @@ def _call(ctx: RunContext[GraphDeps], tool_name: str, fn, **kwargs):
         return {"error": str(exc)}
 
 
+def _unquote(value):
+    """Drop stray quotes the model sometimes wraps around a string argument
+    ('"player"' or '"player'), in any argument, nested ones included. No real value
+    starts or ends with a quote, and the argument schema sent to the model is unchanged."""
+    if isinstance(value, str):
+        return value.strip().strip("\"'").strip()
+    if isinstance(value, list):
+        return [_unquote(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _unquote(v) for k, v in value.items()}
+    return value
+
+
 def _describe(doc: str):
-    """Set a tool's docstring from a computed string. PydanticAI reads the tool and
-    argument descriptions from the docstring, and an f-string is not a docstring."""
+    """Set a tool's docstring from a computed string (PydanticAI reads the tool and
+    argument descriptions from the docstring, and an f-string is not a docstring), and
+    let every argument go through ``_unquote`` before validation."""
     def wrap(fn):
         fn.__doc__ = doc
+        hints = get_type_hints(fn, include_extras=True)
+        fn.__annotations__ = {name: hint if name in ("ctx", "return") else Annotated[hint, BeforeValidator(_unquote)]
+                              for name, hint in hints.items()}
         return fn
     return wrap
 

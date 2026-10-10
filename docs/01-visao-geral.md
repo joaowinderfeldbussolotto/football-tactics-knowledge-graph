@@ -36,7 +36,7 @@ são cinco jornalistas que recebem materiais diferentes:
 | `vector` | as 30 fichas do arquivo que mais se parecem com a pergunta | as 30 linhas da tabela de eventos com texto mais parecido com a pergunta |
 | `events_in_prompt` | o arquivo inteiro do jogo, lance por lance | uma tabela com todos os 2.585 lances da partida (~63 mil tokens) |
 | `stats_in_prompt` | a súmula estatística pronta | uma tabela com as estatísticas de cada jogador e de cada time |
-| `graph_tools` | um analista com um banco de dados, a quem pode fazer até 8 consultas | ferramentas (*tools*) que consultam um banco de dados em grafo |
+| `graph_tools` | um analista com um banco de dados, a quem pode fazer até 12 consultas | ferramentas (*tools*) que consultam um banco de dados em grafo |
 
 Alguns detalhes que importam:
 
