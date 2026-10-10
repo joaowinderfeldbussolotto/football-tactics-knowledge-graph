@@ -21,8 +21,6 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [a07](#a07) | filtered_aggregation | full | sim | 2 |
 | [a08](#a08) | filtered_aggregation | candidate | sim | 2 |
 | [a09](#a09) | filtered_aggregation | removed | **não** | 2 |
-| [a10](#a10) | filtered_aggregation | candidate | sim | 3 |
-| [a11](#a11) | filtered_aggregation | candidate | sim | 3 |
 | [n01](#n01) | network | removed | **não** | 12 |
 | [n02](#n02) | network | removed | **não** | 12 |
 | [n03](#n03) | network | pilot | sim | 2 |
@@ -279,34 +277,6 @@ Nota: Muda com a fonte: no JSON bruto (toda interceptação) é Tchouaméni; na 
 |---|---|
 | raw JSON (every interception) | Aurélien Djani Tchouaméni · 3 |
 | layer 0 (successful only) | Adrien Rabiot · 4 |
-
-### a10
-
-> Vou enfrentar a Argentina e preciso preparar a bola parada: quem cobra os escanteios do time?
-
-Estágio: **candidate** · conferência: `player` · estável: **sim**
-
-Nota: Messi (6 de 6). Visão do técnico adversário.
-
-| leitura | resposta |
-|---|---|
-| raw JSON | Lionel Andrés Messi Cuccittini · 6 |
-| layer 0 (short and into the box) | Lionel Andrés Messi Cuccittini · 6 |
-| layer 0 (into the box only) | Lionel Andrés Messi Cuccittini · 5 |
-
-### a11
-
-> Vou enfrentar a França e preciso preparar a bola parada: quem cobrou mais escanteios pelo time?
-
-Estágio: **candidate** · conferência: `player` · estável: **sim**
-
-Nota: Coman (3), à frente de Griezmann (2). Visão do técnico adversário.
-
-| leitura | resposta |
-|---|---|
-| raw JSON | Kingsley Coman · 3 |
-| layer 0 (short and into the box) | Kingsley Coman · 3 |
-| layer 0 (into the box only) | Kingsley Coman · 3 |
 
 ## network
 

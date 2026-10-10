@@ -341,62 +341,6 @@
       }
     }
   },
-  "a10": {
-    "players": [
-      "Lionel Andrés Messi Cuccittini"
-    ],
-    "value": null,
-    "no_data": false,
-    "stable": true,
-    "readings": {
-      "raw JSON": {
-        "players": [
-          "Lionel Andrés Messi Cuccittini"
-        ],
-        "value": 6
-      },
-      "layer 0 (short and into the box)": {
-        "players": [
-          "Lionel Andrés Messi Cuccittini"
-        ],
-        "value": 6
-      },
-      "layer 0 (into the box only)": {
-        "players": [
-          "Lionel Andrés Messi Cuccittini"
-        ],
-        "value": 5
-      }
-    }
-  },
-  "a11": {
-    "players": [
-      "Kingsley Coman"
-    ],
-    "value": null,
-    "no_data": false,
-    "stable": true,
-    "readings": {
-      "raw JSON": {
-        "players": [
-          "Kingsley Coman"
-        ],
-        "value": 3
-      },
-      "layer 0 (short and into the box)": {
-        "players": [
-          "Kingsley Coman"
-        ],
-        "value": 3
-      },
-      "layer 0 (into the box only)": {
-        "players": [
-          "Kingsley Coman"
-        ],
-        "value": 3
-      }
-    }
-  },
   "n01": {
     "players": null,
     "value": null,

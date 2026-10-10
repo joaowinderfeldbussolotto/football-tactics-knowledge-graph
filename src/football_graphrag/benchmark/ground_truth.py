@@ -738,19 +738,7 @@ def s13() -> dict:
                                       "regular time only": lambda d: after(goal_order(4), False)(d) & (d.period_id == 2)})
 
 
-def corner_takers(team: str) -> dict:
-    raw = Counter(_player(e) for e in raw_events() if _type(e) == "Pass" and e["team"]["name"] == team
-                  and e["pass"].get("type", {}).get("name") == "Corner")
-    df = actions()
-    df = df[df.team_name == team]
-    return {"raw JSON": leader(raw),
-            "layer 0 (short and into the box)": leader(Counter(df[df.acao.isin(["escanteio_curto", "escanteio_na_area"])].player_name)),
-            "layer 0 (into the box only)": leader(Counter(df[df.acao == "escanteio_na_area"].player_name))}
-
-
 def n11() -> dict: return passers_to_readings(MESSI)
-def a10() -> dict: return corner_takers(ARG)
-def a11() -> dict: return corner_takers(FRA)
 
 
 def b02() -> dict: return passers_to_readings(MESSI, substitution_cuts(DI_MARIA))

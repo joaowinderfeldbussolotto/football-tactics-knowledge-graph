@@ -166,22 +166,6 @@ questions:
       No primeiro tempo, quem fez mais interceptações?
     note: >-
       Muda com a fonte: no JSON bruto (toda interceptação) é Tchouaméni; na camada 0 (só as certas) é Rabiot.
-  - id: a10
-    type: filtered_aggregation
-    stage: candidate
-    check: player
-    text: >-
-      Vou enfrentar a Argentina e preciso preparar a bola parada: quem cobra os escanteios do time?
-    note: >-
-      Messi (6 de 6). Visão do técnico adversário.
-  - id: a11
-    type: filtered_aggregation
-    stage: candidate
-    check: player
-    text: >-
-      Vou enfrentar a França e preciso preparar a bola parada: quem cobrou mais escanteios pelo time?
-    note: >-
-      Coman (3), à frente de Griezmann (2). Visão do técnico adversário.
 
   # ---- network: um conceito de rede de passes na partida inteira
   - id: n01
