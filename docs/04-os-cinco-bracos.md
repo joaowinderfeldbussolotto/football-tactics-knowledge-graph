@@ -1,4 +1,4 @@
-# 4. Os cinco braços, por dentro
+# 4. Os cinco braços (e um sexto, opcional), por dentro
 
 Este capítulo mostra **exatamente** o que cada braço envia ao modelo, com
 trechos reais. O código está em `src/football_graphrag/benchmark/arms.py`
@@ -267,7 +267,59 @@ momento do jogo.
 
 ---
 
-## 4.7 Rodando um braço isolado
+## 4.7 `text_to_cypher` (opcional): o modelo escreve as consultas
+
+Um sexto braço, fora da rodada principal: só roda quando listado em
+`--arms` ou em `config/benchmark.yaml`. É o padrão *text-to-Cypher*: em vez
+de ferramentas prontas, o modelo recebe a **planta do grafo** e **uma
+ferramenta só**, `run_cypher`, que executa a consulta que ele escrever. Toda
+contagem, rede ou sequência é consulta dele. Código:
+`benchmark/cypher.py`.
+
+**O que o modelo recebe:**
+
+- a pergunta, depois do **schema** do grafo, lido do próprio Neo4j (não é
+  escrito à mão): rótulos de nó, tipos de aresta, quantos há nesta partida,
+  cada propriedade com tipo e faixa de valores, e a lista completa dos
+  vocabulários pequenos (`acao`, `terco`, `corredor`...). Uma linha curta
+  diz para que serve cada nó e aresta, e o que significam as propriedades
+  menos óbvias (`segundo` contínuo, `periodo` 3 e 4 = prorrogação, `zona`
+  na grade 12x8). São ~11 mil caracteres, iguais em toda pergunta, por isso
+  vão em cache como no `events_in_prompt`;
+- o grafo tem três partidas: o schema diz qual `match_id` é o das
+  perguntas (um número, não o nome do jogo), e o modelo precisa filtrar por
+  ele.
+
+**O que a ferramenta faz e recusa:**
+
+| Proteção | Como |
+|---|---|
+| Só leitura | um filtro recusa `CREATE`, `MERGE`, `SET`, `DELETE` etc.; e a consulta roda numa sessão de leitura, em que o próprio Neo4j recusa escrita |
+| Sem procedimentos | `CALL db.*`, `gds.*` e `apoc.*` são recusados (subconsultas `CALL { ... }` valem). Sem a biblioteca de algoritmos, betweenness e afins têm de ser escritos em Cypher |
+| Sem respostas prontas | os nós `PadraoTatico` (achados da camada 2, como "Koundé é o gargalo da França") ficam fora do schema e a consulta que os cita é recusada |
+| Tamanho | até 50 linhas por consulta (com aviso de corte) e 15 s por consulta |
+| Erros | erro de sintaxe volta como mensagem, para o modelo corrigir |
+
+O limite de 12 chamadas é o mesmo do `graph_tools`.
+
+**O grafo responde tudo isso?** Sim. `scripts/check_cypher.py` responde as
+47 perguntas com resposta usando uma consulta Cypher escrita à mão para cada
+uma, passando pela mesma ferramenta (mesmo filtro, sessão de leitura, limite
+de linhas), e bate com o gabarito nas 47, sem LLM e sem custo. Até as de
+"principal elo" cabem numa consulta: todos os caminhos mínimos entre dois
+companheiros e a fração deles em que cada jogador está no meio. Então o que
+o braço mede é se o modelo **escreve** essas consultas, não se o dado
+existe.
+
+Para rodar (gasta créditos):
+
+```bash
+python scripts/ask.py --question n11 --arm text_to_cypher
+python scripts/run_benchmark.py --arms text_to_cypher --repeats 1 \
+    --output data/benchmark/cypher_results.jsonl --title "text_to_cypher"
+```
+
+## 4.8 Rodando um braço isolado
 
 Para ver tudo isso acontecendo, sem gravar resultados:
 

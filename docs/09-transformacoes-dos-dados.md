@@ -297,6 +297,18 @@ Neo4j e devolvem dados.
   diante, recebe "limite atingido".
 - Argumento inválido volta como mensagem de erro, para o modelo corrigir.
 
+### `text_to_cypher` (opcional)
+
+- O schema que o modelo lê é gerado do Neo4j a cada processo
+  (`benchmark/cypher.py`): rótulos, arestas, contagens na partida,
+  propriedades com tipo, faixa e, para textos com até 25 valores, a lista
+  completa. Ficam de fora `PadraoTatico`, `OBSERVADO_EM` e as propriedades
+  internas (`uid`, `tipo_spadl`, `pressure_idx`).
+- A consulta do modelo passa por um filtro (só leitura, sem procedimentos,
+  sem `PadraoTatico`) e roda numa sessão de leitura, com 15 s e até 50
+  linhas. Nós e arestas no resultado viram as suas propriedades; números
+  com casas decimais são arredondados em 4 casas.
+
 ### O que vale para todos os braços
 
 - **Mesmo modelo,** com temperatura 0.

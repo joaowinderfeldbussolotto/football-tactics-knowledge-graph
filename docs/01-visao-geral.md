@@ -28,7 +28,7 @@ diferentes e são comparados entre si).
 ## Os cinco braços, explicados com uma analogia
 
 Pense num jornalista que precisa responder perguntas sobre o jogo. Os braços
-são cinco jornalistas que recebem materiais diferentes:
+são cinco jornalistas que recebem materiais diferentes, mais um sexto, opcional:
 
 | Braço | O jornalista recebe... | Na prática, o modelo recebe... |
 |---|---|---|
@@ -37,6 +37,7 @@ são cinco jornalistas que recebem materiais diferentes:
 | `events_in_prompt` | o arquivo inteiro do jogo, lance por lance | uma tabela com todos os 2.585 lances da partida (~63 mil tokens) |
 | `stats_in_prompt` | a súmula estatística pronta | uma tabela com as estatísticas de cada jogador e de cada time |
 | `graph_tools` | um analista com um banco de dados, a quem pode fazer até 12 consultas | ferramentas (*tools*) que consultam um banco de dados em grafo |
+| `text_to_cypher` (opcional) | o banco de dados e a planta dele; escreve as próprias consultas | o schema do grafo e uma ferramenta que executa a consulta Cypher que ele escrever, só leitura |
 
 Alguns detalhes que importam:
 

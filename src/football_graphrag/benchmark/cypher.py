@@ -16,9 +16,10 @@ Guards, in order:
 Two choices that make the arm comparable to the others:
 - **No graph algorithms.** GDS procedures are refused. ``graph_tools`` reaches
   betweenness, articulation points and communities through its tools; here the model
-  has plain Cypher. Whether it can still answer the network questions is part of what
-  the arm measures. Projections also cost heap (``tools.py``), which a free query
-  could exhaust.
+  has plain Cypher. The questions are still within reach (``scripts/check_cypher.py``
+  answers all of them with plain Cypher, betweenness included, through shortest paths):
+  the arm measures whether the model writes those queries. Projections also cost heap
+  (``tools.py``), which a free query could exhaust.
 - **No precomputed answers.** Layer 2 stores its findings as ``PadraoTatico`` nodes
   ("X is the structural bottleneck of team Y: betweenness 34"): reading them would be
   reading answers, not querying data. ``HIDDEN_LABELS`` leaves them out of the schema

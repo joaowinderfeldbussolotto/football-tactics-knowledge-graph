@@ -107,3 +107,15 @@ def test_the_sixth_arm_is_optional():
     assert "text_to_cypher" in arms.ARMS and "text_to_cypher" not in arms.MAIN_ARMS
     assert arms.TOOL_ARMS["graph_tools"] == tuple(arms.TOOLS)  # graph_tools did not gain the Cypher tool
     assert arms.user_content("text_to_cypher", "Graph schema:\nx\n\nQuestion: q")[1].__class__.__name__ == "CachePoint"
+
+
+@requires_neo4j
+def test_plain_cypher_answers_every_answerable_question():
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "check_cypher.py"
+    out = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, timeout=600)
+    assert out.returncode == 0, out.stdout[-2000:]
+    assert "0 disagree; 0 without a query" in out.stdout
