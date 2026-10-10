@@ -3,6 +3,11 @@
     "players": [
       "Enzo Fernandez"
     ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -18,6 +23,11 @@
   "f02": {
     "players": [
       "Ousmane Dembélé"
+    ],
+    "accepted": [
+      [
+        "Ousmane Dembélé"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -35,6 +45,11 @@
     "players": [
       "Lautaro Javier Martínez"
     ],
+    "accepted": [
+      [
+        "Lautaro Javier Martínez"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -50,6 +65,11 @@
   "f04": {
     "players": [
       "Marcus Thuram"
+    ],
+    "accepted": [
+      [
+        "Marcus Thuram"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -72,6 +92,11 @@
   "f05": {
     "players": [
       "Randal Kolo Muani"
+    ],
+    "accepted": [
+      [
+        "Randal Kolo Muani"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -101,6 +126,11 @@
     "players": [
       "Olivier Giroud"
     ],
+    "accepted": [
+      [
+        "Olivier Giroud"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -116,6 +146,11 @@
   "a01": {
     "players": [
       "Lionel Andrés Messi Cuccittini"
+    ],
+    "accepted": [
+      [
+        "Lionel Andrés Messi Cuccittini"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -148,10 +183,17 @@
     }
   },
   "a02": {
-    "players": null,
+    "players": [
+      "Adrien Rabiot"
+    ],
+    "accepted": [
+      [
+        "Adrien Rabiot"
+      ]
+    ],
     "value": null,
     "no_data": false,
-    "stable": false,
+    "stable": true,
     "readings": {
       "all passes / third where the pass starts": {
         "tie": [
@@ -181,6 +223,9 @@
   },
   "a03": {
     "players": [],
+    "accepted": [
+      []
+    ],
     "value": 10,
     "no_data": false,
     "stable": true,
@@ -205,6 +250,7 @@
   },
   "a04": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -230,6 +276,11 @@
   "a05": {
     "players": [
       "Enzo Fernandez"
+    ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
     ],
     "value": 26,
     "no_data": false,
@@ -265,6 +316,11 @@
     "players": [
       "Enzo Fernandez"
     ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -280,6 +336,11 @@
   "a07": {
     "players": [
       "Julián Álvarez"
+    ],
+    "accepted": [
+      [
+        "Julián Álvarez"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -303,6 +364,11 @@
     "players": [
       "Kylian Mbappé Lottin"
     ],
+    "accepted": [
+      [
+        "Kylian Mbappé Lottin"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -323,6 +389,7 @@
   },
   "a09": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -343,6 +410,7 @@
   },
   "n01": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -423,6 +491,7 @@
   },
   "n02": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -505,6 +574,11 @@
     "players": [
       "Nicolás Hernán Otamendi"
     ],
+    "accepted": [
+      [
+        "Nicolás Hernán Otamendi"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -527,6 +601,12 @@
     "players": [
       "Dayotchanculle Upamecano",
       "Raphaël Varane"
+    ],
+    "accepted": [
+      [
+        "Dayotchanculle Upamecano",
+        "Raphaël Varane"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -567,6 +647,12 @@
       "Cristian Gabriel Romero",
       "Nicolás Hernán Otamendi"
     ],
+    "accepted": [
+      [
+        "Cristian Gabriel Romero",
+        "Nicolás Hernán Otamendi"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -604,6 +690,11 @@
   "n06": {
     "players": [
       "Enzo Fernandez"
+    ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -649,6 +740,7 @@
   },
   "n07": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -697,6 +789,11 @@
     "players": [
       "Rodrigo Javier De Paul"
     ],
+    "accepted": [
+      [
+        "Rodrigo Javier De Paul"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -718,8 +815,15 @@
   "n09": {
     "players": [
       "Dayotchanculle Upamecano",
-      "Raphaël Varane",
-      "Jules Koundé"
+      "Jules Koundé",
+      "Raphaël Varane"
+    ],
+    "accepted": [
+      [
+        "Dayotchanculle Upamecano",
+        "Jules Koundé",
+        "Raphaël Varane"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -793,9 +897,16 @@
   },
   "n10": {
     "players": [
-      "Nicolás Hernán Otamendi",
       "Cristian Gabriel Romero",
-      "Enzo Fernandez"
+      "Enzo Fernandez",
+      "Nicolás Hernán Otamendi"
+    ],
+    "accepted": [
+      [
+        "Cristian Gabriel Romero",
+        "Enzo Fernandez",
+        "Nicolás Hernán Otamendi"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -867,9 +978,68 @@
       }
     }
   },
+  "n11": {
+    "players": [
+      "Rodrigo Javier De Paul"
+    ],
+    "accepted": [
+      [
+        "Rodrigo Javier De Paul"
+      ]
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes": {
+        "players": [
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 14
+      },
+      "open-play passes": {
+        "players": [
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 13
+      }
+    }
+  },
+  "n12": {
+    "players": [
+      "Theo Bernard François Hernández"
+    ],
+    "accepted": [
+      [
+        "Theo Bernard François Hernández"
+      ]
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes": {
+        "players": [
+          "Theo Bernard François Hernández"
+        ],
+        "value": 8
+      },
+      "open-play passes": {
+        "tie": [
+          "Adrien Rabiot",
+          "Theo Bernard François Hernández"
+        ]
+      }
+    }
+  },
   "s01": {
     "players": [
       "Jules Koundé"
+    ],
+    "accepted": [
+      [
+        "Jules Koundé"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -951,6 +1121,7 @@
   },
   "s02": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -1106,6 +1277,12 @@
       "Jules Koundé",
       "Raphaël Varane"
     ],
+    "accepted": [
+      [
+        "Jules Koundé",
+        "Raphaël Varane"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -1172,6 +1349,12 @@
     "players": [
       "Enzo Fernandez",
       "Rodrigo Javier De Paul"
+    ],
+    "accepted": [
+      [
+        "Enzo Fernandez",
+        "Rodrigo Javier De Paul"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -1241,6 +1424,11 @@
     "players": [
       "Nicolás Hernán Otamendi"
     ],
+    "accepted": [
+      [
+        "Nicolás Hernán Otamendi"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -1263,6 +1451,11 @@
     "players": [
       "Rodrigo Javier De Paul"
     ],
+    "accepted": [
+      [
+        "Rodrigo Javier De Paul"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -1283,9 +1476,16 @@
   },
   "s07": {
     "players": [
-      "Nicolás Hernán Otamendi",
       "Cristian Gabriel Romero",
-      "Enzo Fernandez"
+      "Enzo Fernandez",
+      "Nicolás Hernán Otamendi"
+    ],
+    "accepted": [
+      [
+        "Cristian Gabriel Romero",
+        "Enzo Fernandez",
+        "Nicolás Hernán Otamendi"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -1359,6 +1559,7 @@
   },
   "s08": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -1403,10 +1604,17 @@
     }
   },
   "s09": {
-    "players": null,
+    "players": [
+      "Enzo Fernandez"
+    ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
+    ],
     "value": null,
     "no_data": false,
-    "stable": false,
+    "stable": true,
     "readings": {
       "all passes / either direction / extra time": {
         "players": [
@@ -1443,6 +1651,288 @@
           "Enzo Fernandez"
         ],
         "value": 9
+      }
+    }
+  },
+  "s10": {
+    "players": [
+      "Lionel Andrés Messi Cuccittini",
+      "Rodrigo Javier De Paul"
+    ],
+    "accepted": [
+      [
+        "Lionel Andrés Messi Cuccittini",
+        "Rodrigo Javier De Paul"
+      ]
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / directed / corridor / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 8
+      },
+      "all passes / directed / corridor / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 7
+      },
+      "all passes / directed / width third / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 8
+      },
+      "all passes / directed / width third / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 7
+      },
+      "all passes / undirected / corridor / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 14
+      },
+      "all passes / undirected / corridor / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 10
+      },
+      "all passes / undirected / width third / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 14
+      },
+      "all passes / undirected / width third / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 10
+      },
+      "open-play passes / directed / corridor / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 8
+      },
+      "open-play passes / directed / corridor / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 7
+      },
+      "open-play passes / directed / width third / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 8
+      },
+      "open-play passes / directed / width third / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 7
+      },
+      "open-play passes / undirected / corridor / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 13
+      },
+      "open-play passes / undirected / corridor / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 9
+      },
+      "open-play passes / undirected / width third / opponent half": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 13
+      },
+      "open-play passes / undirected / width third / attacking third": {
+        "players": [
+          "Lionel Andrés Messi Cuccittini",
+          "Rodrigo Javier De Paul"
+        ],
+        "value": 9
+      }
+    }
+  },
+  "s11": {
+    "players": [
+      "Alexis Mac Allister"
+    ],
+    "accepted": [
+      [
+        "Alexis Mac Allister"
+      ]
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / corridor / opponent half": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 17
+      },
+      "all passes / corridor / attacking third": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 11
+      },
+      "all passes / width third / opponent half": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 17
+      },
+      "all passes / width third / attacking third": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 11
+      },
+      "open-play passes / corridor / opponent half": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 15
+      },
+      "open-play passes / corridor / attacking third": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 10
+      },
+      "open-play passes / width third / opponent half": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 15
+      },
+      "open-play passes / width third / attacking third": {
+        "players": [
+          "Alexis Mac Allister"
+        ],
+        "value": 10
+      }
+    }
+  },
+  "s12": {
+    "players": [
+      "Dayotchanculle Upamecano"
+    ],
+    "accepted": [
+      [
+        "Dayotchanculle Upamecano"
+      ]
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / goals included": {
+        "players": [
+          "Dayotchanculle Upamecano"
+        ],
+        "value": 32
+      },
+      "all passes / goals excluded": {
+        "players": [
+          "Dayotchanculle Upamecano"
+        ],
+        "value": 32
+      },
+      "open-play passes / goals included": {
+        "players": [
+          "Dayotchanculle Upamecano"
+        ],
+        "value": 29
+      },
+      "open-play passes / goals excluded": {
+        "players": [
+          "Dayotchanculle Upamecano"
+        ],
+        "value": 29
+      }
+    }
+  },
+  "s13": {
+    "players": [
+      "Jules Koundé"
+    ],
+    "accepted": [
+      [
+        "Jules Koundé"
+      ]
+    ],
+    "value": null,
+    "no_data": false,
+    "stable": true,
+    "readings": {
+      "all passes / with the 2-2 goal": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 19
+      },
+      "all passes / without the 2-2 goal": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 19
+      },
+      "all passes / regular time only": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 9
+      },
+      "open-play passes / with the 2-2 goal": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 15
+      },
+      "open-play passes / without the 2-2 goal": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 15
+      },
+      "open-play passes / regular time only": {
+        "players": [
+          "Jules Koundé"
+        ],
+        "value": 6
       }
     }
   },
@@ -1500,6 +1990,13 @@
       "Enzo Fernandez",
       "Nicolás Hernán Otamendi"
     ],
+    "accepted": [
+      [
+        "Cristian Gabriel Romero",
+        "Enzo Fernandez",
+        "Nicolás Hernán Otamendi"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -1543,6 +2040,13 @@
       "Dayotchanculle Upamecano",
       "Jules Koundé",
       "Raphaël Varane"
+    ],
+    "accepted": [
+      [
+        "Dayotchanculle Upamecano",
+        "Jules Koundé",
+        "Raphaël Varane"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -1588,6 +2092,13 @@
       "Lionel Andrés Messi Cuccittini",
       "Rodrigo Javier De Paul"
     ],
+    "accepted": [
+      [
+        "Enzo Fernandez",
+        "Lionel Andrés Messi Cuccittini",
+        "Rodrigo Javier De Paul"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -1631,6 +2142,13 @@
       "Aurélien Djani Tchouaméni",
       "Dayotchanculle Upamecano",
       "Raphaël Varane"
+    ],
+    "accepted": [
+      [
+        "Aurélien Djani Tchouaméni",
+        "Dayotchanculle Upamecano",
+        "Raphaël Varane"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -1676,6 +2194,13 @@
       "Gonzalo Ariel Montiel",
       "Leandro Daniel Paredes"
     ],
+    "accepted": [
+      [
+        "Enzo Fernandez",
+        "Gonzalo Ariel Montiel",
+        "Leandro Daniel Paredes"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -1718,6 +2243,11 @@
     "players": [
       "Jules Koundé"
     ],
+    "accepted": [
+      [
+        "Jules Koundé"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -1738,6 +2268,7 @@
   },
   "t07": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -1785,6 +2316,11 @@
   "c01": {
     "players": [
       "Nicolás Hernán Otamendi"
+    ],
+    "accepted": [
+      [
+        "Nicolás Hernán Otamendi"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -1868,6 +2404,11 @@
     "players": [
       "Germán Alejandro Pezzella"
     ],
+    "accepted": [
+      [
+        "Germán Alejandro Pezzella"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -1888,6 +2429,7 @@
   },
   "c03": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -1968,6 +2510,7 @@
   },
   "c04": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -2048,6 +2591,7 @@
   },
   "c05": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -2130,6 +2674,11 @@
     "players": [
       "Lautaro Javier Martínez"
     ],
+    "accepted": [
+      [
+        "Lautaro Javier Martínez"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -2162,6 +2711,7 @@
   },
   "q02": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -2193,10 +2743,17 @@
     }
   },
   "q03": {
-    "players": null,
+    "players": [
+      "Julián Álvarez"
+    ],
+    "accepted": [
+      [
+        "Julián Álvarez"
+      ]
+    ],
     "value": null,
     "no_data": false,
-    "stable": false,
+    "stable": true,
     "readings": {
       "all passes / receiver shoots": {
         "players": [
@@ -2226,6 +2783,7 @@
   },
   "q04": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -2262,6 +2820,12 @@
       "Enzo Fernandez",
       "Lionel Andrés Messi Cuccittini"
     ],
+    "accepted": [
+      [
+        "Enzo Fernandez",
+        "Lionel Andrés Messi Cuccittini"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -2278,6 +2842,11 @@
   "p02": {
     "players": [
       "Lionel Andrés Messi Cuccittini"
+    ],
+    "accepted": [
+      [
+        "Lionel Andrés Messi Cuccittini"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -2313,6 +2882,11 @@
     "players": [
       "Lionel Andrés Messi Cuccittini"
     ],
+    "accepted": [
+      [
+        "Lionel Andrés Messi Cuccittini"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -2334,6 +2908,11 @@
   "p04": {
     "players": [
       "Kylian Mbappé Lottin"
+    ],
+    "accepted": [
+      [
+        "Kylian Mbappé Lottin"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -2357,6 +2936,11 @@
     "players": [
       "Enzo Fernandez"
     ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -2379,6 +2963,11 @@
     "players": [
       "Adrien Rabiot"
     ],
+    "accepted": [
+      [
+        "Adrien Rabiot"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -2398,10 +2987,23 @@
     }
   },
   "p07": {
-    "players": null,
+    "players": [
+      "Adrien Rabiot",
+      "Aurélien Djani Tchouaméni"
+    ],
+    "accepted": [
+      [
+        "Adrien Rabiot",
+        "Aurélien Djani Tchouaméni"
+      ],
+      [
+        "Adrien Rabiot",
+        "Kylian Mbappé Lottin"
+      ]
+    ],
     "value": null,
     "no_data": false,
-    "stable": false,
+    "stable": true,
     "readings": {
       "reaches the attacking third": {
         "tie": [
@@ -2418,10 +3020,17 @@
     }
   },
   "p08": {
-    "players": null,
+    "players": [
+      "Randal Kolo Muani"
+    ],
+    "accepted": [
+      [
+        "Randal Kolo Muani"
+      ]
+    ],
     "value": null,
     "no_data": false,
-    "stable": false,
+    "stable": true,
     "readings": {
       "defensive third": {
         "players": [
@@ -2439,10 +3048,11 @@
     }
   },
   "p09": {
-    "players": [],
-    "value": 2,
+    "players": null,
+    "accepted": [],
+    "value": null,
     "no_data": false,
-    "stable": true,
+    "stable": false,
     "readings": {
       "last action is a shot": {
         "players": [],
@@ -2451,12 +3061,21 @@
       "a shot in the possession": {
         "players": [],
         "value": 2
+      },
+      "a penalty is not a play": {
+        "players": [],
+        "value": 1
       }
     }
   },
   "p10": {
     "players": [
       "Lionel Andrés Messi Cuccittini"
+    ],
+    "accepted": [
+      [
+        "Lionel Andrés Messi Cuccittini"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -2477,14 +3096,11 @@
     }
   },
   "b01": {
-    "players": [
-      "Enzo Fernandez",
-      "Lionel Andrés Messi Cuccittini",
-      "Rodrigo Javier De Paul"
-    ],
+    "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
-    "stable": true,
+    "stable": false,
     "readings": {
       "all passes / each pair in some direction / after the substitution (raw JSON)": {
         "players": [
@@ -2549,12 +3165,241 @@
           "Rodrigo Javier De Paul"
         ],
         "value": 34
+      },
+      "sequence A -> B -> C / all passes / same possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
       }
     }
   },
   "b02": {
     "players": [
       "Enzo Fernandez"
+    ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -2589,6 +3434,11 @@
   "b03": {
     "players": [
       "Adrien Rabiot"
+    ],
+    "accepted": [
+      [
+        "Adrien Rabiot"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -2626,6 +3476,13 @@
       "Jules Koundé",
       "Raphaël Varane"
     ],
+    "accepted": [
+      [
+        "Dayotchanculle Upamecano",
+        "Jules Koundé",
+        "Raphaël Varane"
+      ]
+    ],
     "value": null,
     "no_data": false,
     "stable": true,
@@ -2693,12 +3550,233 @@
           "Raphaël Varane"
         ],
         "value": 45
+      },
+      "sequence A -> B -> C / all passes / same possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the substitution (raw JSON)": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the substitution (raw JSON)": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the substitution (raw JSON)": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the substitution (raw JSON)": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / all passes / same possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the player's last action": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the player's last action": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the player's last action": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the player's last action": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
       }
     }
   },
   "b05": {
     "players": [
       "Randal Kolo Muani"
+    ],
+    "accepted": [
+      [
+        "Randal Kolo Muani"
+      ]
     ],
     "value": null,
     "no_data": false,
@@ -2731,10 +3809,19 @@
     }
   },
   "b06": {
-    "players": null,
+    "players": [
+      "Jules Koundé",
+      "Raphaël Varane"
+    ],
+    "accepted": [
+      [
+        "Jules Koundé",
+        "Raphaël Varane"
+      ]
+    ],
     "value": null,
     "no_data": false,
-    "stable": false,
+    "stable": true,
     "readings": {
       "all passes / directed / after the substitution (raw JSON)": {
         "players": [
@@ -2805,10 +3892,17 @@
     }
   },
   "b07": {
-    "players": null,
+    "players": [
+      "Enzo Fernandez"
+    ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
+    ],
     "value": null,
     "no_data": false,
-    "stable": false,
+    "stable": true,
     "readings": {
       "all passes / after the substitution (raw JSON)": {
         "players": [
@@ -2838,6 +3932,7 @@
   },
   "b08": {
     "players": null,
+    "accepted": [],
     "value": null,
     "no_data": false,
     "stable": false,
@@ -2919,6 +4014,11 @@
   "b09": {
     "players": [
       "Enzo Fernandez"
+    ],
+    "accepted": [
+      [
+        "Enzo Fernandez"
+      ]
     ],
     "value": null,
     "no_data": false,

@@ -101,6 +101,21 @@ def top_partner(tb: Toolbox, team: str, player: str) -> list[str]:
     return [next(r["player"] for r in ranking if r["player"] != name)]
 
 
+def top_passer_before_shot(tb: Toolbox, team: str, position: int) -> list[str]:
+    """pass_paths ending in a shot: the passer ``position`` passes before the shooter."""
+    seqs = tb.pass_paths(team, position + 1, then_action=SHOTS, top=100)["sequences"]
+    counts: dict[str, int] = {}
+    for s in seqs:
+        counts[s["players"][0]] = counts.get(s["players"][0], 0) + s["count"]
+    return [max(counts, key=counts.get)]
+
+
+def top_sought(tb: Toolbox, filters: dict) -> list[str]:
+    """Most passes received: completed passes grouped by receiver."""
+    rows = tb.query_actions({**filters, "action": list(PASS_ACTIONS), "success": True}, ["receiver"], top=5)
+    return [next(r["receiver"] for r in rows if r["receiver"])]
+
+
 # One recipe per question: the tool calls, in order, that answer it.
 RECIPES = {
     "f01": lambda tb: [tb.list_actions({"yellow_card": True}, limit=1)["actions"][0]["player"]],
@@ -168,6 +183,24 @@ RECIPES = {
     "b03": lambda tb: top_passer_to(tb, "France", "Mbappé", {"second_from": after_last_action(tb, "Dembélé")}),
     "b04": lambda tb: top_triangle(tb, "France", {"second_from": after_last_action(tb, "Dembélé")}),
     "b05": lambda tb: top_receiver(tb, "France", "Mbappé", {"second_from": after_last_action(tb, "Dembélé")}),
+    "n11": lambda tb: top_passer_to(tb, "Argentina", "Messi"),
+    "n12": lambda tb: top_passer_to(tb, "France", "Mbappé"),
+    "a02": lambda tb: top(tb.query_actions({"team": "France", "action": list(PASS_ACTIONS), "success": True,
+                                            "third": "attacking"}, ["player"], top=1)),
+    "s09": lambda tb: top(tb.network_metric(tb.pass_network("Argentina", {"period": [3, 4]})["network_id"],
+                                            "degree", "none", "undirected", top=1)["ranking"]),
+    "q03": lambda tb: top_passer_before_shot(tb, "Argentina", 2),
+    "p07": lambda tb: tb.query_possessions("France", reaches_third="attacking", group_by="pair",
+                                           top=1)["ranking"][0]["players"],
+    "p08": lambda tb: top(tb.query_possessions("France", period=[2], starts_in_third="defensive",
+                                               reaches_third="attacking", group_by="player", top=1)["ranking"]),
+    "b06": lambda tb: top_pair(tb, "France", {"second_from": after_last_action(tb, "Dembélé")}),
+    "b07": lambda tb: top_receiver(tb, "Argentina", "Messi", {"second_from": after_last_action(tb, "Di María")}),
+    "s10": lambda tb: top_pair(tb, "Argentina", {"corridor": "right", "third": "attacking"}),
+    "s11": lambda tb: top_sought(tb, {"team": "Argentina", "corridor": "left", "third": "attacking"}),
+    "s12": lambda tb: top_sought(tb, {"team": "France", "second_from": goal_second(tb, 2),
+                                      "second_to": goal_second(tb, 3)}),
+    "s13": lambda tb: top_sought(tb, {"team": "France", "second_from": goal_second(tb, 4)}),
     "p09": lambda tb: tb.query_possessions("France", period=[3, 4], ends_with=SHOTS,
                                            includes_players=["Mbappé"])["possessions"],
     "b09": lambda tb: [next(r["receiver"] for r in tb.query_actions(
@@ -176,14 +209,15 @@ RECIPES = {
 }
 
 
-def expected(gt: dict, q) -> object:
+def expected(gt: dict, q) -> list:
+    """Every answer the ground truth accepts (several only when they tie in every reading)."""
     if q.check == "value":
-        return gt["value"]
+        return [gt["value"]]
     if q.check == "player_and_value":
-        return (gt["players"][:1], gt["value"])
+        return [(gt["players"][:1], gt["value"])]
     if q.check == "set":
-        return sorted(gt["players"])
-    return gt["players"][:1]
+        return [sorted(a) for a in gt["accepted"]]
+    return [a[:1] for a in gt["accepted"]]
 
 
 def normalized(q, got) -> object:
@@ -223,7 +257,8 @@ def main() -> int:
             finally:
                 tb.close()
             want = expected(truth, q)
-            ok = got == want
+            ok = got in want
+            want = want[0] if len(want) == 1 else want
             agree += ok
             print(f"{'OK ' if ok else 'XX '} {q.id}  ground truth: {want}  |  graph (tools): {got}")
     finally:

@@ -8,13 +8,19 @@ Usage:
     python scripts/run_benchmark.py --questions f01,s02
     python scripts/run_benchmark.py --sample              # 1 question per type, 1 repeat
     python scripts/run_benchmark.py --resume              # skip what is already in the file
+    python scripts/run_benchmark.py --questions p05,t06 --arms graph_tools --repeats 1 \
+        --output data/benchmark/x_results.jsonl --overwrite --rescore --page docs/execucoes/<page>.md
+                                                          # run those again, replacing their lines,
+                                                          # score the whole file again, rewrite the page
 
 Each line is written right after its call, so a crash loses at most one run;
 ``--resume`` continues from there. A provider error (after the SDK's own
 retries) is reported and NOT written, so ``--resume`` retries it. A model
 answer that never validates is written, as a format error.
 
-At the end, writes summary.md (same as ``scripts/summarize.py``).
+At the end, writes summary.md (same as ``scripts/summarize.py``) and the page of the
+run in docs/execucoes/ (same as ``scripts/report_run.py``), with the real cost when the
+provider is OpenRouter. ``--no-report`` skips the page.
 """
 
 import argparse
@@ -26,8 +32,9 @@ from pathlib import Path
 
 from football_graphrag.benchmark import ground_truth
 from football_graphrag.benchmark.arms import ARMS, configured_arms, missing_config
+from football_graphrag.benchmark.report import RunInfo, openrouter_usage, write_report
 from football_graphrag.benchmark.questions import QUESTION_SET, QUESTION_TYPES, QUESTIONS, get_question
-from football_graphrag.benchmark.runner import result_row, run_one
+from football_graphrag.benchmark.runner import rescore, result_row, run_one
 from football_graphrag.benchmark.summary import load_rows, write_summary
 from football_graphrag.config import get_settings
 from football_graphrag.observability import logging_setup
@@ -63,6 +70,12 @@ async def main(args) -> int:
 
     out: Path = args.output
     out.parent.mkdir(parents=True, exist_ok=True)
+    if args.overwrite:
+        # Drop the lines of the runs about to happen; everything else stays as it is.
+        targets = {(q.id, a, n) for n in range(1, repeats + 1) for q in questions for a in arms}
+        kept = [r for r in load_rows(out) if (r["question_id"], r["arm"], int(r["repeat"])) not in targets]
+        out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in kept))
+        args.resume = True
     done = {(r["question_id"], r["arm"], r["repeat"]) for r in load_rows(out)}
     if done and not args.resume and not args.fresh:
         print(f"{out} already has {len(done)} runs. Use --resume to continue or --fresh to start over.")
@@ -78,6 +91,7 @@ async def main(args) -> int:
     print(f"model {settings.llm_provider}:{settings.llm_model} | {len(plan)} runs to do "
           f"({len(done)} already in {out})")
 
+    usage_before = openrouter_usage(settings.llm_api_key) if settings.llm_provider == "openrouter" else None
     failed = 0
     with out.open("a") as f:
         for i, (q, arm, n) in enumerate(plan, 1):
@@ -97,8 +111,18 @@ async def main(args) -> int:
                   f"({row['input_tokens']}/{row['output_tokens']} tok, {row['latency_s']}s)")
 
     flush(observed)
+    if args.rescore:
+        rows = load_rows(out)
+        changed = rescore(rows, truth)
+        out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+        print(f"rescored {len(rows)} runs against the current ground truth: {changed} changed verdict")
     summary = write_summary(out)
     print(f"\nresults: {out}\nsummary: {summary}")
+    if plan and not args.no_report:
+        usage_after = openrouter_usage(settings.llm_api_key) if usage_before is not None else None
+        cost = usage_after - usage_before if usage_after is not None else None
+        info = RunInfo(command="python " + " ".join(sys.argv), cost_usd=cost, failed=failed)
+        print(f"report:  {write_report(out, summary, info, args.title, page=args.page)}")
     if failed:
         print(f"{failed} runs failed with provider errors and were not written; run again with --resume.")
     return 1 if failed else 0
@@ -114,6 +138,14 @@ if __name__ == "__main__":
     parser.add_argument("--resume", action="store_true", help="skip runs already in the output file")
     parser.add_argument("--fresh", action="store_true", help="empty the output file first")
     parser.add_argument("--output", type=Path, default=None, help="default: data/benchmark/results.jsonl")
+    parser.add_argument("--title", help="title of the run page in docs/execucoes/ (default: questions and arms)")
+    parser.add_argument("--no-report", action="store_true", help="do not write the run page in docs/execucoes/")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="run the selected questions x arms x repeats again, replacing their lines in the file")
+    parser.add_argument("--rescore", action="store_true",
+                        help="at the end, score every line of the file again against the current ground truth")
+    parser.add_argument("--page", type=Path, help="rewrite this run page instead of writing a new one "
+                                                  "(adds this run's cost and command to the ones it records)")
     args = parser.parse_args()
     args.output = args.output or default_output()
     logging_setup.setup(level=logging.WARNING)

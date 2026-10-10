@@ -125,9 +125,17 @@ def score(question: Question, expected: dict, answer: Answer | None,
     def canon(names: list[str]) -> list[str]:
         return [canonical_name(n, aliases) for n in names]
 
-    got_players, want_players = canon(answer.players), canon(expected["players"])
-    player_ok = bool(got_players) and got_players[0] == want_players[0] if want_players else False
-    set_ok = set(got_players) == set(want_players)
+    # Several accepted answers only when they tie in every reading of the question.
+    got_players = canon(answer.players)
+    options = [canon(a) for a in (expected.get("accepted") or [expected["players"]])]
+    player_ok = bool(got_players) and any(want and got_players[0] == want[0] for want in options)
+    set_ok = any(set(got_players) == set(want) for want in options)
+    if len(options) > 1:
+        # Naming exactly the answers tied in every reading is right too: all the tied
+        # players (player check) or every player of the tied groups (set check).
+        tied = {p for want in options for p in (want if question.check == "set" else want[:1])}
+        player_ok = player_ok or set(got_players) == tied
+        set_ok = set_ok or set(got_players) == tied
     value_ok = (
         answer.value is not None
         and expected["value"] is not None

@@ -252,9 +252,9 @@ França?" (trace real, resumido):
 - **Erros viram mensagens.** Um time que não existe, um nome ambíguo
   ("Martínez" é Lautaro ou Emiliano?) ou uma rede que ainda não foi criada
   geram uma mensagem explicando o problema, e o modelo pode tentar de novo.
-- **Uma chamada por vez, até 8 por pergunta.** Da 9ª em diante, a
+- **Uma chamada por vez, até 12 por pergunta.** Da 13ª em diante, a
   ferramenta responde "limite atingido, responda com o que você tem". Se o
-  modelo ainda insistir, a execução para depois de 12 pedidos ao provedor e
+  modelo ainda insistir, a execução para depois de 16 pedidos ao provedor e
   conta como erro de formato.
 - **Congeladas antes das perguntas.** As ferramentas e suas descrições são
   fixadas antes de se escreverem as perguntas que as testam.

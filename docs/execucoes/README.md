@@ -17,6 +17,7 @@ vêm sempre do arquivo de resultados da execução, nunca do Langfuse.
 | [09](2026-10-08_09_completa-atual_claude-haiku-5.5_r1.md) | 2026-10-08 | completa, versão atual, 1 repetição | Claude Haiku 5.5 + cache | 125 | 24/25 | US$ 0,36 |
 | [10](2026-10-08_10_perguntas-de-grafo-v3.md) | 2026-10-08 | **v3**, 20 perguntas de grafo, 2 braços | Claude Haiku 5.5 + cache | 40 | 10/20 | US$ 0,28 |
 | [11](2026-10-08_11_perguntas-de-grafo-v3.1.md) | 2026-10-08 | **v3.1**, 17 perguntas de grafo, 2 braços | Claude Haiku 5.5 + cache | 34 | 11/17 | ~US$ 0,23 |
+| [12](2026-10-10_12_all52.md) | 2026-10-10 | 52 perguntas, 5 braços, 1 repetição | claude-haiku-5.5 | 260 | 45/52 | US$ 0.92 |
 
 > **As execuções 01 a 03 usaram dados com um erro na camada 0**, corrigido
 > depois: em 44% das ações o lado do ataque estava invertido, o que deixava
@@ -40,17 +41,20 @@ horário e preenche o campo.
 
 ## Como registrar uma nova execução
 
+O `scripts/run_benchmark.py` escreve a página sozinho ao terminar: cria
+`AAAA-MM-DD_NN_<arquivo>.md` nesta pasta (configuração, commit, comando,
+custo real, resultado por grupo e braço, erros, leitura automática, cada erro
+com a resposta esperada e os traces) e acrescenta a linha no índice acima.
+
 1. Rode com um arquivo de saída próprio quando não for a execução principal:
-   `python scripts/run_benchmark.py --sample --output data/benchmark/sample_<modelo>.jsonl`.
-2. Anote o consumo da chave antes e depois, para ter o custo real:
-   `https://openrouter.ai/api/v1/key` (campo `usage`). Se o custo parecer fora
-   do esperado, consulte chamada por chamada em
-   `https://openrouter.ai/api/v1/generation?id=<id>`; o provedor que atendeu
-   está no campo `provider_name`.
-3. Gere a tabela de links:
-   `python scripts/trace_links.py --results <arquivo>.jsonl`.
-4. Crie `AAAA-MM-DD_NN_<tipo>_<modelo>.md` nesta pasta, copiando a estrutura
-   de uma página existente: a tabela de configuração (com o commit do código),
-   o resultado, a leitura, os achados e os traces. Acrescente a linha no
-   índice acima.
-5. Faça commit do arquivo de resultados, do resumo e da página juntos.
+   `python scripts/run_benchmark.py --repeats 1 --output data/benchmark/<nome>_results.jsonl --title "<título>"`.
+   `--no-report` pula a página.
+2. O custo real sai do consumo da chave no OpenRouter antes e depois
+   (`https://openrouter.ai/api/v1/key`, campo `usage`); com outro provedor fica
+   "não medido". Se parecer fora do esperado, consulte chamada por chamada em
+   `https://openrouter.ai/api/v1/generation?id=<id>` (campo `provider_name`).
+3. Para refazer a página de um arquivo que já existe:
+   `python scripts/report_run.py --results <arquivo>.jsonl [--title ...] [--cost ...]`.
+4. Faça commit do arquivo de resultados, do resumo e da página juntos. A
+   leitura automática só descreve os números; o que eles querem dizer vai à mão
+   numa seção a mais, se for preciso.

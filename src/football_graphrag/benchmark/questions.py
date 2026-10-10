@@ -28,6 +28,15 @@ PREFIXES = {
     "structure": "t", "counterfactual": "c", "sequence": "q", "play": "p", "substitution": "b",
 }
 ORDER = "".join(PREFIXES.values())
+# Groups for the reports: what the question requires, from a table lookup to relations over time.
+GROUPS = {
+    "Busca e contagem": ("fact", "filtered_aggregation"),
+    "Relações na rede de passes": ("network", "network_slice", "structure", "counterfactual"),
+    "Jogadas e sequências": ("sequence", "play"),
+    "Antes e depois de um momento do jogo": ("substitution",),
+    "Controle: sem resposta": ("unanswerable",),
+}
+GROUP_OF = {t: g for g, types in GROUPS.items() for t in types}
 QUESTION_TYPES = tuple(PREFIXES)
 CHECKS = ("player", "value", "set", "player_and_value", "no_data")
 STAGES = ("pilot", "full", "graph", "candidate", "removed")

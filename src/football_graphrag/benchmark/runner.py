@@ -7,8 +7,8 @@ through exactly the same code: ``run_arm`` -> ``score`` -> result row.
 from datetime import datetime, timezone
 
 from football_graphrag.benchmark.arms import ArmResult, run_arm
-from football_graphrag.benchmark.questions import Question
-from football_graphrag.benchmark.scoring import Score, score
+from football_graphrag.benchmark.questions import BY_ID, Question
+from football_graphrag.benchmark.scoring import Answer, Score, score
 from football_graphrag.config import get_settings
 from football_graphrag.observability.langfuse_setup import current_trace_url, span
 
@@ -29,7 +29,7 @@ def result_row(question: Question, arm: str, repeat: int, result: ArmResult, exp
         "arm": arm,
         "repeat": repeat,
         "answer": result.answer.model_dump() if result.answer else None,
-        "expected": {k: expected[k] for k in ("players", "value", "no_data")},
+        "expected": {k: expected.get(k) for k in ("players", "accepted", "value", "no_data")},
         "correct": s.correct,
         "abstention": s.abstention,
         "format_error": s.format_error,
@@ -45,3 +45,20 @@ def result_row(question: Question, arm: str, repeat: int, result: ArmResult, exp
         "model": f"{settings.llm_provider}:{settings.llm_model}",
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+
+
+def rescore(rows: list[dict], truth: dict) -> int:
+    """Score the stored answers again against the current ground truth and scoring rules
+    (in place). Returns how many rows changed verdict."""
+    changed = 0
+    for row in rows:
+        q = BY_ID.get(row["question_id"])
+        if q is None or q.id not in truth:
+            continue
+        answer = Answer(**row["answer"]) if row["answer"] else None
+        s = score(q, truth[q.id], answer)
+        before = (row["correct"], row["abstention"], row["format_error"])
+        row["expected"] = {k: truth[q.id].get(k) for k in ("players", "accepted", "value", "no_data")}
+        row["correct"], row["abstention"], row["format_error"] = s.correct, s.abstention, s.format_error
+        changed += before != (s.correct, s.abstention, s.format_error)
+    return changed

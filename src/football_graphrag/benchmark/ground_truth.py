@@ -9,9 +9,12 @@ Robustness test: a question in football language can be read in more than
 one way ("passes" with or without set pieces, a connection weighted by the
 number of passes or by xT, "after the goal" with or without the goal
 itself...). Each answer function returns the answer under EVERY reasonable
-reading. A question is ``stable`` when all readings agree on what its check
-looks at; an unstable question leaves the benchmark (``stage: removed`` in
-the YAML). Ties count as unstable: "who did the most" has no single answer.
+reading. A question is ``stable`` when some answer is right in every
+reading; an unstable question leaves the benchmark (``stage: removed`` in
+the YAML). A tie inside a reading does not make it unstable: every player
+(pair, trio) tied at the top is right in that reading. The ``accepted``
+answers are the ones right in every reading (usually one; several only when
+they tie in all of them).
 
 Readings used:
 - pass set: every completed pass (set pieces, throw-ins, goal kicks
@@ -696,10 +699,55 @@ def p04() -> dict: return play_readings(FRA, None, "shot", "player")
 def p05() -> dict: return play_readings(ARG, None, "shot", "partner", MESSI)
 def p06() -> dict: return play_readings(FRA, None, "shot", "partner", MBAPPE)
 def p07() -> dict: return play_readings(FRA, None, "attacking", "pair")
-def b01() -> dict: return triangle_readings(ARG, substitution_cuts(DI_MARIA))
+def trio_after_readings(team: str, player: str) -> dict:
+    """'The trio that passed the ball among themselves the most' after a substitution: the
+    triangle readings, plus the sequence A -> B -> C (pass_paths with 3 players)."""
+    cuts = substitution_cuts(player)
+    out = triangle_readings(team, cuts)
+    for cut, mask in cuts.items():
+        out |= {f"sequence A -> B -> C / {label} / {cut}": a
+                for label, a in trio_readings(team, first=mask).items()}
+    return out
+
+
+def b01() -> dict: return trio_after_readings(ARG, DI_MARIA)
+def side_cuts(side: str, extra=None) -> dict:
+    """'Through the left/right, in the attacking half': the corridor of layer 0 (rows of the
+    zone grid) or a plain third of the pitch width, crossed with the opponent half or the
+    attacking third. Coordinates already run left to right, so y high is the left."""
+    sides = {"left": {"corridor": lambda d: d.corredor == "esquerda", "width third": lambda d: d.start_y > 68 * 2 / 3},
+             "right": {"corridor": lambda d: d.corredor == "direita", "width third": lambda d: d.start_y < 68 / 3}}
+    ahead = {"opponent half": lambda d: d.zone_start // 8 >= 6, "attacking third": lambda d: d.terco == "ataque"}
+    return {f"{sl} / {al}": (lambda sm, am: lambda d: sm(d) & am(d) & (extra(d) if extra else True))(sm, am)
+            for sl, sm in sides[side].items() for al, am in ahead.items()}
+
+
+def most_sought_readings(team: str, cuts: dict) -> dict:
+    """'The player most sought by his teammates': most passes received."""
+    out = {}
+    for label, r in readings_product(passes=PASS_SETS, cut=list(cuts)):
+        out[label] = leader(Counter(team_passes(team, PASS_SETS[r["passes"]], cuts[r["cut"]]).receiver))
+    return out
+
+
+def s10() -> dict: return pair_readings(ARG, side_cuts("right"))
+def s11() -> dict: return most_sought_readings(ARG, side_cuts("left"))
+def s12() -> dict:
+    return most_sought_readings(FRA, {"goals included": between(goal_order(2), goal_order(3), True),
+                                      "goals excluded": between(goal_order(2), goal_order(3), False)})
+def s13() -> dict:
+    return most_sought_readings(FRA, {"with the 2-2 goal": after(goal_order(4), True),
+                                      "without the 2-2 goal": after(goal_order(4), False),
+                                      "regular time only": lambda d: after(goal_order(4), False)(d) & (d.period_id == 2)})
+
+
+def n11() -> dict: return passers_to_readings(MESSI)
+def n12() -> dict: return passers_to_readings(MBAPPE)
+
+
 def b02() -> dict: return passers_to_readings(MESSI, substitution_cuts(DI_MARIA))
 def b03() -> dict: return passers_to_readings(MBAPPE, substitution_cuts(DEMBELE))
-def b04() -> dict: return triangle_readings(FRA, substitution_cuts(DEMBELE))
+def b04() -> dict: return trio_after_readings(FRA, DEMBELE)
 def b05() -> dict: return receiver_readings(MBAPPE, substitution_cuts(DEMBELE))
 def b06() -> dict: return pair_readings(FRA, substitution_cuts(DEMBELE))
 def b07() -> dict: return receiver_readings(MESSI, substitution_cuts(DI_MARIA))
@@ -729,7 +777,9 @@ def p08() -> dict:
 def p09() -> dict:
     et = lambda ph: ph.period.isin([3, 4])
     return _possessions_by(FRA, {"last action is a shot": lambda ph: ph.last_action.isin(SHOT_ACTIONS) & et(ph),
-                                 "a shot in the possession": lambda ph: ph.has_shot & et(ph)}, value_of=MBAPPE)
+                                 "a shot in the possession": lambda ph: ph.has_shot & et(ph),
+                                 "a penalty is not a play": lambda ph: ph.last_action.isin(SHOT_ACTIONS)
+                                 & (ph.last_action != "penalti") & et(ph)}, value_of=MBAPPE)
 
 
 def p10() -> dict:
@@ -786,15 +836,36 @@ def key(q: Question, a: dict):
     return (a["players"][:1], a["value"])  # player_and_value
 
 
+def candidates(q: Question, a: dict) -> set:
+    """The answers one reading takes as right: its answer, or everyone tied at the top."""
+    items = a["tie"] if "tie" in a else ([a["players"]] if q.check == "set" else a["players"][:1])
+    if q.check == "set":
+        return {tuple(sorted(x)) for x in items}
+    return {x[0] if isinstance(x, list) and len(x) == 1 else x for x in items if isinstance(x, str) or len(x) == 1}
+
+
+def accepted(q: Question, readings: dict) -> list:
+    """Answers right in every reading. Player and set checks take ties into account; value
+    checks need every reading to give the same number."""
+    if q.check in ("player", "set"):
+        common = set.intersection(*(candidates(q, a) for a in readings.values()))
+        return sorted([x] if isinstance(x, str) else list(x) for x in common)
+    if not _agree(q, readings):
+        return []
+    return [next(iter(readings.values()))["players"]]
+
+
 def evaluate(q: Question) -> dict:
     if q.type == "unanswerable":
         return {"players": [], "value": None, "no_data": True, "stable": True, "readings": {},
                 "detail": q.note}
     readings = ANSWERS[q.id]()
-    stable = _agree(q, readings)
+    answers = accepted(q, readings)
+    stable = bool(answers)
     first = next(iter(readings.values()))
     out = {
-        "players": first["players"] if stable else None,
+        "players": answers[0] if stable else None,
+        "accepted": answers,
         # a count that varies across readings is not part of a player check
         "value": first.get("value") if stable and q.check in ("value", "player_and_value") else None,
         "no_data": False,
