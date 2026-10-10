@@ -696,10 +696,21 @@ def p04() -> dict: return play_readings(FRA, None, "shot", "player")
 def p05() -> dict: return play_readings(ARG, None, "shot", "partner", MESSI)
 def p06() -> dict: return play_readings(FRA, None, "shot", "partner", MBAPPE)
 def p07() -> dict: return play_readings(FRA, None, "attacking", "pair")
-def b01() -> dict: return triangle_readings(ARG, substitution_cuts(DI_MARIA))
+def trio_after_readings(team: str, player: str) -> dict:
+    """'The trio that passed the ball among themselves the most' after a substitution: the
+    triangle readings, plus the sequence A -> B -> C (pass_paths with 3 players)."""
+    cuts = substitution_cuts(player)
+    out = triangle_readings(team, cuts)
+    for cut, mask in cuts.items():
+        out |= {f"sequence A -> B -> C / {label} / {cut}": a
+                for label, a in trio_readings(team, first=mask).items()}
+    return out
+
+
+def b01() -> dict: return trio_after_readings(ARG, DI_MARIA)
 def b02() -> dict: return passers_to_readings(MESSI, substitution_cuts(DI_MARIA))
 def b03() -> dict: return passers_to_readings(MBAPPE, substitution_cuts(DEMBELE))
-def b04() -> dict: return triangle_readings(FRA, substitution_cuts(DEMBELE))
+def b04() -> dict: return trio_after_readings(FRA, DEMBELE)
 def b05() -> dict: return receiver_readings(MBAPPE, substitution_cuts(DEMBELE))
 def b06() -> dict: return pair_readings(FRA, substitution_cuts(DEMBELE))
 def b07() -> dict: return receiver_readings(MESSI, substitution_cuts(DI_MARIA))
@@ -729,7 +740,9 @@ def p08() -> dict:
 def p09() -> dict:
     et = lambda ph: ph.period.isin([3, 4])
     return _possessions_by(FRA, {"last action is a shot": lambda ph: ph.last_action.isin(SHOT_ACTIONS) & et(ph),
-                                 "a shot in the possession": lambda ph: ph.has_shot & et(ph)}, value_of=MBAPPE)
+                                 "a shot in the possession": lambda ph: ph.has_shot & et(ph),
+                                 "a penalty is not a play": lambda ph: ph.last_action.isin(SHOT_ACTIONS)
+                                 & (ph.last_action != "penalti") & et(ph)}, value_of=MBAPPE)
 
 
 def p10() -> dict:

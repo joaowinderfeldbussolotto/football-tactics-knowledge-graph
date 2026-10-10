@@ -70,12 +70,12 @@ Nos rankings, o número ao lado do nome é a pontuação naquela leitura (passes
 | [p06](#p06) | play | graph | sim | 2 |
 | [p07](#p07) | play | removed | **não** | 1 |
 | [p08](#p08) | play | removed | **não** | 2 |
-| [p09](#p09) | play | graph | sim | 2 |
+| [p09](#p09) | play | removed | **não** | 3 |
 | [p10](#p10) | play | candidate | sim | 2 |
-| [b01](#b01) | substitution | graph | sim | 8 |
+| [b01](#b01) | substitution | removed | **não** | 24 |
 | [b02](#b02) | substitution | graph | sim | 4 |
 | [b03](#b03) | substitution | graph | sim | 4 |
-| [b04](#b04) | substitution | graph | sim | 8 |
+| [b04](#b04) | substitution | removed | **não** | 24 |
 | [b05](#b05) | substitution | graph | sim | 4 |
 | [b06](#b06) | substitution | removed | **não** | 8 |
 | [b07](#b07) | substitution | removed | **não** | 4 |
@@ -1065,7 +1065,7 @@ Nota: Muda com a leitura: Kolo Muani se a jogada começa no terço de defesa; em
 
 > Em quantas jogadas da França que terminaram em finalização na prorrogação Mbappé participou?
 
-Estágio: **graph** · conferência: `value` · estável: **sim**
+Estágio: **removed** · conferência: `value` · estável: **não**
 
 Nota: 2.
 
@@ -1073,6 +1073,7 @@ Nota: 2.
 |---|---|
 | last action is a shot | 2 |
 | a shot in the possession | 2 |
+| a penalty is not a play | 1 |
 
 ### p10
 
@@ -1093,7 +1094,7 @@ Nota: Messi (3). Fica de reserva: as ferramentas não identificam a jogada de ca
 
 > Depois que Di María foi substituído, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
 
-Estágio: **graph** · conferência: `set` · estável: **sim**
+Estágio: **removed** · conferência: `set` · estável: **não**
 
 Nota: Enzo Fernández, Messi e De Paul.
 
@@ -1107,6 +1108,22 @@ Nota: Enzo Fernández, Messi e De Paul.
 | open-play passes / each pair in some direction / after the player's last action | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 34 |
 | open-play passes / all six directions / after the substitution (raw JSON) | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 33 |
 | open-play passes / all six directions / after the player's last action | Enzo Fernandez e Lionel Andrés Messi Cuccittini e Rodrigo Javier De Paul · 34 |
+| sequence A -> B -> C / all passes / same possession / consecutive passes / after the substitution (raw JSON) | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / all passes / same possession / other passes between allowed / after the substitution (raw JSON) | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / all passes / any possession / consecutive passes / after the substitution (raw JSON) | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / all passes / any possession / other passes between allowed / after the substitution (raw JSON) | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the substitution (raw JSON) | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the substitution (raw JSON) | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the substitution (raw JSON) | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the substitution (raw JSON) | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / all passes / same possession / consecutive passes / after the player's last action | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / all passes / same possession / other passes between allowed / after the player's last action | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / all passes / any possession / consecutive passes / after the player's last action | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / all passes / any possession / other passes between allowed / after the player's last action | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the player's last action | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the player's last action | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the player's last action | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
+| sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the player's last action | **empate:** Alexis Mac Allister e Enzo Fernandez e Lionel Andrés Messi Cuccittini; Nicolás Hernán Otamendi e Cristian Gabriel Romero e Enzo Fernandez |
 
 ### b02
 
@@ -1142,7 +1159,7 @@ Nota: Rabiot. O recorte usa a saída de Dembélé, e não a de Giroud (no mesmo 
 
 > Depois que Dembélé foi substituído no primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?
 
-Estágio: **graph** · conferência: `set` · estável: **sim**
+Estágio: **removed** · conferência: `set` · estável: **não**
 
 Nota: Upamecano, Koundé e Varane.
 
@@ -1156,6 +1173,22 @@ Nota: Upamecano, Koundé e Varane.
 | open-play passes / each pair in some direction / after the player's last action | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 45 |
 | open-play passes / all six directions / after the substitution (raw JSON) | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 43 |
 | open-play passes / all six directions / after the player's last action | Dayotchanculle Upamecano e Jules Koundé e Raphaël Varane · 45 |
+| sequence A -> B -> C / all passes / same possession / consecutive passes / after the substitution (raw JSON) | **empate:** Theo Bernard François Hernández e Dayotchanculle Upamecano e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé; Aurélien Djani Tchouaméni e Jules Koundé e Raphaël Varane |
+| sequence A -> B -> C / all passes / same possession / other passes between allowed / after the substitution (raw JSON) | **empate:** Theo Bernard François Hernández e Dayotchanculle Upamecano e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé; Aurélien Djani Tchouaméni e Jules Koundé e Raphaël Varane |
+| sequence A -> B -> C / all passes / any possession / consecutive passes / after the substitution (raw JSON) | **empate:** Theo Bernard François Hernández e Dayotchanculle Upamecano e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé; Aurélien Djani Tchouaméni e Jules Koundé e Raphaël Varane |
+| sequence A -> B -> C / all passes / any possession / other passes between allowed / after the substitution (raw JSON) | **empate:** Theo Bernard François Hernández e Dayotchanculle Upamecano e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé; Aurélien Djani Tchouaméni e Jules Koundé e Raphaël Varane |
+| sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the substitution (raw JSON) | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 4 |
+| sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the substitution (raw JSON) | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 4 |
+| sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the substitution (raw JSON) | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 4 |
+| sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the substitution (raw JSON) | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 4 |
+| sequence A -> B -> C / all passes / same possession / consecutive passes / after the player's last action | **empate:** Theo Bernard François Hernández e Dayotchanculle Upamecano e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé; Aurélien Djani Tchouaméni e Jules Koundé e Raphaël Varane |
+| sequence A -> B -> C / all passes / same possession / other passes between allowed / after the player's last action | **empate:** Theo Bernard François Hernández e Dayotchanculle Upamecano e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé; Aurélien Djani Tchouaméni e Jules Koundé e Raphaël Varane |
+| sequence A -> B -> C / all passes / any possession / consecutive passes / after the player's last action | **empate:** Theo Bernard François Hernández e Dayotchanculle Upamecano e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé; Aurélien Djani Tchouaméni e Jules Koundé e Raphaël Varane |
+| sequence A -> B -> C / all passes / any possession / other passes between allowed / after the player's last action | **empate:** Theo Bernard François Hernández e Dayotchanculle Upamecano e Raphaël Varane; Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé; Aurélien Djani Tchouaméni e Jules Koundé e Raphaël Varane |
+| sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the player's last action | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 4 |
+| sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the player's last action | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 4 |
+| sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the player's last action | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 4 |
+| sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the player's last action | Dayotchanculle Upamecano e Raphaël Varane e Jules Koundé · 4 |
 
 ### b05
 

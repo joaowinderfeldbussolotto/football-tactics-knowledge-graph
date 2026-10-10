@@ -571,7 +571,7 @@ questions:
       Muda com a leitura: Kolo Muani se a jogada começa no terço de defesa; empate de três se começa no próprio campo.
   - id: p09
     type: play
-    stage: graph
+    stage: removed
     check: value
     text: >-
       Em quantas jogadas da França que terminaram em finalização na prorrogação Mbappé participou?
@@ -588,7 +588,7 @@ questions:
   # ---- substitution: antes e depois de uma substituição
   - id: b01
     type: substitution
-    stage: graph
+    stage: removed
     check: set
     text: >-
       Depois que Di María foi substituído, qual trio argentino mais trocou passes entre si, com os três passando a bola uns para os outros?
@@ -612,7 +612,7 @@ questions:
       Rabiot. O recorte usa a saída de Dembélé, e não a de Giroud (no mesmo minuto), porque o amarelo de Giroud foi dado com ele já no banco e aparece como uma ação dele aos 95'.
   - id: b04
     type: substitution
-    stage: graph
+    stage: removed
     check: set
     text: >-
       Depois que Dembélé foi substituído no primeiro tempo, qual trio francês mais trocou passes entre si, com os três passando a bola uns para os outros?

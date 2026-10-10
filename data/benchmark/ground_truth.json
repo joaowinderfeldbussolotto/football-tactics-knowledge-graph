@@ -2439,10 +2439,10 @@
     }
   },
   "p09": {
-    "players": [],
-    "value": 2,
+    "players": null,
+    "value": null,
     "no_data": false,
-    "stable": true,
+    "stable": false,
     "readings": {
       "last action is a shot": {
         "players": [],
@@ -2451,6 +2451,10 @@
       "a shot in the possession": {
         "players": [],
         "value": 2
+      },
+      "a penalty is not a play": {
+        "players": [],
+        "value": 1
       }
     }
   },
@@ -2477,14 +2481,10 @@
     }
   },
   "b01": {
-    "players": [
-      "Enzo Fernandez",
-      "Lionel Andrés Messi Cuccittini",
-      "Rodrigo Javier De Paul"
-    ],
+    "players": null,
     "value": null,
     "no_data": false,
-    "stable": true,
+    "stable": false,
     "readings": {
       "all passes / each pair in some direction / after the substitution (raw JSON)": {
         "players": [
@@ -2549,6 +2549,230 @@
           "Rodrigo Javier De Paul"
         ],
         "value": 34
+      },
+      "sequence A -> B -> C / all passes / same possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Alexis Mac Allister",
+            "Enzo Fernandez",
+            "Lionel Andrés Messi Cuccittini"
+          ],
+          [
+            "Nicolás Hernán Otamendi",
+            "Cristian Gabriel Romero",
+            "Enzo Fernandez"
+          ]
+        ]
       }
     }
   },
@@ -2621,14 +2845,10 @@
     }
   },
   "b04": {
-    "players": [
-      "Dayotchanculle Upamecano",
-      "Jules Koundé",
-      "Raphaël Varane"
-    ],
+    "players": null,
     "value": null,
     "no_data": false,
-    "stable": true,
+    "stable": false,
     "readings": {
       "all passes / each pair in some direction / after the substitution (raw JSON)": {
         "players": [
@@ -2693,6 +2913,222 @@
           "Raphaël Varane"
         ],
         "value": 45
+      },
+      "sequence A -> B -> C / all passes / same possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / consecutive passes / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / other passes between allowed / after the substitution (raw JSON)": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the substitution (raw JSON)": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the substitution (raw JSON)": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the substitution (raw JSON)": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the substitution (raw JSON)": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / all passes / same possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / same possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / consecutive passes / after the player's last action": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / all passes / any possession / other passes between allowed / after the player's last action": {
+        "tie": [
+          [
+            "Theo Bernard François Hernández",
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane"
+          ],
+          [
+            "Dayotchanculle Upamecano",
+            "Raphaël Varane",
+            "Jules Koundé"
+          ],
+          [
+            "Aurélien Djani Tchouaméni",
+            "Jules Koundé",
+            "Raphaël Varane"
+          ]
+        ]
+      },
+      "sequence A -> B -> C / open-play passes / same possession / consecutive passes / after the player's last action": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / same possession / other passes between allowed / after the player's last action": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / any possession / consecutive passes / after the player's last action": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
+      },
+      "sequence A -> B -> C / open-play passes / any possession / other passes between allowed / after the player's last action": {
+        "players": [
+          "Dayotchanculle Upamecano",
+          "Raphaël Varane",
+          "Jules Koundé"
+        ],
+        "value": 4
       }
     }
   },
