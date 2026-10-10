@@ -72,3 +72,28 @@ def test_rescore_uses_the_current_ground_truth():
     truth = {"p07": {"players": ["Adrien Rabiot", "Aurélien Djani Tchouaméni"], "value": None, "no_data": False,
                      "accepted": [["Adrien Rabiot", "Aurélien Djani Tchouaméni"], ["Adrien Rabiot", "Kylian Mbappé Lottin"]]}}
     assert rescore(rows, truth) == 1 and rows[0]["correct"]
+
+
+def test_merge_keeps_the_last_file_for_a_repeated_run(tmp_path):
+    import importlib.util
+    import json
+
+    spec = importlib.util.spec_from_file_location(
+        "merge_results", __file__.replace("tests/test_report.py", "scripts/merge_results.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    a, b = tmp_path / "a.jsonl", tmp_path / "b.jsonl"
+    a.write_text("".join(json.dumps(r) + "\n" for r in [row("f01", "fact", "graph_tools", False),
+                                                       row("n04", "network", "graph_tools", True)]))
+    b.write_text(json.dumps(row("f01", "fact", "graph_tools", True)) + "\n" + json.dumps(row("f01", "fact", "vector", False)) + "\n")
+    merged = module.merge([a, b])
+    assert [(r["question_id"], r["arm"], r["correct"]) for r in merged] == [
+        ("f01", "vector", False), ("f01", "graph_tools", True), ("n04", "graph_tools", True)]
+
+
+def test_the_scripts_compile():
+    import py_compile
+    from pathlib import Path
+
+    for script in sorted((Path(__file__).resolve().parents[1] / "scripts").glob("*.py")):
+        py_compile.compile(str(script), doraise=True)

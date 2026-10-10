@@ -26,5 +26,6 @@ if __name__ == "__main__":
     if not args.results.exists():
         raise SystemExit(f"{args.results} does not exist")
     summary = write_summary(args.results)
-    print(f"written {write_report(args.results, summary, RunInfo(command=args.command, cost_usd=args.cost), args.title,
-                                     page=args.page)}")
+    info = RunInfo(command=args.command, cost_usd=args.cost)
+    page = write_report(args.results, summary, info, args.title, page=args.page)
+    print(f"written {page}")
