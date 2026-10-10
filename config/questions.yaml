@@ -44,7 +44,7 @@ match_id: 3869685
 # Quais estágios estão ativos e quantas perguntas por tipo eles têm de somar.
 # Benchmark principal: [pilot, full] e 5 por tipo. Perguntas de grafo: [graph],
 # sem número fixo por tipo (per_type vazio). As duas juntas: [pilot, full, graph].
-active_stages: [graph]
+active_stages: [pilot, full, graph]
 per_type:
 
 questions:
