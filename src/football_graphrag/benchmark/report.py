@@ -54,7 +54,9 @@ def git_revision() -> str:
     commit, branch = git("rev-parse", "--short", "HEAD"), git("branch", "--show-current")
     if not commit:
         return "desconhecido"
-    dirty = " (com mudanças não commitadas)" if git("status", "--porcelain", "--untracked-files=no") else ""
+    # The run itself writes results and pages: only code changes make the revision dirty.
+    dirty = " (com mudanças não commitadas)" if git("status", "--porcelain", "--untracked-files=no", "--", ":/",
+                                                    ":!/data", ":!/docs/execucoes") else ""
     return f"branch `{branch}`, commit `{commit}`{dirty}"
 
 

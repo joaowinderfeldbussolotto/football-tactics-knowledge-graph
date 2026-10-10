@@ -15,13 +15,13 @@ An arm that always answers "no data" gets every unanswerable question right; the
 | network | 0% | 0% | 57% | 0% | 86% |
 | network_slice | 0% | 10% | 30% | 0% | 100% |
 | unanswerable | 100% | 100% | 100% | 100% | 80% |
-| structure | 0% | 0% | 0% | 0% | 0% |
+| structure | 0% | 0% | 0% | 0% | 100% |
 | counterfactual | 0% | 0% | 50% | 0% | 100% |
 | sequence | 0% | 0% | 0% | 0% | 50% |
-| play | 0% | 25% | 38% | 0% | 50% |
-| substitution | 0% | 0% | 17% | 0% | 67% |
-| **all** | **10%** | **19%** | **50%** | **10%** | **75%** |
-| **all but unanswerable** | **0%** | **11%** | **45%** | **0%** | **74%** |
+| play | 0% | 25% | 38% | 0% | 88% |
+| substitution | 0% | 0% | 17% | 0% | 100% |
+| **all** | **10%** | **19%** | **50%** | **10%** | **87%** |
+| **all but unanswerable** | **0%** | **11%** | **45%** | **0%** | **87%** |
 
 ## 1b. Seen and unseen questions
 
@@ -44,7 +44,7 @@ Hallucination: a wrong answer given as an answer (not an abstention, not a forma
 | vector | 19% | 62% | 0% |
 | events_in_prompt | 17% | 33% | 0% |
 | stats_in_prompt | 0% | 90% | 0% |
-| graph_tools | 15% | 6% | 4% |
+| graph_tools | 12% | 2% | 0% |
 
 ## 3. Consistency across repeats
 
@@ -66,7 +66,7 @@ Share of questions whose repeats gave the same answer (same players, value and n
 | vector | 2,623 | 338 | 0.0 | 2.3 |
 | events_in_prompt | 115,735 | 615 | 0.0 | 3.9 |
 | stats_in_prompt | 4,968 | 192 | 0.0 | 1.7 |
-| graph_tools | 70,608 | 570 | 3.1 | 7.7 |
+| graph_tools | 76,118 | 574 | 3.3 | 7.8 |
 
 ## 5. Correct runs per question
 
@@ -105,7 +105,7 @@ Share of questions whose repeats gave the same answer (same players, value and n
 | u03 | 1/1 | 1/1 | 1/1 | 1/1 | 0/1 |
 | u04 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
 | u05 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
-| t06 | 0/1 | 0/1 | 0/1 | 0/1 | 0/1 |
+| t06 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
 | c01 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
 | c02 | 0/1 | 0/1 | 1/1 | 0/1 | 1/1 |
 | q01 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
@@ -114,13 +114,13 @@ Share of questions whose repeats gave the same answer (same players, value and n
 | p02 | 0/1 | 0/1 | 1/1 | 0/1 | 1/1 |
 | p03 | 0/1 | 1/1 | 1/1 | 0/1 | 1/1 |
 | p04 | 0/1 | 1/1 | 1/1 | 0/1 | 1/1 |
-| p05 | 0/1 | 0/1 | 0/1 | 0/1 | 0/1 |
-| p06 | 0/1 | 0/1 | 0/1 | 0/1 | 0/1 |
-| p07 | 0/1 | 0/1 | 0/1 | 0/1 | 0/1 |
+| p05 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
+| p06 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
+| p07 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
 | p08 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
 | b02 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
-| b03 | 0/1 | 0/1 | 0/1 | 0/1 | 0/1 |
+| b03 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
 | b05 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
-| b06 | 0/1 | 0/1 | 0/1 | 0/1 | 0/1 |
+| b06 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
 | b07 | 0/1 | 0/1 | 0/1 | 0/1 | 1/1 |
 | b09 | 0/1 | 0/1 | 1/1 | 0/1 | 1/1 |
