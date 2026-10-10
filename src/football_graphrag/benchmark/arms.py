@@ -1,4 +1,4 @@
-"""The five arms of the benchmark.
+"""The arms of the benchmark: five main ones and an optional sixth.
 
 Every arm uses the same model (from .env), the same base system prompt,
 ``temperature=0`` and the same ``output_type=Answer`` (PydanticAI's default
@@ -8,7 +8,9 @@ tool output mode). The only difference between arms is what the LLM gets:
 - ``vector``: the 30 event lines most similar to the question;
 - ``events_in_prompt``: the compact table of every event of the match;
 - ``stats_in_prompt``: per-player and per-team stats read from Neo4j (layer 1b);
-- ``graph_tools``: eight primitive tools that query Neo4j (``benchmark/tools.py``).
+- ``graph_tools``: eight primitive tools that query Neo4j (``benchmark/tools.py``);
+- ``text_to_cypher`` (optional): the graph schema and one tool that runs the model's
+  own read-only Cypher (``benchmark/cypher.py``).
 """
 
 import hashlib
@@ -29,7 +31,7 @@ from pydantic_ai.messages import CachePoint
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.usage import RunUsage, UsageLimits
 
-from football_graphrag.benchmark import tools
+from football_graphrag.benchmark import cypher, tools
 from football_graphrag.benchmark.questions import MATCH_ID
 from football_graphrag.benchmark.scoring import Answer
 from football_graphrag.config import get_settings
@@ -39,15 +41,18 @@ from football_graphrag.llm.provider import embed_texts, pydantic_ai_model, pydan
 # PydanticAI prints a promotional banner on the first run; it ends up in every log.
 os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
 
-ARMS = ("no_context", "vector", "events_in_prompt", "stats_in_prompt", "graph_tools")
+MAIN_ARMS = ("no_context", "vector", "events_in_prompt", "stats_in_prompt", "graph_tools")
+# Run only when asked for (--arms or config/benchmark.yaml); never by default.
+OPTIONAL_ARMS = ("text_to_cypher",)
+ARMS = MAIN_ARMS + OPTIONAL_ARMS
 # config/benchmark.yaml at the repository root: which arms run by default.
 BENCHMARK_CONFIG = Path(__file__).resolve().parents[3] / "config" / "benchmark.yaml"
 
 
 def configured_arms(path: Path = BENCHMARK_CONFIG) -> list[str]:
-    """The arms listed in config/benchmark.yaml, in ARMS order; all arms if the file is missing."""
+    """The arms listed in config/benchmark.yaml, in ARMS order; the main arms if the file is missing."""
     if not path.exists():
-        return list(ARMS)
+        return list(MAIN_ARMS)
     listed = yaml.safe_load(path.read_text(encoding="utf-8")).get("arms") or []
     unknown = [a for a in listed if a not in ARMS]
     if unknown or not listed:
@@ -284,12 +289,15 @@ def _unquote(value):
     return value
 
 
-def _describe(doc: str):
+def _describe(doc: str, unquote: bool = True):
     """Set a tool's docstring from a computed string (PydanticAI reads the tool and
     argument descriptions from the docstring, and an f-string is not a docstring), and
-    let every argument go through ``_unquote`` before validation."""
+    let every argument go through ``_unquote`` before validation (not for free text such
+    as a Cypher query, which may end in a quote)."""
     def wrap(fn):
         fn.__doc__ = doc
+        if not unquote:
+            return fn
         hints = get_type_hints(fn, include_extras=True)
         fn.__annotations__ = {name: hint if name in ("ctx", "return") else Annotated[hint, BeforeValidator(_unquote)]
                               for name, hint in hints.items()}
@@ -519,9 +527,28 @@ def query_possessions(ctx: RunContext[GraphDeps], team: str | None = None,
 
 TOOLS = {f.__name__: f for f in (list_players, query_actions, list_actions, query_possessions,
                                  pass_network, network_metric, network_edges, pass_paths)}
+
+
+@_describe(f"""Runs one read-only Cypher query on the match graph and returns its rows: the
+column names, at most {cypher.MAX_ROWS} rows, and truncated (true when the query had more
+rows). The graph schema is in the user message. Writes and procedure calls are refused. A
+query that fails comes back as an error message: fix the query and run it again.
+
+In football terms: any question about the match that the data can answer, written as a
+graph query over players, actions, passes and possession phases.
+
+Args:
+    query: one Cypher query that only reads (MATCH ... RETURN), filtered on the match_id
+        given in the schema.
+""", unquote=False)
+def run_cypher(ctx: RunContext[GraphDeps], query: str) -> dict:
+    return _call(ctx, "run_cypher", lambda query: cypher.run_query(ctx.deps.toolbox.driver, query), query=query)
+
+
+ALL_TOOLS = {**TOOLS, "run_cypher": run_cypher}
 # An arm with tools is an agent plus a list of tools. A future arm without the
 # network tools would be one line: "tools_no_graph": tuple(TOOLS)[:4].
-TOOL_ARMS = {"graph_tools": tuple(TOOLS)}
+TOOL_ARMS = {"graph_tools": tuple(TOOLS), "text_to_cypher": ("run_cypher",)}
 
 
 @lru_cache
@@ -535,7 +562,7 @@ def tool_agent(arm: str = "graph_tools") -> Agent[GraphDeps, Answer]:
         # edges before the network existed, with an invented id.
         model_settings={**_model_settings(), "parallel_tool_calls": False},
         system_prompt=SYSTEM_PROMPT,
-        tools=[Tool(TOOLS[name], takes_ctx=True) for name in TOOL_ARMS[arm]],
+        tools=[Tool(ALL_TOOLS[name], takes_ctx=True) for name in TOOL_ARMS[arm]],
     )
 
 
@@ -559,6 +586,8 @@ def missing_config(arms: list[str]) -> list[str]:
 
 async def build_prompt(arm: str, question_text: str) -> str:
     """The user message of an arm (the system prompt is the same for all)."""
+    if arm == "text_to_cypher":
+        return f"Graph schema:\n{graph_schema()}\n\nQuestion: {question_text}"
     if arm == "no_context" or arm in TOOL_ARMS:
         return question_text
     if arm == "events_in_prompt":
@@ -574,8 +603,13 @@ async def build_prompt(arm: str, question_text: str) -> str:
     raise ValueError(f"unknown arm {arm!r}; valid: {', '.join(ARMS)}")
 
 
+def graph_schema() -> str:
+    """The schema text of the text_to_cypher arm, read from Neo4j once per process."""
+    return cypher.cached_schema(_driver())  # the shared driver: not closed here
+
+
 # Arms whose data block is identical for every question: worth caching.
-CACHED_ARMS = ("events_in_prompt", "stats_in_prompt")
+CACHED_ARMS = ("events_in_prompt", "stats_in_prompt", "text_to_cypher")
 QUESTION_MARKER = "\n\nQuestion: "
 
 
