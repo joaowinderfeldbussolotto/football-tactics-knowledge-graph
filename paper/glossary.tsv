@@ -9,3 +9,9 @@ acerto	acurácia|accuracy	proporção de execuções corrigidas como certas
 consulta	query|queries	consulta Cypher, escrita pelo modelo ou pela ferramenta
 ferramentas prontas	tools prontas|ferramentas pré-prontas	graph_tools: a lógica difícil já está escrita
 abstenção	recusa	resposta "sem dados" a uma pergunta que tem resposta
+Sem dados	sem contexto	nome do braço no_context; use \armNoContext
+Busca vetorial	RAG vetorial|busca semântica	nome do braço vector; use \armVector
+Eventos brutos	eventos no prompt|eventos crus	nome do braço events_in_prompt; use \armEventsInPrompt
+Estatísticas resumidas	estatísticas no prompt|estatísticas prontas	nome do braço stats_in_prompt; use \armStatsInPrompt
+Consulta escrita pelo modelo	text-to-cypher|texto para cypher|texto-para-consulta	nome do braço text_to_cypher; use \armTextToCypher
+Ferramentas sobre o grafo	graph tools|ferramentas do grafo	nome do braço graph_tools; use \armGraphTools; "ferramentas prontas" descreve a lógica já escrita

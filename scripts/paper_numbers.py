@@ -22,7 +22,7 @@ from pathlib import Path
 import yaml
 
 from football_graphrag.benchmark import paper_stats as ps
-from football_graphrag.benchmark.questions import ALL_QUESTIONS, GROUPS, QUESTIONS
+from football_graphrag.benchmark.questions import GROUPS
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / "data" / "benchmark"
@@ -30,6 +30,15 @@ PAPER = ROOT / "paper"
 GENERATED = PAPER / "generated"
 # Pairs of neighbouring steps of the ladder, in the order of the paper's table.
 PAIRS = (("text_to_cypher", "events_in_prompt"), ("graph_tools", "text_to_cypher"), ("graph_tools", "events_in_prompt"))
+# Display names of the arms in the paper: (full, short for table headers). The code identifiers do not change.
+ARM_NAMES = {
+    "no_context": ("Sem dados", "Sem dados"),
+    "vector": ("Busca vetorial", "Vetorial"),
+    "events_in_prompt": ("Eventos brutos", "Eventos"),
+    "stats_in_prompt": ("Estatísticas resumidas", "Estatísticas"),
+    "text_to_cypher": ("Consulta escrita pelo modelo", "Consulta"),
+    "graph_tools": ("Ferramentas sobre o grafo", "Ferramentas"),
+}
 # Group labels in the order of the paper.
 GROUP_ORDER = tuple(GROUPS)
 
@@ -70,10 +79,9 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
         "nControl": str(len(types) - len(answerable)), "nArms": str(len(arms)), "nRuns": str(len(rows)),
         "nRepeats": str(n_repeats),
         "modelName": "Claude Haiku 5.5",
-        "nWritten": str(len(ALL_QUESTIONS)), "nActive": str(len(QUESTIONS)),
-        "nRemoved": str(sum(q.stage == "removed" for q in ALL_QUESTIONS)),
-        "nCandidates": str(sum(q.stage == "candidate" for q in ALL_QUESTIONS)),
     }
+    for a, (full, short) in ARM_NAMES.items():  # the names the paper uses; the identifiers stay in the code
+        m[f"arm{ps.ARM_KEYS[a]}"], m[f"armShort{ps.ARM_KEYS[a]}"] = full, short
     for g in GROUP_ORDER:
         m[f"nGroup{ps.GROUP_KEYS[g]}"] = str(len({q for q, t in types.items() if ps.GROUP_OF_TYPE[t] == g}))
 
@@ -133,9 +141,7 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
 
 # --------------------------------------------------------------------------- tables
 
-LABEL = {"no_context": r"\texttt{no\_context}", "vector": r"\texttt{vector}",
-         "events_in_prompt": r"\texttt{events\_in\_prompt}", "text_to_cypher": r"\texttt{text\_to\_cypher}",
-         "graph_tools": r"\texttt{graph\_tools}", "stats_in_prompt": r"\texttt{stats\_in\_prompt}"}
+LABEL = {arm: short for arm, (_, short) in ARM_NAMES.items()}  # short names: the columns are narrow
 
 
 def _tabular(spec: str, header: list[str], body: list[list[str]]) -> str:

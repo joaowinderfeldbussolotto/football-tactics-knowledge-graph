@@ -71,8 +71,10 @@ def test_the_numbers_the_dossier_states():
     assert (macros["mcTextToCypherEventsInPromptFirst"], macros["mcTextToCypherEventsInPromptSecond"]) == ("17", "5")
     assert macros["mcTextToCypherEventsInPromptP"] == "0,017" and macros["mcTextToCypherEventsInPromptPHolm"] == "0,034"
     assert macros["mcGraphToolsEventsInPromptP"] == "menor que 0,001"
-    assert (macros["nQuestions"], macros["nAnswerable"], macros["nRuns"], macros["nWritten"], macros["nRemoved"]) == \
-        ("52", "47", "312", "81", "22")
+    assert (macros["nQuestions"], macros["nAnswerable"], macros["nRuns"]) == ("52", "47", "312")
+    assert not {"nWritten", "nRemoved", "nCandidates"} & set(macros)  # the paper talks about the 52 only
+    assert macros["armGraphTools"] == "Ferramentas sobre o grafo" and macros["armShortTextToCypher"] == "Consulta"
+    assert all(f"arm{k}" in macros and f"armShort{k}" in macros for k in ps.ARM_KEYS.values())
     assert (macros["preFixKGraphTools"], macros["preFixNGraphTools"]) == ("39", "52")
     assert macros["accPlaysGraphTools"] == "80\\%" and macros["accPlaysTextToCypher"] == "40\\%"
     assert macros["tokInGraphTools"] == "76.118" and macros["costFinal"] == "1,04"
