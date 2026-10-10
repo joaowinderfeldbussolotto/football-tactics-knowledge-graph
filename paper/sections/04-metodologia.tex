@@ -1,0 +1,88 @@
+% Seção: Metodologia  (orçamento: 2.5 página(s))
+%
+% Referências previstas (chaves de refs.bib): schroer2021crispdm, martinezplumed2021crispdm, shimaoka2024crispdm, decroos2019actions, brandes2001faster, yao2023react, ozsoy2025text2cypher, lewis2020rag, sainz2023nlp, ji2023survey
+% Figuras e tabelas ainda a fazer: F1 (arquitetura), F5 (exemplo de robustez).
+
+\section{Metodologia}\label{sec:metodologia}
+
+O trabalho seguiu as seis fases do CRISP-DM~\cite{schroer2021crispdm}: entendimento do problema, entendimento
+dos dados, preparação, modelagem, avaliação e implantação. A pergunta de partida é quem faz o cálculo quando um modelo de
+linguagem responde sobre dados de eventos de futebol: o próprio modelo, uma consulta que ele escreve ou código que
+já está escrito.
+
+\subsection{Dados}
+
+Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022. Os
+\nEvents{} eventos da partida foram convertidos em \nActions{} ações no formato SPADL~\cite{decroos2019actions},
+em uma tabela com uma linha por ação, com zona do campo, fase de posse e valor esperado de ameaça (xT). A tabela
+foi carregada em um grafo Neo4j. Uma única partida foi usada para que a tabela inteira caiba no
+contexto do modelo: ela ocupa \tokInEventsInPrompt{} tokens por pergunta.
+
+\subsection{Formas de acesso}
+
+Foram comparadas \nArms{} formas de acesso (braços), ordenadas por quanta lógica de consulta já está pronta antes
+de o modelo agir (Tabela~\ref{tab:bracos}). Todas usam o mesmo modelo (\modelName{}, temperatura zero), o mesmo
+prompt de sistema, que não nomeia a partida, e a mesma saída estruturada (jogadores, valor, indicação de ausência
+de dados e justificativa).
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{p{0.34\columnwidth}p{0.58\columnwidth}} % lint: ignore
+\toprule
+Braço & O que o modelo recebe \\
+\midrule
+\armNoContext{} (\texttt{no\_context}) & só a pergunta \\
+\armVector{} (\texttt{vector}) & as \nTopK{} linhas de eventos recuperadas por similaridade de vetores \\
+\armEventsInPrompt{} (\texttt{events\_in\_prompt}) & a tabela de \nActions{} ações inteira \\
+\armTextToCypher{} (\texttt{text\_to\_cypher}) & o esquema do grafo e uma ferramenta que executa a consulta Cypher escrita por ele \\
+\armGraphTools{} (\texttt{graph\_tools}) & \nTools{} ferramentas parametrizadas sobre o grafo \\
+\armStatsInPrompt{} (\texttt{stats\_in\_prompt}) & totais por jogador e por time, já calculados \\
+\bottomrule
+\end{tabular}
+\caption{As \nArms{} formas de acesso, na ordem da escada.}\label{tab:bracos}
+\end{table}
+
+O \armVector{} segue o padrão de recuperação aumentada por geração~\cite{lewis2020rag}. Em \armTextToCypher{} e \armGraphTools{}, o modelo consulta o mesmo grafo e dispõe de no máximo \nMaxCalls{}
+chamadas por pergunta, em um ciclo de raciocínio e ação~\cite{yao2023react}. A diferença está em quem escreve a
+lógica: no primeiro, o modelo escreve toda consulta~\cite{ozsoy2025text2cypher}, sem a biblioteca de algoritmos de
+grafos (GDS)~\cite{neo4j_gds} e sem os padrões táticos já calculados, e a ferramenta só aceita leitura, devolve até
+\nMaxRows{} linhas e interrompe a consulta após \nTimeoutS{} s; no segundo, a lógica difícil (jogadas, rede de
+passes, intermediação) está em ferramentas escritas e congeladas antes das perguntas que as testam. Esse par
+controlado isola o efeito de quem escreve a lógica.
+
+A comparação do par é assimétrica. O \armGraphTools{} foi ajustado em sete versões congeladas, a partir dos erros
+observados em rodadas anteriores, e seis perguntas foram reexecutadas depois das últimas correções, de modo que o
+resultado reportado é o da segunda execução (antes dela, o braço acertou \preFixKGraphTools{} de
+\preFixNGraphTools{} perguntas). O \armTextToCypher{} foi medido em primeiro contato, sem ajuste guiado por erro.
+A diferença entre os dois tende, portanto, a superestimar o efeito da lógica pronta.
+
+\subsection{Perguntas, gabarito e métricas}
+
+As \nQuestions{} perguntas, em linguagem de futebol e de resposta fechada (quem, quantos, quais), formam cinco
+grupos: busca e contagem (\nGroupSearch{}), relações na rede de passes (\nGroupRelations{}), jogadas e sequências
+(\nGroupPlays{}), antes e depois de um momento (\nGroupMoments{}) e controle (\nGroupControl{}). O controle reúne
+perguntas cuja resposta não existe nos dados, como as que pedem velocidade; a resposta certa é a ausência de dados.
+Os resultados são reportados com e sem ele, isto é, nas \nAnswerable{} perguntas com resposta e nas
+\nQuestions{}.
+
+O gabarito foi calculado sem o Neo4j e sem o modelo, com pandas sobre os dados brutos e networkx para as redes, e
+a intermediação segue o algoritmo de Brandes~\cite{brandes2001faster}. Cada pergunta foi resolvida em todas as
+leituras razoáveis (por exemplo, rede dirigida ou não, passes ou xT como peso). Só permaneceram as perguntas
+cuja resposta não muda entre leituras. A conferência compara a resposta do modelo com o gabarito conforme o tipo
+(jogador, valor, conjunto, jogador e valor, ou ausência de dados), com nomes normalizados pelos apelidos das
+escalações.
+
+Cada execução (uma pergunta em um braço) é classificada como acerto, alucinação (resposta errada dada como
+resposta), abstenção ou erro de formato; também se registram tokens, chamadas de ferramenta e latência. O acerto de
+um braço é a proporção de perguntas respondidas corretamente, com intervalo de Wilson de \ciLevel{}, tomando a
+pergunta como unidade. Os braços respondem às mesmas perguntas, e por isso os pares de degraus vizinhos são
+comparados pelo teste exato de McNemar, com ajuste de Holm para os três testes. A rodada tem \nRepeats{} repetição
+por pergunta; as conclusões são lidas como indícios, e não como demonstração.
+
+\subsection{Escopo}
+
+Ficam fora do escopo: várias partidas, dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
+saúde, valor de mercado, escalação, predição de resultado, qualidade da explicação tática, comparação entre modelos
+e agentes que escrevem código. Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
+% TODO autor: confirmar o parágrafo de LGPD (o rascunho do colega não está no repositório)
+o trabalho não infere condição de saúde de atleta.

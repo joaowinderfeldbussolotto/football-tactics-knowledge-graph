@@ -1,0 +1,12 @@
+# Custo real em US$ de cada rodada, lido do consumo da chave no OpenRouter antes e depois
+# (páginas de docs/execucoes/). Os resultados não trazem custo: este arquivo é a fonte do
+# número que o artigo cita. Preencha a rodada de repetições depois de rodar.
+rounds:
+  final:
+    file: final_results.jsonl
+    usd: 1.04
+    note: "execuções 12 e 13 (cinco braços mais o text_to_cypher, uma repetição)"
+  repeats:
+    file: repeats_results.jsonl
+    usd: null
+    note: "três repetições de events_in_prompt, text_to_cypher e graph_tools (ainda não rodada)"

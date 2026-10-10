@@ -29,6 +29,10 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
 ]
+# Figuras e números do artigo (paper/): uv pip install -e ".[paper]"
+paper = [
+    "matplotlib>=3.8",
+]
 
 [build-system]
 requires = ["hatchling"]

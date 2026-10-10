@@ -1,0 +1,28 @@
+key	doi	priority	status	sections	short
+xia2024sportqa	10.18653/v1/2024.naacl-long.283	1	confirmado	relacionados	SportQA
+strand2024soccerrag	10.48550/arXiv.2406.01273	1	confirmado	relacionados	SoccerRAG
+martinez2025sportsql	10.18653/v1/2025.ijcnlp-demo.11	1	confirmado	relacionados	SPORTSQL
+rao2025socceragent	10.48550/arXiv.2505.03735	2	confirmado	relacionados	SoccerAgent
+wang2024tacticai	10.1038/s41467-024-45965-x	1	confirmado	introducao,relacionados	TacticAI
+lewis2020rag	10.48550/arXiv.2005.11401	2	confirmado	relacionados,metodologia	RAG
+liu2024lostinthemiddle	10.1162/tacl_a_00638	1	confirmado	relacionados,discussao	Lost in the Middle
+li2024ragorlongcontext	10.18653/v1/2024.emnlp-industry.66	1	confirmado	relacionados,discussao	RAG ou contexto longo
+edge2024graphrag	10.48550/arXiv.2404.16130	1	confirmado	introducao,relacionados	GraphRAG
+han2025ragvsgraphrag	10.48550/arXiv.2502.11371	1	confirmado	relacionados,discussao	RAG vs. GraphRAG
+xiang2025whentousegraphs	10.48550/arXiv.2506.05690	2	confirmado	discussao	When to use Graphs in RAG
+pan2024unifying	10.1109/TKDE.2024.3352100	2	confirmado	relacionados	Unifying LLMs and KGs
+sui2024tablemeetsllm	10.1145/3616855.3635752	1	confirmado	relacionados,discussao	Table Meets LLM
+jiang2023structgpt	10.18653/v1/2023.emnlp-main.574	2	confirmado	relacionados,metodologia	StructGPT
+yao2023react	10.48550/arXiv.2210.03629	2	confirmado	metodologia	ReAct
+ozsoy2025text2cypher	10.48550/arXiv.2412.10064	1	confirmado	relacionados,metodologia	Text2Cypher
+wang2023nlgraph	10.48550/arXiv.2305.10037	1	confirmado	relacionados,discussao	NLGraph
+duch2010quantifying	10.1371/journal.pone.0010937	2	confirmado	relacionados	Duch et al. (redes de passes)
+buldu2018using	10.3389/fpsyg.2018.01900	1	confirmado	relacionados,discussao	Buldú et al.
+brandes2001faster	10.1080/0022250X.2001.9990249	2	confirmado	metodologia	Brandes (intermediação)
+decroos2019actions	10.1145/3292500.3330758	2	confirmado	metodologia	SPADL e VAEP
+pappalardo2019public	10.1038/s41597-019-0247-7	2	confirmado	introducao	Pappalardo et al.
+sainz2023nlp	10.48550/arXiv.2310.18018	2	confirmado	metodologia,ameacas	Contaminação
+ji2023survey	10.1145/3571730	2	confirmado	metodologia	Alucinação
+schroer2021crispdm	10.1016/j.procs.2021.01.199	1	confirmado	metodologia	CRISP-DM (Schröer)
+martinezplumed2021crispdm	10.1109/TKDE.2019.2962680	2	confirmado	metodologia	CRISP-DM 20 anos
+shimaoka2024crispdm	10.5753/reviews.2024.3757	2	confirmado	metodologia	CRISP-DM (SBC Reviews)
