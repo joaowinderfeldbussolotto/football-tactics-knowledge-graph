@@ -1,0 +1,11 @@
+{
+  "confirmed": false,
+  "confirm_by": "abrir o projeto do Overleaf da disciplina pelo MCP e ler a classe LaTeX e o estilo de citação",
+  "documentclass": null,
+  "columns": null,
+  "column_width_in": 3.5,
+  "text_font_pt": 10,
+  "font_family": "serif",
+  "citation_style": null,
+  "language": "pt-BR"
+}

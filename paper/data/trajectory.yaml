@@ -1,0 +1,35 @@
+# Trajetória de ajuste do graph_tools (figura F4).
+#
+# Cada série usa as MESMAS perguntas em todas as versões: as que aparecem em todos os arquivos
+# da série (sem as perguntas sem resposta). Sem isso os pontos não se comparam, porque cada
+# rodada antiga rodou um conjunto diferente de perguntas. O acerto de cada ponto é o veredito
+# gravado quando a rodada foi corrigida (a regra de empate mudou depois de algumas delas).
+# "reference_arm" desenha o acerto desse braço, na rodada final, nas mesmas perguntas: o
+# text_to_cypher é a medição de primeiro contato, sem ajuste guiado por erro.
+series:
+  - key: pilot
+    name: "perguntas do piloto"
+    arm: graph_tools
+    reference_arm: text_to_cypher
+    points:
+      - {label: "v2",   file: pilot_results.jsonl}
+      - {label: "v2.1", file: pilot_v21_results.jsonl, repeat: 1}
+      - {label: "v2.2", file: full_results.jsonl}
+      - {label: "v2.4", file: full_v24_results.jsonl}
+      - {label: "final", file: final_results.jsonl}
+  - key: original
+    name: "25 perguntas originais"
+    arm: graph_tools
+    reference_arm: text_to_cypher
+    points:
+      - {label: "v2.2", file: full_results.jsonl}
+      - {label: "v2.4", file: full_v24_results.jsonl}
+      - {label: "final", file: final_results.jsonl}
+  - key: graph
+    name: "perguntas de grafo"
+    arm: graph_tools
+    reference_arm: text_to_cypher
+    points:
+      - {label: "v3",   file: graph_results.jsonl}
+      - {label: "v3.1", file: graph_v31_results.jsonl}
+      - {label: "final", file: final_results.jsonl}
