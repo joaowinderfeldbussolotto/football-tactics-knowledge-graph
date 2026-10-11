@@ -33,6 +33,16 @@ CONTROL = "Controle: sem resposta"
 # Arms in the order of the paper: by the complexity of what sits between the question and the model
 # (nothing, the raw table, fixed aggregates, retrieval, the model's own queries, ready tools).
 LADDER = ("no_context", "events_in_prompt", "stats_in_prompt", "vector", "text_to_cypher", "graph_tools")
+# Display names of the arms in the paper: (full, short for table headers and figures).
+# The code identifiers do not change.
+ARM_NAMES = {
+    "no_context": ("Sem dados", "Sem dados"),
+    "events_in_prompt": ("Contexto longo", "Contexto"),
+    "stats_in_prompt": ("Estatísticas resumidas", "Estatísticas"),
+    "vector": ("Busca vetorial", "Vetorial"),
+    "text_to_cypher": ("Consulta escrita pelo modelo", "Consulta"),
+    "graph_tools": ("Ferramentas sobre o grafo", "Ferramentas"),
+}
 # Macro-safe names (LaTeX control sequences have letters only).
 ARM_KEYS = {"no_context": "NoContext", "vector": "Vector", "events_in_prompt": "EventsInPrompt",
             "stats_in_prompt": "StatsInPrompt", "graph_tools": "GraphTools", "text_to_cypher": "TextToCypher"}

@@ -34,15 +34,7 @@ GENERATED = PAPER / "generated"
 PAIRS = (("text_to_cypher", "events_in_prompt"), ("graph_tools", "text_to_cypher"), ("graph_tools", "events_in_prompt"))
 # The match data (paper/ALERTAS.md, checked on 10/10/2026 against the StatsBomb file and the Parquet table).
 N_RAW_EVENTS, N_ACTIONS = 4407, 2585
-# Display names of the arms in the paper: (full, short for table headers). The code identifiers do not change.
-ARM_NAMES = {
-    "no_context": ("Sem dados", "Sem dados"),
-    "vector": ("Busca vetorial", "Vetorial"),
-    "events_in_prompt": ("Eventos brutos", "Eventos"),
-    "stats_in_prompt": ("Estatísticas resumidas", "Estatísticas"),
-    "text_to_cypher": ("Consulta escrita pelo modelo", "Consulta"),
-    "graph_tools": ("Ferramentas sobre o grafo", "Ferramentas"),
-}
+ARM_NAMES = ps.ARM_NAMES
 # Group labels in the order of the paper.
 GROUP_ORDER = tuple(GROUPS)
 

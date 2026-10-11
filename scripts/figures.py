@@ -31,8 +31,7 @@ OUT = PAPER / "generated" / "figures"
 BENCH = ROOT / "data" / "benchmark"
 GREY, DARK, ACCENT = "#BDBDBD", "#7F7F7F", "#1F5C99"
 HIGHLIGHT = "graph_tools"
-NAMES = {"no_context": "no_context", "vector": "vector", "events_in_prompt": "events_in_prompt",
-         "text_to_cypher": "text_to_cypher", "graph_tools": "graph_tools", "stats_in_prompt": "stats_in_prompt"}
+NAMES = {arm: short for arm, (_, short) in ps.ARM_NAMES.items()}  # the paper's names, not the code identifiers
 
 
 def style(template: dict):
@@ -136,7 +135,7 @@ def trajectory(plt, rows, template) -> Path | None:
         ax.set_ylim(0, 100)
         ax.yaxis.grid(True, linewidth=0.3, color="#DDDDDD")
         ax.set_axisbelow(True)
-    axes[0].set_ylabel("Acerto do graph_tools (%)")
+    axes[0].set_ylabel(f"Acerto de {ps.ARM_NAMES['graph_tools'][1]} (%)")
     fig.tight_layout()
     return save(fig, "f4_trajectory.pdf")
 

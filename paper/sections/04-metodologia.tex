@@ -4,6 +4,7 @@
 % Figuras e tabelas ainda a fazer: F5 (exemplo de robustez).
 % O modelo é a macro \modelName, definida no preâmbulo (main.tex); trocar lá.
 % Brandes (intermediação) ficou fora do texto a pedido do autor; a chave continua em refs.bib.
+% O parágrafo de análise estatística foi movido para 05-resultados.tex (Setup experimental), em vermelho.
 
 \section{Metodologia}\label{sec:metodologia}
 
@@ -14,14 +15,42 @@ código que já está escrito.
 
 \subsection{Dados e transformações}
 
-Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022. Os
-\nEvents{} eventos da partida foram convertidos em \nActions{} ações no formato SPADL~\cite{decroos2019actions},
-em uma tabela com uma linha por ação, com zona do campo, fase de posse e valor esperado de ameaça (xT). A tabela
-foi carregada em um grafo Neo4j, do qual também se calcula uma súmula com totais por jogador e por time
-(Figura~\ref{fig:dados}). Uma única partida foi usada para que a tabela inteira caiba no contexto do modelo: ela
-ocupa \tokTableApprox{}, valor que varia com o tokenizador do modelo.
+Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022, com as
+escalações. O JSON bruto é rico, mas irregular: cada tipo de evento tem campos próprios. Os \nEvents{} eventos da
+partida, sem a disputa de pênaltis, foram convertidos com a biblioteca socceraction~\cite{socceraction} em
+\nActions{} ações no formato SPADL~\cite{decroos2019actions}, que mantém só as ações com bola, em um vocabulário
+fechado e com os mesmos campos para todas. Sobre essa tabela de ações foram acrescentadas as colunas de que as
+perguntas dependem (Tabela~\ref{tab:transformacoes}), além do valor esperado de ameaça (xT) e do
+VAEP~\cite{decroos2019actions} de cada ação, que nenhuma pergunta usa diretamente.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\small\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.29\columnwidth}>{\raggedright\arraybackslash}p{0.37\columnwidth}>{\raggedright\arraybackslash}p{0.23\columnwidth}} % lint: ignore
+\toprule
+Transformação & O que faz & Usada em \\
+\midrule
+Direção de ataque & toda ação passa a atacar da esquerda para a direita & regiões do campo \\
+Zona, terço e corredor & situa o início e o fim de cada ação no campo & regiões do campo \\
+Recebedor do passe & é o jogador do mesmo time que age em seguida & rede de passes \\
+Fase de posse & agrupa as ações seguidas do mesmo time & jogadas e sequências \\
+Placar, minuto e período & placar antes de cada ação e minuto da transmissão & antes e depois de um momento \\
+Dados recuperados do JSON & desfecho da finalização e cartão sem falta & busca e contagem \\
+Rótulos em português & nomes das ações (passe, condução, drible) & todas \\
+\bottomrule
+\end{tabular}
+\captionof{table}{Transformações sobre a tabela de ações e as perguntas que dependem de cada uma.}\label{tab:transformacoes}
+\end{minipage}\par\smallskip
+
+A tabela de ações foi carregada em um grafo Neo4j: cada ação vira uma aresta do jogador para a partida, cada passe
+certo com recebedor vira uma aresta entre dois jogadores, e uma súmula com totais por jogador e por time é contada
+pelo próprio banco (Figura~\ref{fig:dados}). O grafo não calcula nada novo: reorganiza a tabela em ligações. A
+Figura~\ref{fig:lance} acompanha um passe real por essas camadas. Uma única partida foi usada para que a tabela
+inteira caiba no contexto do modelo: ela ocupa \tokTableApprox{}, valor que varia com o tokenizador do modelo.
 
 \input{fig-dados}
+
+\input{fig-lance}
 
 \subsection{Arquiteturas comparadas}
 
@@ -48,7 +77,9 @@ Braço & O que o modelo recebe e quem calcula \\
 \captionof{table}{As \nArms{} arquiteturas, da menos à mais complexa.}\label{tab:bracos}
 \end{minipage}\par\smallskip
 
-O braço \armVector{} segue o padrão de recuperação aumentada por geração~\cite{lewis2020rag}. Em
+O braço \armVector{} representa cada linha da tabela e a pergunta por embeddings (\texttt{\embedModel}) e recupera
+as \nTopK{} linhas mais próximas por similaridade de cosseno, no padrão de recuperação aumentada por
+geração~\cite{lewis2020rag}. Em
 \armTextToCypher{} e \armGraphTools{}, o modelo atua como agente: em vez de responder de uma vez, decide a cada
 passo qual ação tomar, recebe o resultado e decide de novo, até responder~\cite{wang2024agentssurvey,yao2023react}.
 A ação é a chamada de uma ferramenta, isto é, de uma função externa cujo nome e argumentos o modelo escolhe e
@@ -109,7 +140,8 @@ A Figura~\ref{fig:json} mostra respostas reais à pergunta a02 (``Quem deu mais 
 campo pela França?''), cujo gabarito é Adrien Rabiot, e a uma pergunta do controle. O braço \armTextToCypher{}
 devolveu um único jogador. O braço \armGraphTools{} listou cinco jogadores, em ordem, com Rabiot primeiro; como
 vale o primeiro da lista, as duas respostas são acertos. No controle, o acerto é a lista vazia com o indicador de
-ausência de dados ligado.
+ausência de dados ligado. Cada execução foi registrada, com o prompt, as chamadas de ferramenta e a resposta,
+na ferramenta de observabilidade de código aberto Langfuse~\cite{langfuse}.
 
 \input{fig-json}
 
@@ -129,7 +161,7 @@ Ausência de dados (\nCheckNoData{}) & o modelo indica que não há dados \\
 \captionof{table}{Os tipos de conferência, com o número de perguntas de cada um.}\label{tab:conferencia}
 \end{minipage}\par\smallskip
 
-\subsection{Resultados de uma execução e análise estatística}
+\subsection{Resultados de uma execução}
 
 Cada execução (uma pergunta feita a um braço) termina em um de quatro resultados (Tabela~\ref{tab:resultados}).
 O termo alucinação é usado aqui em sentido operacional, mais estreito que o da literatura~\cite{ji2023survey}:
@@ -152,19 +184,6 @@ Erro de formato & não há resposta estruturada válida ao fim das tentativas \\
 \end{tabular}
 \captionof{table}{Os quatro resultados possíveis de uma execução.}\label{tab:resultados}
 \end{minipage}\par\smallskip
-
-% TODO autor: REVISAR este parágrafo (qual o papel da análise estatística na Metodologia? talvez mover para Resultados)
-\begingroup\color{red}\textbf{[REVISAR]} O acerto de um braço é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
-foi executada uma vez, duas análises acompanham essa proporção, ambas calculadas depois da rodada, a partir do
-arquivo de resultados. A primeira é o intervalo de confiança de Wilson~\cite{wilson1927probable}, de \ciLevel{}
-para cada acerto; diferentemente do intervalo normal, ele não ultrapassa zero nem cem por cento, o que importa para
-os braços em zero por cento. A segunda compara pares de braços que responderam às mesmas perguntas: o teste exato
-de McNemar~\cite{mcnemar1947note} considera apenas as perguntas em que um braço acertou e o outro errou, e é o que
-Dietterich~\cite{dietterich1998approximate} indica quando o algoritmo é executado uma só vez. Foram comparados
-\armTextToCypher{} e \armEventsInPrompt{}, \armGraphTools{} e \armTextToCypher{}, e \armGraphTools{} e
-\armEventsInPrompt{}. Como são três testes, os valores $p$ recebem o ajuste de Holm~\cite{holm1979simple}, que
-mantém no nível escolhido a probabilidade de algum falso positivo no conjunto. A rodada tem \nRepeats{} repetição
-por pergunta; as conclusões são lidas como indícios, e não como demonstração.\par\endgroup
 
 \subsection{Escopo}
 
