@@ -1,7 +1,6 @@
 # Escrita do artigo (paper/)
 
-Artigo da disciplina, em português, sobre "Quem faz o cálculo? Seis formas de dar a um LLM acesso a dados de
-eventos de futebol". Prazo de entrega: 18/10/2026. **Leia `paper/dossie.md` (a pesquisa) e `paper/ALERTAS.md`
+Artigo da disciplina, em português, sobre seis formas de recuperação de dados de eventos de futebol para LLMs (título provisório em `main.tex`). Prazo de entrega: 18/10/2026. **Leia `paper/dossie.md` (a pesquisa) e `paper/ALERTAS.md`
 (onde o dossiê não se sustenta) antes de escrever qualquer seção.**
 
 ## Regras que valem sempre

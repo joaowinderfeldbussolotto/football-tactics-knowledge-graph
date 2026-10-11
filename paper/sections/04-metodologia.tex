@@ -3,89 +3,91 @@
 % Referências previstas (chaves de refs.bib): schroer2021crispdm, martinezplumed2021crispdm, shimaoka2024crispdm, decroos2019actions, brandes2001faster, yao2023react, ozsoy2025text2cypher, lewis2020rag, sainz2023nlp, ji2023survey
 % A tabela de exemplos de perguntas, os números do conjunto e a configuração estão em 05-resultados.tex.
 % O modelo é a macro \modelName, definida no preâmbulo (main.tex); trocar lá.
+% Enquadramento: forma de recuperação. "Quem faz o cálculo" fica só como interpretação na Discussão.
 % Brandes (intermediação) ficou fora do texto a pedido do autor; a chave continua em refs.bib.
 % O parágrafo de análise estatística foi movido para 05-resultados.tex (Setup experimental), em vermelho.
 
 \section{Metodologia}\label{sec:metodologia}
 
-O trabalho seguiu as seis fases do CRISP-DM~\cite{schroer2021crispdm}: entendimento do problema, entendimento
-dos dados, preparação, modelagem, avaliação e implantação. A pergunta de partida é quem faz o cálculo quando um
-modelo de linguagem responde sobre dados de eventos de futebol: o próprio modelo, uma consulta que ele escreve ou
-código que já está escrito.
+O trabalho seguiu as seis fases do CRISP-DM~\cite{schroer2021crispdm}. O entendimento do problema e dos dados
+levou à pergunta de partida: como a forma de recuperar os dados afeta as respostas de um modelo de linguagem
+sobre eventos de futebol. A preparação dos dados está na Seção~\ref{sec:dados}, a modelagem das arquiteturas na
+Seção~\ref{sec:arquiteturas} e a avaliação nas Seções~\ref{sec:perguntas} a~\ref{sec:execucao}, que descrevem
+também o registro de cada execução, parte da implantação.
 
-\subsection{Dados e transformações}
+\subsection{Dados e transformações}\label{sec:dados}
 
 Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022, com as
 escalações. O JSON bruto é rico, mas irregular: cada tipo de evento tem campos próprios. Os eventos da partida, sem
 a disputa de pênaltis, foram convertidos com a biblioteca socceraction~\cite{socceraction} em ações no formato
 SPADL~\cite{decroos2019actions}, que mantém só as ações com bola, em um vocabulário
-fechado e com os mesmos campos para todas. Sobre essa tabela de ações foram acrescentadas as colunas de que as
-perguntas dependem (Tabela~\ref{tab:transformacoes}), além do valor esperado de ameaça (xT) e do
-VAEP~\cite{decroos2019actions} de cada ação, que nenhuma pergunta usa diretamente.
+fechado e com os mesmos campos para todas. Sobre essa tabela de ações foram acrescentadas colunas de contexto
+(Tabela~\ref{tab:transformacoes}).
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
 \centering\small\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
-\begin{tabular}{>{\raggedright\arraybackslash}p{0.29\columnwidth}>{\raggedright\arraybackslash}p{0.37\columnwidth}>{\raggedright\arraybackslash}p{0.23\columnwidth}} % lint: ignore
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.285\columnwidth}>{\raggedright\arraybackslash}p{0.30\columnwidth}>{\raggedright\arraybackslash}p{0.305\columnwidth}} % lint: ignore
 \toprule
-Transformação & O que faz & Usada em \\
+Transformação & O que faz & Motivo \\
 \midrule
-Direção de ataque & toda ação passa a atacar da esquerda para a direita & regiões do campo \\
-Zona, terço e corredor & situa o início e o fim de cada ação no campo & regiões do campo \\
-Recebedor do passe & é o jogador do mesmo time que age em seguida & rede de passes \\
-Fase de posse & agrupa as ações seguidas do mesmo time & jogadas e sequências \\
-Placar, minuto e período & placar antes de cada ação e minuto da transmissão & antes e depois de um momento \\
-Dados recuperados do JSON & desfecho da finalização e cartão sem falta & busca e contagem \\
-Rótulos em português & nomes das ações (passe, condução, drible) & todas \\
+Direção de ataque & toda ação passa a atacar da esquerda para a direita & dar o mesmo sentido ao campo dos dois times \\
+Zona, terço e corredor & situa o início e o fim de cada ação no campo & localizar a ação no campo \\
+Recebedor do passe & é o jogador do mesmo time que age em seguida & saber quem passou para quem \\
+Fase de posse & agrupa as ações seguidas do mesmo time & identificar as jogadas \\
+Placar, minuto e período & placar antes de cada ação e minuto da transmissão & situar a ação antes ou depois de um momento \\
+Dados recuperados do JSON & desfecho da finalização e cartão sem falta & o SPADL perde essas informações \\
+Rótulos em português & nomes das ações (passe, condução, drible) & o SPADL chama a condução de \textit{dribble} \\
 \bottomrule
 \end{tabular}
-\captionof{table}{Transformações sobre a tabela de ações e as perguntas que dependem de cada uma.}\label{tab:transformacoes}
+\captionof{table}{Transformações sobre a tabela de ações e o motivo de cada uma.}\label{tab:transformacoes}
 \end{minipage}\par\smallskip
 
 A tabela de ações foi carregada em um grafo Neo4j: cada ação vira uma aresta do jogador para a partida, cada passe
 certo com recebedor vira uma aresta entre dois jogadores, e uma súmula com totais por jogador e por time é contada
-pelo próprio banco. O grafo não calcula nada novo: reorganiza a tabela em ligações. A Figura~\ref{fig:pipeline}
-acompanha um passe real por essas etapas, e a Figura~\ref{fig:esquema} mostra o
-esquema do grafo. Uma única partida foi usada para que a tabela inteira caiba no contexto do modelo: ela ocupa
-\tokTableApprox{}, valor que varia com o tokenizador do modelo.
+pelo próprio banco. As arestas não acrescentam informação à tabela, só a reorganizam em ligações; já a súmula é
+calculada, com o banco contando os totais a partir das arestas. A Figura~\ref{fig:pipeline} acompanha um passe
+real por essas etapas, e a Figura~\ref{fig:esquema} mostra o esquema do grafo.
 
 \input{fig-pipeline}
 
 \input{fig-esquema}
 
-\subsection{Arquiteturas comparadas}
+\subsection{Arquiteturas comparadas}\label{sec:arquiteturas}
 
 Foram comparadas \nArms{} arquiteturas (braços), ordenadas pela complexidade do que há entre a pergunta e o
 modelo, da ausência de dados à consulta ao grafo com ferramentas (Tabela~\ref{tab:bracos}). Todas usam o mesmo
-modelo, o mesmo prompt de sistema, que não nomeia a partida, e a mesma saída estruturada (jogadores, valor,
-indicação de ausência de dados e justificativa); a configuração está na Seção~\ref{sec:experimentos}.
+modelo, o mesmo prompt de sistema e a mesma saída estruturada (jogadores, valor, indicação de ausência de dados e
+justificativa); a configuração está na Seção~\ref{sec:experimentos}.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
-\centering\small\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{>{\raggedright\arraybackslash}p{0.32\columnwidth}>{\raggedright\arraybackslash}p{0.56\columnwidth}} % lint: ignore
+\centering\small\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.27\columnwidth}>{\raggedright\arraybackslash}p{0.31\columnwidth}>{\raggedright\arraybackslash}p{0.31\columnwidth}} % lint: ignore
 \toprule
-Braço & O que o modelo recebe e quem calcula \\
+Braço & Forma de recuperação & O que o modelo recebe \\
 \midrule
-\armNoContext{} & só a pergunta; ninguém calcula \\
-\armEventsInPrompt{} & a tabela de \nActions{} ações inteira; o modelo calcula \\
-\armStatsInPrompt{} & totais por jogador e por time; já estão calculados \\
-\armVector{} & as \nTopK{} linhas de eventos mais parecidas com a pergunta; o modelo calcula \\
-\armTextToCypher{} & o esquema do grafo; o modelo escreve a consulta e a ferramenta a executa \\
-\armGraphTools{} & \nTools{} ferramentas, cada uma com uma consulta fixa; o modelo escolhe a ferramenta e os parâmetros, e ela executa a consulta \\
+\armNoContext{} & nenhuma & só a pergunta \\
+\armEventsInPrompt{} & tabela inteira no prompt & as \nActions{} ações \\
+\armStatsInPrompt{} & totais já calculados, no prompt & totais por jogador e por time \\
+\armVector{} & similaridade de embeddings & as \nTopK{} linhas mais parecidas com a pergunta \\
+\armTextToCypher{} & consulta escrita pelo modelo e executada no grafo & o esquema do grafo e o resultado das consultas \\
+\armGraphTools{} & \nTools{} ferramentas com consulta fixa & o resultado das ferramentas que chama \\
 \bottomrule
 \end{tabular}
-\captionof{table}{As \nArms{} arquiteturas, da menos à mais complexa.}\label{tab:bracos}
+\captionof{table}{As \nArms{} arquiteturas, da menos à mais complexa, e a forma de recuperação de cada uma.}\label{tab:bracos}
 \end{minipage}\par\smallskip
 
-O braço \armVector{} representa cada linha da tabela e a pergunta por embeddings e recupera
-as \nTopK{} linhas mais próximas por similaridade de cosseno, no padrão de recuperação aumentada por
-geração~\cite{lewis2020rag}. Em
-\armTextToCypher{} e \armGraphTools{}, o modelo atua como agente: em vez de responder de uma vez, decide a cada
-passo qual ação tomar, recebe o resultado e decide de novo, até responder~\cite{wang2024agentssurvey,yao2023react}.
-A ação é a chamada de uma ferramenta, isto é, de uma função externa cujo nome e argumentos o modelo escolhe e
-cujo resultado volta ao seu contexto~\cite{schick2023toolformer} (Figura~\ref{fig:agente}). Há um limite de chamadas
-por pergunta.
+Quatro braços colocam os dados diretamente no prompt. \armNoContext{} recebe só a pergunta e serve de linha de
+base. \armEventsInPrompt{} recebe a tabela de ações inteira, e \armStatsInPrompt{}, só os totais da súmula.
+\armVector{} representa cada linha da tabela e a pergunta por embeddings e recupera as \nTopK{} linhas mais
+próximas por similaridade de cosseno, no padrão de recuperação aumentada por geração~\cite{lewis2020rag}.
+
+Em \armTextToCypher{} e \armGraphTools{}, o modelo atua como agente: em vez de responder de uma vez, decide a cada
+passo qual ação tomar, recebe o resultado e decide de novo, até responder ou atingir o limite de chamadas por
+pergunta~\cite{wang2024agentssurvey,yao2023react}. A ação é a chamada de uma ferramenta, isto é, de uma função
+externa cujo nome e argumentos o modelo escolhe e cujo resultado volta ao seu contexto~\cite{schick2023toolformer}
+(Figura~\ref{fig:agente}).
 
 \input{fig-agente}
 
@@ -97,7 +99,7 @@ da ferramenta; o modelo escolhe a ferramenta e preenche seus parâmetros (por ex
 rede de passes e a métrica a calcular). É a ideia de oferecer ao modelo uma definição de ferramenta para consultar
 o banco, com filtros e agregações como argumentos~\cite{shorten2025dbfunction}.
 
-\subsection{Perguntas e gabarito}
+\subsection{Perguntas e gabarito}\label{sec:perguntas}
 
 As perguntas, em linguagem de futebol e de resposta fechada (quem, quantos, quais), formam cinco grupos: busca e
 contagem, relações na rede de passes, jogadas e sequências, antes e depois de um momento do jogo, e controle
@@ -105,10 +107,10 @@ contagem, relações na rede de passes, jogadas e sequências, antes e depois de
 cuja resposta não existe nos dados, como as que pedem velocidade ou distância percorrida; a resposta certa é a
 ausência de dados. Os resultados são reportados com e sem esse grupo.
 
-O gabarito foi extraído dos dados brutos. As perguntas foram escritas manualmente e suas respostas, validadas sobre
-os dados brutos; foram eliminadas as perguntas com maior chance de ser interpretadas de mais de uma maneira.
+As perguntas foram escritas manualmente, e a resposta de cada uma (o gabarito) foi extraída dos dados brutos;
+foram eliminadas as perguntas com maior chance de ser interpretadas de mais de uma maneira.
 
-\subsection{Resposta e conferência}
+\subsection{Resposta e conferência}\label{sec:conferencia}
 
 Todos os braços respondem no mesmo formato: uma justificativa, uma lista de jogadores, um valor numérico e um
 indicador de ausência de dados. A justificativa é escrita antes da resposta e nunca é pontuada. Uma resposta vazia
@@ -120,15 +122,6 @@ veredito. Ela depende do tipo da pergunta (Tabela~\ref{tab:conferencia}). O form
 listados do melhor ao pior; por isso, nas perguntas que esperam um jogador, vale o primeiro jogador da lista e os
 demais não são conferidos. Os nomes são normalizados (caixa e acentos) e aceitos pelo nome da escalação, pelo
 apelido ou pelo sobrenome, este só quando é único entre os jogadores da partida.
-
-A Figura~\ref{fig:json} mostra respostas reais à pergunta a02 (``Quem deu mais passes certos no terço final do
-campo pela França?''), cujo gabarito é Adrien Rabiot, e a uma pergunta do controle. O braço \armTextToCypher{}
-devolveu um único jogador. O braço \armGraphTools{} listou cinco jogadores, em ordem, com Rabiot primeiro; como
-vale o primeiro da lista, as duas respostas são acertos. No controle, o acerto é a lista vazia com o indicador de
-ausência de dados ligado. Cada execução foi registrada, com o prompt, as chamadas de ferramenta e a resposta,
-na ferramenta de observabilidade de código aberto Langfuse~\cite{langfuse}.
-
-\input{fig-json}
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -146,13 +139,22 @@ Ausência de dados (\nCheckNoData{}) & o modelo indica que não há dados \\
 \captionof{table}{Os tipos de conferência, com o número de perguntas de cada um.}\label{tab:conferencia}
 \end{minipage}\par\smallskip
 
-\subsection{Resultados de uma execução}
+A Figura~\ref{fig:json} mostra respostas reais à pergunta a02 (``Quem deu mais passes certos no terço final do
+campo pela França?''), cujo gabarito é Adrien Rabiot, e a uma pergunta do controle. O braço \armTextToCypher{}
+devolveu um único jogador. O braço \armGraphTools{} listou cinco jogadores, em ordem, com Rabiot primeiro; como
+vale o primeiro da lista, as duas respostas são acertos. No controle, o acerto é a lista vazia com o indicador de
+ausência de dados ligado.
+
+\input{fig-json}
+
+
+\subsection{Resultados de uma execução}\label{sec:execucao}
 
 Cada execução (uma pergunta feita a um braço) termina em um de quatro resultados (Tabela~\ref{tab:resultados}).
-O termo alucinação é usado aqui em sentido operacional, mais estreito que o da literatura~\cite{ji2023survey}:
-uma resposta errada apresentada como resposta. A abstenção é o oposto prudente e igualmente errado: o modelo
-declara que não há dados em uma pergunta que tem resposta. Além do resultado, registram-se tokens, chamadas de
-ferramenta e latência.
+O termo alucinação é usado aqui em sentido operacional, mais estreito que o da literatura~\cite{ji2023survey}.
+Além do resultado, registram-se tokens, chamadas de ferramenta e latência, e cada execução fica registrada, com o
+prompt, as chamadas de ferramenta e a resposta, na ferramenta de observabilidade de código aberto
+Langfuse~\cite{langfuse}.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -172,7 +174,9 @@ Erro de formato & não há resposta estruturada válida ao fim das tentativas \\
 
 \subsection{Escopo}
 
-Ficam fora do escopo: várias partidas, dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
+Foi usada uma única partida por dois motivos: o braço \armEventsInPrompt{} recebe a tabela inteira, que ocupa
+\tokTableApprox{} (o valor varia com o tokenizador do modelo), e um escopo menor permite conferir o gabarito de cada
+pergunta sobre os dados brutos. Ficam fora do escopo, além de várias partidas: dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
 saúde, valor de mercado, escalação, predição de resultado, qualidade da explicação tática, comparação entre modelos
 e agentes que escrevem código. Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
 % TODO autor: confirmar o parágrafo de LGPD (o rascunho do colega não está no repositório)
