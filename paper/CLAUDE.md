@@ -63,7 +63,7 @@ LaTeX e o estilo de citação, preencher `paper/template.json` e trocar o preâm
 
 - Modelo: Claude Haiku 5.5 via OpenRouter, temperatura 0, mesmo prompt de sistema e mesma saída estruturada em
   todos os braços. O prompt não nomeia a partida.
-- `text_to_cypher` e `graph_tools`: mesmo grafo, mesmo limite de 12 chamadas; muda quem escreve a lógica. O
+- `text_to_cypher` e `graph_tools`: mesmo grafo, mesmo limite de 12 chamadas; muda quem escreve a consulta (o modelo ou a ferramenta). O
   `text_to_cypher` não tem a biblioteca de algoritmos (GDS) nem os nós de padrões prontos (`PadraoTatico`).
 - O `graph_tools` foi ajustado olhando erros (sete congelamentos, v2 a v3.1, e uma reexecução de seis
   perguntas); o `text_to_cypher` é primeiro contato. Isso vai no texto principal.

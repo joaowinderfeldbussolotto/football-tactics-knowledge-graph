@@ -41,8 +41,8 @@ Braço & O que o modelo recebe e quem calcula \\
 \armEventsInPrompt{} & a tabela de \nActions{} ações inteira; o modelo calcula \\
 \armStatsInPrompt{} & totais por jogador e por time; já estão calculados \\
 \armVector{} & as \nTopK{} linhas de eventos mais parecidas com a pergunta; o modelo calcula \\
-\armTextToCypher{} & o esquema do grafo; o modelo escreve a consulta e o banco calcula \\
-\armGraphTools{} & \nTools{} funções prontas sobre o grafo; o modelo escolhe qual chamar e o código calcula \\
+\armTextToCypher{} & o esquema do grafo; o modelo escreve a consulta e a ferramenta a executa \\
+\armGraphTools{} & \nTools{} ferramentas, cada uma com uma consulta fixa; o modelo escolhe a ferramenta e os parâmetros, e ela executa a consulta \\
 \bottomrule
 \end{tabular}
 \captionof{table}{As \nArms{} arquiteturas, da menos à mais complexa.}\label{tab:bracos}
@@ -57,14 +57,13 @@ máximo \nMaxCalls{} chamadas.
 
 \input{fig-agente}
 
-Os dois braços de agente consultam o mesmo grafo. Em \armTextToCypher{}, o modelo escreve toda consulta
-Cypher~\cite{ozsoy2025text2cypher}, sem a biblioteca de algoritmos de grafos (GDS)~\cite{neo4j_gds} e sem os
-padrões táticos já calculados; a ferramenta só aceita leitura e devolve até \nMaxRows{} linhas. Em
-\armGraphTools{}, cada ferramenta já contém a consulta ao grafo, escrita e testada antes das perguntas, e o modelo
-apenas define os parâmetros da chamada (por exemplo, o time e o período de uma rede de passes e a métrica a
-calcular); a lógica difícil (jogadas, rede de passes, intermediação) fica dentro das ferramentas. É a ideia de
-oferecer ao modelo uma definição de ferramenta para consultar o banco, com filtros e agregações como
-argumentos~\cite{shorten2025dbfunction}.
+Os dois braços de agente consultam o mesmo grafo e diferem em de onde vem a consulta. Em \armTextToCypher{}, a
+ferramenta executa no grafo a consulta Cypher que o modelo escreve~\cite{ozsoy2025text2cypher}, sem a biblioteca de
+algoritmos de grafos (GDS)~\cite{neo4j_gds} e sem os padrões táticos já calculados; ela só aceita leitura e devolve
+até \nMaxRows{} linhas. Em \armGraphTools{}, cada ferramenta executa no grafo uma consulta fixa, definida no código
+da ferramenta; o modelo escolhe a ferramenta e preenche seus parâmetros (por exemplo, o time e o período de uma
+rede de passes e a métrica a calcular). É a ideia de oferecer ao modelo uma definição de ferramenta para consultar
+o banco, com filtros e agregações como argumentos~\cite{shorten2025dbfunction}.
 
 \subsection{Perguntas e gabarito}
 

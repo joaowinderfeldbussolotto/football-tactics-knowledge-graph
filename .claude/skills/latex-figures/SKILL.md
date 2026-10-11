@@ -41,6 +41,6 @@ Todas as figuras de dados saem de `scripts/figures.py`, a partir dos resultados 
 
 ## Figuras previstas (dossiê)
 
-F2 escada (acerto dos seis braços em ordem de lógica pronta, com IC), F3 acerto por grupo, F4 trajetória de
+F2 escada (acerto dos seis braços em ordem de complexidade, com IC), F3 acerto por grupo, F4 trajetória de
 ajuste (**ler `paper/ALERTAS.md`, item 1, antes de descrevê-la**: as séries não sobem de forma contínua), F1
 arquitetura (a fazer), F5 exemplo de robustez (tabela). A apresentação reaproveita F1 a F4.

@@ -43,7 +43,7 @@ pega (tempo verbal, afirmação sem fonte, força da conclusão) é com você.
 | "Nosso método supera os demais" | "O `graph_tools` acertou \accGraphTools{} das perguntas com resposta, contra \accEventsInPrompt{} do `events_in_prompt`." |
 | "O grafo é mais robusto" | "A diferença entre os braços concentra-se nas jogadas (\accPlaysGraphTools{} contra \accPlaysTextToCypher{})." |
 | "Resultado notável de 87%" | "Acerto de \accGraphTools{} (IC 95\%: \ciLowGraphTools{} a \ciHighGraphTools{})." |
-| "Isso mostra que ferramentas são melhores" | "Isso é compatível com a hipótese de que ferramentas prontas ajudam onde escondem lógica difícil." |
+| "Isso mostra que ferramentas são melhores" | "Isso é compatível com a hipótese de que ferramentas com a consulta já escrita ajudam onde a consulta é difícil de escrever." |
 | "— que é o caso aqui —" | "(o caso aqui)" ou duas frases |
 
 ## Ao revisar
