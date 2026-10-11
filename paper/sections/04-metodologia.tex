@@ -92,18 +92,26 @@ Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo
 O gabarito foi extraído dos dados brutos. As perguntas foram escritas manualmente e suas respostas, validadas sobre
 os dados brutos; foram eliminadas as perguntas com maior chance de ser interpretadas de mais de uma maneira.
 
-\subsection{Saída estruturada e conferência}
+\subsection{Resposta e conferência}
 
 Todos os braços respondem no mesmo formato: uma justificativa, uma lista de jogadores, um valor numérico e um
 indicador de ausência de dados. A justificativa é escrita antes da resposta e nunca é pontuada. Uma resposta vazia
 (sem jogador, sem valor e sem o indicador) é inválida e o modelo é reperguntado até duas vezes; se a resposta
-continuar inválida, a execução conta como erro de formato, e não como resposta errada.
+continuar inválida, a execução conta como erro de formato.
 
-A conferência com o gabarito é feita por código, sem modelo como juiz, e depende do tipo da pergunta
-(Tabela~\ref{tab:conferencia}). O formato pede que os rankings sejam listados do melhor ao pior; por isso, nas
-perguntas que esperam um jogador, vale o primeiro jogador da lista e os demais não são conferidos. Os nomes são
-normalizados (caixa e acentos) e aceitos pelo nome da escalação, pelo apelido ou pelo sobrenome, este só quando é
-único entre os jogadores da partida.
+A conferência com o gabarito é determinística: é feita por código, e a mesma resposta recebe sempre o mesmo
+veredito. Ela depende do tipo da pergunta (Tabela~\ref{tab:conferencia}). O formato pede que os rankings sejam
+listados do melhor ao pior; por isso, nas perguntas que esperam um jogador, vale o primeiro jogador da lista e os
+demais não são conferidos. Os nomes são normalizados (caixa e acentos) e aceitos pelo nome da escalação, pelo
+apelido ou pelo sobrenome, este só quando é único entre os jogadores da partida.
+
+A Figura~\ref{fig:json} mostra respostas reais à pergunta a02 (``Quem deu mais passes certos no terço final do
+campo pela França?''), cujo gabarito é Adrien Rabiot, e a uma pergunta do controle. O braço \armTextToCypher{}
+devolveu um único jogador. O braço \armGraphTools{} listou cinco jogadores, em ordem, com Rabiot primeiro; como
+vale o primeiro da lista, as duas respostas são acertos. No controle, o acerto é a lista vazia com o indicador de
+ausência de dados ligado.
+
+\input{fig-json}
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
