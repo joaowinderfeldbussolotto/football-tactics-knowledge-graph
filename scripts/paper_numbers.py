@@ -86,7 +86,7 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
     m.update({
         "nEvents": num(N_RAW_EVENTS), "nActions": num(N_ACTIONS),
         "nMaxCalls": str(arm_defs.MAX_TOOL_CALLS), "nTopK": str(arm_defs.VECTOR_TOP_K), "nTools": str(len(arm_defs.TOOLS)),
-        "nMaxRows": str(cypher.MAX_ROWS), "nTimeoutS": num(cypher.TIMEOUT_S), "ciLevel": "95\\%",
+        "nMaxRows": str(cypher.MAX_ROWS), "tokTableApprox": "cerca de 100 mil tokens", "ciLevel": "95\\%",
     })
     for a, (full, short) in ARM_NAMES.items():  # the names the paper uses; the identifiers stay in the code
         m[f"arm{ps.ARM_KEYS[a]}"], m[f"armShort{ps.ARM_KEYS[a]}"] = full, short

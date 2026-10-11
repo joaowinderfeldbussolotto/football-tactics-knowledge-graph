@@ -31,3 +31,5 @@ schick2023toolformer	10.48550/arXiv.2302.04761	1	confirmado	metodologia	Toolform
 wilson1927probable	10.1080/01621459.1927.10502953	1	confirmado	metodologia	Intervalo de Wilson
 mcnemar1947note	10.1007/BF02295996	1	confirmado	metodologia	Teste de McNemar
 dietterich1998approximate	10.1162/089976698300017197	2	confirmado	metodologia	McNemar em aprendizado
+shorten2025dbfunction	10.48550/arXiv.2502.00032	1	confirmado	metodologia	Consulta a bancos por function calling
+zhang2023graphtoolformer	10.48550/arXiv.2304.11116	2	confirmado	metodologia	Graph-ToolFormer

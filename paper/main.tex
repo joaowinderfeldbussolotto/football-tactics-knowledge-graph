@@ -1,6 +1,6 @@
 % Preâmbulo copiado do template.tex do projeto do Overleaf (projeto-final-pos-rag-futebol), lido em 10/10/2026.
-% Acréscimos ao template: booktabs e url (tabelas e números gerados).
-% Acréscimo pedido pelo autor: babel em português (o template não o tem).
+% Acréscimos ao template: booktabs, array, caption e url (tabelas e números gerados).
+% Acréscimos pedidos pelo autor: babel em português e \raggedcolumns (o template não os tem).
 \documentclass[a4paper,12pt]{article}
 \usepackage[top=2cm, bottom=2cm, left=1.5cm, right=1.5cm]{geometry}
 \usepackage{multicol}
@@ -17,6 +17,8 @@
 \usepackage{abstract}
 \usepackage{float}
 \usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
 \usepackage{url}
 \usepackage[brazilian]{babel}
 
@@ -46,6 +48,7 @@
 \maketitle
 
 \begin{multicols*}{2}
+\raggedcolumns % sem isto o LaTeX estica o espaço entre títulos para alinhar o fim das colunas
 
 \input{sections/00-resumo}
 \input{sections/01-introducao}

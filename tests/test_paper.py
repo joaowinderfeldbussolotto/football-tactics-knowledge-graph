@@ -74,8 +74,9 @@ def test_the_numbers_the_dossier_states():
     assert (macros["nQuestions"], macros["nAnswerable"], macros["nRuns"]) == ("52", "47", "312")
     assert not {"nWritten", "nRemoved", "nCandidates"} & set(macros)  # the paper talks about the 52 only
     assert macros["armGraphTools"] == "Ferramentas sobre o grafo" and macros["armShortTextToCypher"] == "Consulta"
-    assert (macros["nMaxCalls"], macros["nTopK"], macros["nTools"], macros["nMaxRows"], macros["nTimeoutS"]) == \
-        ("12", "30", "8", "50", "15")
+    assert (macros["nMaxCalls"], macros["nTopK"], macros["nTools"], macros["nMaxRows"]) == \
+        ("12", "30", "8", "50")
+    assert macros["tokTableApprox"] == "cerca de 100 mil tokens"
     assert (macros["nEvents"], macros["nActions"], macros["ciLevel"]) == ("4.407", "2.585", "95\\%")
     assert all(f"arm{k}" in macros and f"armShort{k}" in macros for k in ps.ARM_KEYS.values())
     assert (macros["preFixKGraphTools"], macros["preFixNGraphTools"]) == ("39", "52")
@@ -170,7 +171,7 @@ def test_every_reference_in_the_table_is_in_refs_bib_and_balanced():
     bib = (PAPER / "refs.bib").read_text(encoding="utf-8")
     keys = set(cite.parse_bib(bib))
     rows = list(csv.DictReader((PAPER / "refs" / "references.tsv").open(encoding="utf-8"), delimiter="\t"))
-    assert len(rows) == 32 and all(r["key"] in keys for r in rows)
+    assert len(rows) == 34 and all(r["key"] in keys for r in rows)
     assert {"statsbomb_opendata", "neo4j_gds", "networkx", "pydanticai", "langfuse", "socceraction", "holm1979simple"} <= keys
     assert all(r["status"] == "confirmado" for r in rows)
     for entry in re.split(r"\n\n(?=@)", bib):

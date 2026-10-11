@@ -1,5 +1,6 @@
 % F2: o ciclo do agente nos braços de consulta e de ferramentas. Diagrama em TikZ.
-\begin{figure}[H]
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
 \centering\small
 \begin{tikzpicture}[
   box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt, minimum height=7mm},
@@ -17,5 +18,5 @@
 \draw[arr] ([xshift=4mm]g.north) -- ([xshift=4mm]t.south);
 \node[align=left] at (0.385\columnwidth,-1.8) {até \nMaxCalls{}\\ chamadas};
 \end{tikzpicture}
-\caption{Ciclo do agente em \armTextToCypher{} e \armGraphTools{}. No primeiro, a ferramenta executa a consulta Cypher que o modelo escreve; no segundo, é uma das \nTools{} funções prontas, escolhida pelo modelo com seus argumentos.}\label{fig:agente}
-\end{figure}
+\captionof{figure}{Ciclo do agente em \armTextToCypher{} e \armGraphTools{}. No primeiro, a ferramenta executa a consulta Cypher que o modelo escreve; no segundo, é uma das \nTools{} funções prontas, escolhida pelo modelo com seus argumentos.}\label{fig:agente}
+\end{minipage}\par\smallskip
