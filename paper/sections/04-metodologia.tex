@@ -60,9 +60,11 @@ máximo \nMaxCalls{} chamadas.
 Os dois braços de agente consultam o mesmo grafo. Em \armTextToCypher{}, o modelo escreve toda consulta
 Cypher~\cite{ozsoy2025text2cypher}, sem a biblioteca de algoritmos de grafos (GDS)~\cite{neo4j_gds} e sem os
 padrões táticos já calculados; a ferramenta só aceita leitura e devolve até \nMaxRows{} linhas. Em
-\armGraphTools{}, a lógica difícil (jogadas, rede de passes, intermediação) está em ferramentas escritas e
-congeladas antes das perguntas que as testam. Ferramentas que encapsulam o acesso aos dados também foram propostas para bancos de
-dados~\cite{shorten2025dbfunction}, dados estruturados~\cite{jiang2023structgpt} e grafos~\cite{zhang2023graphtoolformer}.
+\armGraphTools{}, cada ferramenta já contém a consulta ao grafo, escrita e testada antes das perguntas, e o modelo
+apenas define os parâmetros da chamada (por exemplo, o time e o período de uma rede de passes e a métrica a
+calcular); a lógica difícil (jogadas, rede de passes, intermediação) fica dentro das ferramentas. É a ideia de
+oferecer ao modelo uma definição de ferramenta para consultar o banco, com filtros e agregações como
+argumentos~\cite{shorten2025dbfunction}.
 
 \subsection{Perguntas e gabarito}
 
@@ -117,7 +119,8 @@ Erro de formato & não há resposta estruturada válida ao fim das tentativas \\
 \captionof{table}{Os quatro resultados possíveis de uma execução.}\label{tab:resultados}
 \end{minipage}\par\smallskip
 
-O acerto de um braço é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
+% TODO autor: REVISAR este parágrafo (qual o papel da análise estatística na Metodologia? talvez mover para Resultados)
+\begingroup\color{red}\textbf{[REVISAR]} O acerto de um braço é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
 foi executada uma vez, duas análises acompanham essa proporção, ambas calculadas depois da rodada, a partir do
 arquivo de resultados. A primeira é o intervalo de confiança de Wilson~\cite{wilson1927probable}, de \ciLevel{}
 para cada acerto; diferentemente do intervalo normal, ele não ultrapassa zero nem cem por cento, o que importa para
@@ -127,7 +130,7 @@ Dietterich~\cite{dietterich1998approximate} indica quando o algoritmo é executa
 \armTextToCypher{} e \armEventsInPrompt{}, \armGraphTools{} e \armTextToCypher{}, e \armGraphTools{} e
 \armEventsInPrompt{}. Como são três testes, os valores $p$ recebem o ajuste de Holm~\cite{holm1979simple}, que
 mantém no nível escolhido a probabilidade de algum falso positivo no conjunto. A rodada tem \nRepeats{} repetição
-por pergunta; as conclusões são lidas como indícios, e não como demonstração.
+por pergunta; as conclusões são lidas como indícios, e não como demonstração.\par\endgroup
 
 \subsection{Escopo}
 
