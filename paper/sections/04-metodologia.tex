@@ -45,7 +45,7 @@ Rótulos em português & nomes das ações (passe, condução, drible) & todas \
 A tabela de ações foi carregada em um grafo Neo4j: cada ação vira uma aresta do jogador para a partida, cada passe
 certo com recebedor vira uma aresta entre dois jogadores, e uma súmula com totais por jogador e por time é contada
 pelo próprio banco. O grafo não calcula nada novo: reorganiza a tabela em ligações. A Figura~\ref{fig:pipeline}
-acompanha um passe real por essas etapas e indica que braço lê cada uma, e a Figura~\ref{fig:esquema} mostra o
+acompanha um passe real por essas etapas, e a Figura~\ref{fig:esquema} mostra o
 esquema do grafo. Uma única partida foi usada para que a tabela inteira caiba no contexto do modelo: ela ocupa
 \tokTableApprox{}, valor que varia com o tokenizador do modelo.
 
