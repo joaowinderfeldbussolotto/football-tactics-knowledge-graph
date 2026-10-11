@@ -1,7 +1,7 @@
 % Seção: Metodologia  (orçamento: 2.5 página(s); passou disso por pedido do autor: duas figuras e três tabelas)
 %
 % Referências previstas (chaves de refs.bib): schroer2021crispdm, martinezplumed2021crispdm, shimaoka2024crispdm, decroos2019actions, brandes2001faster, yao2023react, ozsoy2025text2cypher, lewis2020rag, sainz2023nlp, ji2023survey
-% Figuras e tabelas ainda a fazer: F5 (exemplo de robustez).
+% A tabela de exemplos de perguntas, os números do conjunto e a configuração estão em 05-resultados.tex.
 % O modelo é a macro \modelName, definida no preâmbulo (main.tex); trocar lá.
 % Brandes (intermediação) ficou fora do texto a pedido do autor; a chave continua em refs.bib.
 % O parágrafo de análise estatística foi movido para 05-resultados.tex (Setup experimental), em vermelho.
@@ -16,9 +16,9 @@ código que já está escrito.
 \subsection{Dados e transformações}
 
 Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022, com as
-escalações. O JSON bruto é rico, mas irregular: cada tipo de evento tem campos próprios. Os \nEvents{} eventos da
-partida, sem a disputa de pênaltis, foram convertidos com a biblioteca socceraction~\cite{socceraction} em
-\nActions{} ações no formato SPADL~\cite{decroos2019actions}, que mantém só as ações com bola, em um vocabulário
+escalações. O JSON bruto é rico, mas irregular: cada tipo de evento tem campos próprios. Os eventos da partida, sem
+a disputa de pênaltis, foram convertidos com a biblioteca socceraction~\cite{socceraction} em ações no formato
+SPADL~\cite{decroos2019actions}, que mantém só as ações com bola, em um vocabulário
 fechado e com os mesmos campos para todas. Sobre essa tabela de ações foram acrescentadas as colunas de que as
 perguntas dependem (Tabela~\ref{tab:transformacoes}), além do valor esperado de ameaça (xT) e do
 VAEP~\cite{decroos2019actions} de cada ação, que nenhuma pergunta usa diretamente.
@@ -44,20 +44,21 @@ Rótulos em português & nomes das ações (passe, condução, drible) & todas \
 
 A tabela de ações foi carregada em um grafo Neo4j: cada ação vira uma aresta do jogador para a partida, cada passe
 certo com recebedor vira uma aresta entre dois jogadores, e uma súmula com totais por jogador e por time é contada
-pelo próprio banco (Figura~\ref{fig:dados}). O grafo não calcula nada novo: reorganiza a tabela em ligações. A
-Figura~\ref{fig:lance} acompanha um passe real por essas camadas. Uma única partida foi usada para que a tabela
-inteira caiba no contexto do modelo: ela ocupa \tokTableApprox{}, valor que varia com o tokenizador do modelo.
+pelo próprio banco. O grafo não calcula nada novo: reorganiza a tabela em ligações. A Figura~\ref{fig:pipeline}
+acompanha um passe real por essas etapas e indica que braço lê cada uma, e a Figura~\ref{fig:esquema} mostra o
+esquema do grafo. Uma única partida foi usada para que a tabela inteira caiba no contexto do modelo: ela ocupa
+\tokTableApprox{}, valor que varia com o tokenizador do modelo.
 
-\input{fig-dados}
+\input{fig-pipeline}
 
-\input{fig-lance}
+\input{fig-esquema}
 
 \subsection{Arquiteturas comparadas}
 
 Foram comparadas \nArms{} arquiteturas (braços), ordenadas pela complexidade do que há entre a pergunta e o
 modelo, da ausência de dados à consulta ao grafo com ferramentas (Tabela~\ref{tab:bracos}). Todas usam o mesmo
-modelo (\modelName{}, temperatura zero), o mesmo prompt de sistema, que não nomeia a partida, e a mesma saída
-estruturada (jogadores, valor, indicação de ausência de dados e justificativa).
+modelo, o mesmo prompt de sistema, que não nomeia a partida, e a mesma saída estruturada (jogadores, valor,
+indicação de ausência de dados e justificativa); a configuração está na Seção~\ref{sec:experimentos}.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -77,14 +78,14 @@ Braço & O que o modelo recebe e quem calcula \\
 \captionof{table}{As \nArms{} arquiteturas, da menos à mais complexa.}\label{tab:bracos}
 \end{minipage}\par\smallskip
 
-O braço \armVector{} representa cada linha da tabela e a pergunta por embeddings (\texttt{\embedModel}) e recupera
+O braço \armVector{} representa cada linha da tabela e a pergunta por embeddings e recupera
 as \nTopK{} linhas mais próximas por similaridade de cosseno, no padrão de recuperação aumentada por
 geração~\cite{lewis2020rag}. Em
 \armTextToCypher{} e \armGraphTools{}, o modelo atua como agente: em vez de responder de uma vez, decide a cada
 passo qual ação tomar, recebe o resultado e decide de novo, até responder~\cite{wang2024agentssurvey,yao2023react}.
 A ação é a chamada de uma ferramenta, isto é, de uma função externa cujo nome e argumentos o modelo escolhe e
-cujo resultado volta ao seu contexto~\cite{schick2023toolformer} (Figura~\ref{fig:agente}). Cada pergunta admite no
-máximo \nMaxCalls{} chamadas.
+cujo resultado volta ao seu contexto~\cite{schick2023toolformer} (Figura~\ref{fig:agente}). Há um limite de chamadas
+por pergunta.
 
 \input{fig-agente}
 
@@ -98,27 +99,11 @@ o banco, com filtros e agregações como argumentos~\cite{shorten2025dbfunction}
 
 \subsection{Perguntas e gabarito}
 
-As \nQuestions{} perguntas, em linguagem de futebol e de resposta fechada (quem, quantos, quais), formam cinco
-grupos (Tabela~\ref{tab:perguntas}). O grupo de controle reúne perguntas cuja resposta não existe nos dados, como
-as que pedem velocidade ou distância percorrida; a resposta certa é a ausência de dados. Os resultados são
-reportados com e sem ele, isto é, nas \nAnswerable{} perguntas com resposta e nas \nQuestions{}.
-
-\vspace{2mm}
-\noindent\begin{minipage}{\columnwidth}
-\centering\small\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{>{\raggedright\arraybackslash}p{0.28\columnwidth}>{\raggedright\arraybackslash}p{0.60\columnwidth}} % lint: ignore
-\toprule
-Grupo & Exemplo (resposta esperada) \\
-\midrule
-Busca e contagem (\nGroupSearch{}) & Quem recebeu o primeiro cartão amarelo da final? (jogador) \\
-Relações na rede de passes (\nGroupRelations{}) & Qual dupla da França mais trocou passes entre si na final? (conjunto de jogadores) \\
-Jogadas e sequências (\nGroupPlays{}) & Qual jogador participou de mais jogadas da Argentina que terminaram em finalização? (jogador) \\
-Antes e depois de um momento (\nGroupMoments{}) & Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé? (jogador) \\
-Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo De Paul na final? (ausência de dados) \\
-\bottomrule
-\end{tabular}
-\captionof{table}{Os cinco grupos de perguntas, com o número de perguntas de cada um e um exemplo.}\label{tab:perguntas}
-\end{minipage}\par\smallskip
+As perguntas, em linguagem de futebol e de resposta fechada (quem, quantos, quais), formam cinco grupos: busca e
+contagem, relações na rede de passes, jogadas e sequências, antes e depois de um momento do jogo, e controle
+(exemplos na Tabela~\ref{tab:perguntas}, na Seção~\ref{sec:experimentos}). O grupo de controle reúne perguntas
+cuja resposta não existe nos dados, como as que pedem velocidade ou distância percorrida; a resposta certa é a
+ausência de dados. Os resultados são reportados com e sem esse grupo.
 
 O gabarito foi extraído dos dados brutos. As perguntas foram escritas manualmente e suas respostas, validadas sobre
 os dados brutos; foram eliminadas as perguntas com maior chance de ser interpretadas de mais de uma maneira.

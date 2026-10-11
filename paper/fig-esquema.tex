@@ -1,0 +1,27 @@
+% F2: o esquema do grafo da partida (nós com a contagem na final e arestas). Diagrama em TikZ.
+% A camada de padrões táticos (PadraoTatico) fica de fora: nenhum braço a lê.
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\small
+\begin{tikzpicture}[
+  n/.style={draw, rounded corners=2pt, inner sep=3pt, align=center},
+  e/.style={-{Stealth[length=1.8mm]}},
+  l/.style={font=\scriptsize\ttfamily, align=center, fill=white, inner sep=1pt}]
+\node[n] (j) at (0,0) {Jogador\\[-2pt]{\scriptsize \nPlayers}};
+\node[n] (t) at (-3.3,0) {Time};
+\node[n] (p) at (3.25,0) {Partida};
+\node[n] (f) at (-2.6,-2.5) {Fase de posse\\[-2pt]{\scriptsize \nPhases}};
+\node[n] (s) at (0,-2.5) {Súmula\\[-2pt]{\scriptsize jogador e time}};
+\node[n] (z) at (2.6,-2.5) {Zona\\[-2pt]{\scriptsize \nZones}};
+\draw[e] (j) -- node[l, above=1pt] {MEMBRO\_DE} (t);
+\draw[e] (j) -- node[l, above=1pt] {REALIZOU} (p);
+\draw[e] (j) -- node[l, left, pos=0.55] {PARTICIPOU\_DE} (f);
+\draw[e] (j) -- node[l, pos=0.5] {TEM\_ESTAT.} (s);
+\draw[e] (j) -- node[l, right, pos=0.55] {ATUOU\_EM} (z);
+\draw[e] ([xshift=-3mm]j.north) .. controls +(-1.0,1.3) and +(1.0,1.3) .. ([xshift=3mm]j.north);
+\node[l] at (0,1.55) {PASSOU\_PARA, DEU\_ASSISTENCIA, PRESSIONOU};
+\draw[e] ([yshift=-2mm]z.east) .. controls +(0.9,-0.7) and +(0.2,-0.8) .. (z.south);
+\node[l, anchor=north] at (2.6,-3.45) {PROGREDIU\_PARA};
+\end{tikzpicture}
+\captionof{figure}{Esquema do grafo da partida: nós, com a contagem na final, e arestas; \texttt{REALIZOU} liga o jogador à partida, uma aresta por ação. É o esquema que o braço \armTextToCypher{} recebe em texto e que as ferramentas de \armGraphTools{} consultam.}\label{fig:esquema}
+\end{minipage}\par\smallskip

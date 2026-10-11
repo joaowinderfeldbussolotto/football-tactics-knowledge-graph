@@ -34,6 +34,8 @@ GENERATED = PAPER / "generated"
 PAIRS = (("text_to_cypher", "events_in_prompt"), ("graph_tools", "text_to_cypher"), ("graph_tools", "events_in_prompt"))
 # The match data (paper/ALERTAS.md, checked on 10/10/2026 against the StatsBomb file and the Parquet table).
 N_RAW_EVENTS, N_ACTIONS = 4407, 2585
+# Nodes of the match graph (docs/02-dos-dados-ao-grafo.md, counted in Neo4j for the final).
+N_PLAYERS, N_PHASES, N_ZONES = 34, 537, 96
 ARM_NAMES = ps.ARM_NAMES
 # Group labels in the order of the paper.
 GROUP_ORDER = tuple(GROUPS)
@@ -77,6 +79,7 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
     }
     m.update({
         "nEvents": num(N_RAW_EVENTS), "nActions": num(N_ACTIONS),
+        "nPlayers": str(N_PLAYERS), "nPhases": str(N_PHASES), "nZones": str(N_ZONES),
         "nMaxCalls": str(arm_defs.MAX_TOOL_CALLS), "nTopK": str(arm_defs.VECTOR_TOP_K), "nTools": str(len(arm_defs.TOOLS)),
         "nMaxRows": str(cypher.MAX_ROWS),
         "nCheckPlayer": str(sum(q.check == "player" for q in QUESTIONS)),

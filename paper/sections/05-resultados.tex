@@ -13,7 +13,35 @@
 
 \section{Experimentos e resultados}\label{sec:experimentos}
 
+\subsection{Descrição dos dados}
+
+Os dados são os eventos da final da Copa do Mundo de 2022: \nEvents{} eventos no JSON bruto, que viraram
+\nActions{} ações na tabela de ações. As amostras do experimento são as perguntas: \nQuestions{} perguntas em cinco
+grupos (Tabela~\ref{tab:perguntas}), das quais \nAnswerable{} têm resposta nos dados e \nControl{} formam o grupo de
+controle. Cada pergunta foi feita a cada um dos \nArms{} braços, num total de \nRuns{} execuções.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\small\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.28\columnwidth}>{\raggedright\arraybackslash}p{0.60\columnwidth}} % lint: ignore
+\toprule
+Grupo & Exemplo (resposta esperada) \\
+\midrule
+Busca e contagem (\nGroupSearch{}) & Quem recebeu o primeiro cartão amarelo da final? (jogador) \\
+Relações na rede de passes (\nGroupRelations{}) & Qual dupla da França mais trocou passes entre si na final? (conjunto de jogadores) \\
+Jogadas e sequências (\nGroupPlays{}) & Qual jogador participou de mais jogadas da Argentina que terminaram em finalização? (jogador) \\
+Antes e depois de um momento (\nGroupMoments{}) & Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé? (jogador) \\
+Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo De Paul na final? (ausência de dados) \\
+\bottomrule
+\end{tabular}
+\captionof{table}{Os cinco grupos de perguntas, com o número de perguntas de cada um e um exemplo.}\label{tab:perguntas}
+\end{minipage}\par\smallskip
+
 \subsection{\textit{Setup} experimental}
+
+Todos os braços usaram o modelo \modelName{}, com temperatura zero. O braço \armVector{} usou embeddings do modelo
+\texttt{\embedModel}. Nos braços de agente, cada pergunta admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A
+rodada teve \nRepeats{} repetição por pergunta.
 
 % TODO autor: REVISAR este parágrafo (movido da Metodologia; ainda não decidido se entra no artigo)
 \begingroup\color{red}\textbf{[REVISAR]} O acerto de um braço é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
