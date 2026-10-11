@@ -24,7 +24,7 @@ import yaml
 from football_graphrag.benchmark import arms as arm_defs
 from football_graphrag.benchmark import cypher
 from football_graphrag.benchmark import paper_stats as ps
-from football_graphrag.benchmark.questions import GROUPS
+from football_graphrag.benchmark.questions import GROUPS, QUESTIONS
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / "data" / "benchmark"
@@ -86,7 +86,11 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
     m.update({
         "nEvents": num(N_RAW_EVENTS), "nActions": num(N_ACTIONS),
         "nMaxCalls": str(arm_defs.MAX_TOOL_CALLS), "nTopK": str(arm_defs.VECTOR_TOP_K), "nTools": str(len(arm_defs.TOOLS)),
-        "nMaxRows": str(cypher.MAX_ROWS), "tokTableApprox": "cerca de 100 mil tokens", "ciLevel": "95\\%",
+        "nMaxRows": str(cypher.MAX_ROWS),
+        "nCheckPlayer": str(sum(q.check == "player" for q in QUESTIONS)),
+        "nCheckSet": str(sum(q.check == "set" for q in QUESTIONS)),
+        "nCheckValue": str(sum(q.check in ("value", "player_and_value") for q in QUESTIONS)),
+        "nCheckNoData": str(sum(q.check == "no_data" for q in QUESTIONS)), "tokTableApprox": "cerca de 100 mil tokens", "ciLevel": "95\\%",
     })
     for a, (full, short) in ARM_NAMES.items():  # the names the paper uses; the identifiers stay in the code
         m[f"arm{ps.ARM_KEYS[a]}"], m[f"armShort{ps.ARM_KEYS[a]}"] = full, short

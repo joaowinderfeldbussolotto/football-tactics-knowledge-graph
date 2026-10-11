@@ -76,6 +76,7 @@ def test_the_numbers_the_dossier_states():
     assert macros["armGraphTools"] == "Ferramentas sobre o grafo" and macros["armShortTextToCypher"] == "Consulta"
     assert (macros["nMaxCalls"], macros["nTopK"], macros["nTools"], macros["nMaxRows"]) == \
         ("12", "30", "8", "50")
+    assert (macros["nCheckPlayer"], macros["nCheckSet"], macros["nCheckValue"], macros["nCheckNoData"]) == ("35", "10", "2", "5")
     assert macros["tokTableApprox"] == "cerca de 100 mil tokens"
     assert (macros["nEvents"], macros["nActions"], macros["ciLevel"]) == ("4.407", "2.585", "95\\%")
     assert all(f"arm{k}" in macros and f"armShort{k}" in macros for k in ps.ARM_KEYS.values())
