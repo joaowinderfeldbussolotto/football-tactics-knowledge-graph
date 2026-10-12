@@ -15,3 +15,8 @@ models:
     short: Qwen3.8
     results: data/benchmark/qwen_results.jsonl
     usd: 0.48
+  - key: Kimi
+    name: Kimi K3
+    short: Kimi K3
+    results: data/benchmark/kimi_k3_results.jsonl
+    usd: 33.40
