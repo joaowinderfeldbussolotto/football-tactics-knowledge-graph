@@ -18,8 +18,7 @@ também o registro de cada execução, parte da implantação.
 \subsection{Dados e transformações}\label{sec:dados}
 
 Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022, com as
-escalações. O JSON bruto é rico, mas irregular: cada tipo de evento tem campos próprios. Os eventos da partida, sem
-a disputa de pênaltis, foram convertidos com a biblioteca socceraction~\cite{socceraction} em ações no formato
+escalações. No JSON, cada tipo de evento tem campos próprios. Os eventos da partida, sem a disputa de pênaltis, foram convertidos com a biblioteca socceraction~\cite{socceraction} em ações no formato
 SPADL~\cite{decroos2019actions}, que mantém só as ações com bola, em um vocabulário
 fechado e com os mesmos campos para todas. Sobre essa tabela de ações foram acrescentadas colunas de contexto
 (Tabela~\ref{tab:transformacoes}).
@@ -174,8 +173,8 @@ Erro de formato & não há resposta estruturada válida ao fim das tentativas \\
 
 \subsection{Escopo}
 
-Foi usada uma única partida por dois motivos: o braço \armEventsInPrompt{} recebe a tabela inteira, que ocupa
-\tokTableApprox{} (o valor varia com o tokenizador do modelo), e um escopo menor permite conferir o gabarito de cada
+Foi usada uma única partida por dois motivos: a tabela de ações inteira ocupa \tokTableApprox{} (o valor varia
+com o tokenizador do modelo) e cabe no contexto do modelo, e um escopo menor permite conferir o gabarito de cada
 pergunta sobre os dados brutos. Ficam fora do escopo, além de várias partidas: dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
 saúde, valor de mercado, escalação, predição de resultado, qualidade da explicação tática, comparação entre modelos
 e agentes que escrevem código. Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
