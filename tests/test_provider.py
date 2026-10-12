@@ -159,3 +159,55 @@ def test_provider_order_em_outro_provedor_e_ignorado_com_aviso(llm_provider, cap
         )
     assert "extra_body" not in s
     assert "LLM_PROVIDER_ORDER" in caplog.text
+
+
+# --------------------------------------------------------------------------- Amazon Bedrock
+
+def bedrock_settings(**overrides) -> Settings:
+    return make_settings(llm_provider="bedrock", llm_model="openai.gpt-oss-120b-1:0",
+                         llm_aws_region="us-east-1", **overrides)
+
+
+def test_bedrock_usa_a_api_converse_com_o_id_do_modelo():
+    pytest.importorskip("boto3")
+    from pydantic_ai.models.bedrock import BedrockConverseModel
+
+    model = provider.pydantic_ai_model(bedrock_settings())
+    assert isinstance(model, BedrockConverseModel)
+    assert model.model_name == "openai.gpt-oss-120b-1:0"
+    assert provider.pydantic_ai_model_name(bedrock_settings()) == "bedrock:openai.gpt-oss-120b-1:0"
+
+
+def test_bedrock_ignora_opcoes_do_openrouter_com_aviso(caplog):
+    with caplog.at_level("WARNING"):
+        s = provider.pydantic_ai_model_settings(
+            bedrock_settings(llm_provider_order="baidu/fp8", llm_reasoning_effort="low"))
+    assert "extra_body" not in s
+    assert "LLM_PROVIDER_ORDER" in caplog.text and "LLM_REASONING_EFFORT" in caplog.text
+
+
+def test_bedrock_envia_a_requisicao_converse_com_ferramenta_e_limite_de_saida():
+    """Offline: botocore's Stubber answers, so the request the SDK would send can be read."""
+    boto3 = pytest.importorskip("boto3")
+    from botocore.stub import Stubber
+    from pydantic_ai import Agent
+    from pydantic_ai.models.bedrock import BedrockConverseModel
+    from pydantic_ai.providers.bedrock import BedrockProvider
+
+    client = boto3.client("bedrock-runtime", region_name="us-east-1",
+                          aws_access_key_id="x", aws_secret_access_key="y")
+    reply = {"output": {"message": {"role": "assistant", "content": [{"text": "ok"}]}},
+             "stopReason": "end_turn", "usage": {"inputTokens": 3, "outputTokens": 1, "totalTokens": 4},
+             "metrics": {"latencyMs": 1}}
+    seen = {}
+    with Stubber(client) as stub:
+        stub.add_response("converse", reply)
+        client.meta.events.register("provide-client-params.bedrock-runtime.Converse",
+                                    lambda params, **kw: seen.update(params))
+        agent = Agent(BedrockConverseModel("openai.gpt-oss-120b-1:0", provider=BedrockProvider(bedrock_client=client)),
+                      model_settings=provider.pydantic_ai_model_settings(bedrock_settings(llm_max_tokens=1234)))
+        import asyncio
+        result = asyncio.run(agent.run("oi"))
+    assert result.output == "ok"
+    assert seen["modelId"] == "openai.gpt-oss-120b-1:0"
+    assert seen["inferenceConfig"]["maxTokens"] == 1234

@@ -171,3 +171,22 @@ def test_configured_arms_come_from_the_config_file(tmp_path):
     cfg.write_text("arms: [graph]\n")
     with pytest.raises(ValueError, match="arms must be"):
         arms.configured_arms(cfg)
+
+
+def test_prompt_cache_point_can_be_switched_off(monkeypatch):
+    from football_graphrag.config import Settings
+
+    prompt = "Match events:\nx\n\nQuestion: q"
+    assert any(not isinstance(p, str) for p in arms.user_content("events_in_prompt", prompt))
+    off = Settings(_env_file=None, llm_prompt_cache=False)
+    monkeypatch.setattr(arms, "get_settings", lambda: off)
+    assert arms.user_content("events_in_prompt", prompt) == prompt
+
+
+def test_bedrock_needs_only_the_model_id(monkeypatch):
+    from football_graphrag.config import Settings
+
+    monkeypatch.setattr(arms, "get_settings", lambda: Settings(_env_file=None, llm_provider="bedrock", llm_model="m"))
+    assert arms.missing_config(["graph_tools"]) == []
+    monkeypatch.setattr(arms, "get_settings", lambda: Settings(_env_file=None, llm_provider="bedrock", llm_model=""))
+    assert "LLM_MODEL" in arms.missing_config(["graph_tools"])[0]

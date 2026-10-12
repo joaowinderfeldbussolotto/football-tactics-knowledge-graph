@@ -586,7 +586,10 @@ def missing_config(arms: list[str]) -> list[str]:
     """What .env lacks to run these arms (empty list: ready)."""
     s = get_settings()
     problems = []
-    if not (s.llm_api_key and s.llm_model):
+    if s.llm_provider == "bedrock":  # the key is optional: the AWS credential chain also works
+        if not s.llm_model:
+            problems.append("LLM_MODEL must be set in .env (the Bedrock model ID)")
+    elif not (s.llm_api_key and s.llm_model):
         problems.append("LLM_API_KEY and LLM_MODEL must be set in .env (every arm uses the LLM)")
     if "vector" in arms and not (s.embedder_api_key and s.embedder_model):
         problems.append("EMBEDDER_API_KEY and EMBEDDER_MODEL must be set in .env (the vector arm embeds events)")
@@ -630,7 +633,7 @@ def user_content(arm: str, prompt: str) -> str | list:
     are the same text. The question has to be a separate part because the
     cache matches a prefix up to the breakpoint, and the question changes.
     """
-    if arm not in CACHED_ARMS:
+    if arm not in CACHED_ARMS or not get_settings().llm_prompt_cache:
         return prompt
     data, question = prompt.rsplit(QUESTION_MARKER, 1)
     return [data, CachePoint(), f"{QUESTION_MARKER.lstrip()}{question}"]
