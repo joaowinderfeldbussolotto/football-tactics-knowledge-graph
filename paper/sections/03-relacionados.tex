@@ -1,12 +1,75 @@
-% Seção: Trabalhos relacionados  (orçamento: 1.5 página(s))
+% Seção: Trabalhos relacionados  (orçamento: 1 a 1,5 página)
 %
-% Roteiro (apague os comentários ao escrever; o texto passa por paper/scripts/lint_paper.py):
-%  - Seis eixos do dossiê: LLMs no esporte; RAG, contexto longo e GraphRAG; texto para consulta e ferramentas; LLMs e grafos; redes de passes; avaliação e processo.
-%  - Tabela de posicionamento (T1) com a coluna 'quem escreve a consulta'.
-%  - Citar só o que o cite-check sustentou (paper/claims.md).
-%
-% Referências previstas (chaves de refs.bib): xia2024sportqa, strand2024soccerrag, martinez2025sportsql, rao2025socceragent, wang2024tacticai, lewis2020rag, liu2024lostinthemiddle, li2024ragorlongcontext, edge2024graphrag, han2025ragvsgraphrag, pan2024unifying, sui2024tablemeetsllm, jiang2023structgpt, yao2023react, ozsoy2025text2cypher, wang2023nlgraph, duch2010quantifying, buldu2018using, brandes2001faster, decroos2019actions, pappalardo2019public
+% Formato combinado com o autor: quatro trabalhos com um parágrafo cada (SoccerRAG, SPORTSQL, Tzikas, LOFT) e os
+% demais em uma frase, mais a tabela de posicionamento. Esta seção só posiciona: comparação com os resultados
+% (por exemplo, o acerto de Tzikas contra o da Busca vetorial) fica na Discussão.
+% Fora daqui: NLGraph, GraphRAG (Edge), StructGPT, Pan et al. e Pappalardo; Duch, Buldú e Sui ficam para a Discussão,
+% se um resultado pedir. "Pergunta encadeada" é definida na Seção 5.3; aqui a definição curta vem com a remissão.
+% Números de outros trabalhos vão por extenso (o lint só aceita números do benchmark como macro).
 
 \section{Trabalhos relacionados}\label{sec:trabalhos}
 
-% TODO: escrever.
+Os primeiros conjuntos de avaliação de LLMs no esporte medem o que o modelo sabe, sem dados de uma partida. O
+SportQA \cite{xia2024sportqa} reúne mais de setenta mil perguntas de múltipla escolha, de fatos históricos a
+cenários de jogo; os modelos avaliados foram bem nos fatos básicos e ficaram atrás de especialistas humanos nos
+cenários. O SoccerAgent~\cite{rao2025socceragent} divide as perguntas entre vários agentes que consultam uma base
+de conhecimento sobre jogadores, times, árbitros e estádios, também com perguntas de múltipla escolha.
+
+Os trabalhos mais próximos ligam o modelo a dados de partidas. O SoccerRAG~\cite{strand2024soccerrag} guarda em
+um banco SQLite as anotações de eventos do SoccerNet, como gols, cartões e faltas, os comentários transcritos das
+transmissões e os dados dos jogadores. O modelo extrai e valida os nomes citados na pergunta, e um agente escreve
+a consulta SQL. A avaliação usou vinte perguntas de exemplo e comparou seis configurações do próprio sistema em
+dez delas, todas com o modelo escrevendo SQL.
+
+O SPORTSQL~\cite{martinez2025sportsql} traduz perguntas sobre a liga inglesa em consultas SQL sobre um banco
+montado com os dados do Fantasy Premier League e indexado no tempo. Acompanha um conjunto de mais de mil e
+setecentas perguntas, cada uma com a consulta SQL e a resposta de referência, o que mostra que a conferência por
+resposta exata é viável no esporte. Os dados, porém, são estatísticas de jogadores e times, e não o registro de
+cada ação da partida.
+
+Tzikas et al. \cite{tzikas2025dynamic} usam eventos de cinco rodadas da liga alemã, com posição no campo, tempo e
+jogador. Cada evento vira uma frase montada a partir de um molde de texto, e a resposta vem de recuperação
+aumentada por geração, com reordenação dos trechos recuperados. As trinta perguntas são de três tipos (quando,
+onde e quem), e a conferência é feita por um LLM, que julga se a resposta tem o mesmo sentido do gabarito. Os
+autores relatam erros desse julgamento e apontam a recuperação iterativa como caminho para as perguntas que
+exigem juntar informação espalhada pela partida.
+
+Fora do esporte, a comparação entre formas de recuperação já foi estudada em dados gerais.
+Li et al. \cite{li2024ragorlongcontext} compararam recuperação e contexto longo em conjuntos públicos: com
+recursos suficientes, o contexto longo teve desempenho médio maior, e a recuperação, custo bem menor. Liu
+et al.~\cite{liu2024lostinthemiddle} mostraram que o desempenho cai quando a informação relevante está no meio de
+um contexto longo. Han et al.~\cite{han2025ragvsgraphrag} compararam a recuperação de trechos de texto com a
+recuperação ao longo de um grafo, sob um mesmo protocolo, e cada forma se saiu melhor em tarefas diferentes.
+Quando os dados estão em um banco de grafos, o modelo também pode escrever a consulta, mas LLMs ainda erram ao
+gerar consultas Cypher~\cite{ozsoy2025text2cypher}.
+
+O LOFT~\cite{lee2024loft} é o que mais se aproxima da comparação feita aqui. O conjunto testa se um modelo que
+recebe o corpus inteiro no contexto substitui sistemas de recuperação, de recuperação aumentada por geração e de
+SQL. O contexto longo teve desempenho comparável ao dos sistemas de recuperação, mas teve dificuldade com o
+raciocínio composicional das tarefas do tipo SQL, isto é, as que combinam várias partes dos dados.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.25\columnwidth}>{\raggedright\arraybackslash}p{0.235\columnwidth}>{\raggedright\arraybackslash}p{0.21\columnwidth}>{\raggedright\arraybackslash}p{0.21\columnwidth}} % lint: ignore
+\toprule
+Trabalho & Dados & Formas de recuperação & Conferência \\
+\midrule
+SportQA \cite{xia2024sportqa} & nenhum (memória do modelo) & nenhuma & múltipla escolha \\
+SoccerAgent \cite{rao2025socceragent} & base de conhecimento & uma (agentes) & múltipla escolha \\
+SoccerRAG \cite{strand2024soccerrag} & anotações e comentários de partidas & uma (SQL), em seis configurações & feita pelos autores \\
+SPORTSQL \cite{martinez2025sportsql} & estatísticas de jogadores e times & uma (SQL) & resposta de referência \\
+Tzikas et al. \cite{tzikas2025dynamic} & eventos de partidas & uma (recuperação vetorial) & LLM como juiz \\
+Li et al. \cite{li2024ragorlongcontext} & textos gerais & duas (recuperação e contexto longo) & métricas dos conjuntos \\
+LOFT \cite{lee2024loft} & textos e tabelas gerais & contexto longo contra sistemas especializados & métricas dos conjuntos \\
+Este trabalho & eventos de uma partida & \nArms{} & por código, contra gabarito dos dados brutos \\
+\bottomrule
+\end{tabular}
+\captionof{table}{Posicionamento em relação aos trabalhos mais próximos.}\label{tab:posicionamento}
+\end{minipage}\par\smallskip
+
+A Tabela~\ref{tab:posicionamento} resume o posicionamento. No esporte, cada trabalho avalia um sistema com uma
+única forma de recuperação; fora dele, as formas de recuperação são comparadas, mas sem dados esportivos. Não foram
+encontrados trabalhos que comparem formas de recuperação em perguntas encadeadas sobre eventos de futebol, isto é,
+perguntas cuja resposta exige ligar eventos entre si (Seção~\ref{sec:perguntas}), com conferência por código
+contra um gabarito calculado dos dados brutos.

@@ -32,3 +32,5 @@ wilson1927probable	10.1080/01621459.1927.10502953	1	confirmado	metodologia	Inter
 mcnemar1947note	10.1007/BF02295996	1	confirmado	metodologia	Teste de McNemar
 dietterich1998approximate	10.1162/089976698300017197	2	confirmado	metodologia	McNemar em aprendizado
 shorten2025dbfunction	10.48550/arXiv.2502.00032	1	confirmado	metodologia	Consulta a bancos por function calling
+tzikas2025dynamic	10.1016/j.procs.2025.09.309	1	confirmado	relacionados	RAG sobre eventos de futebol (Tzikas)
+lee2024loft	10.48550/arXiv.2406.13121	1	confirmado	relacionados	LOFT (contexto longo, RAG e SQL)

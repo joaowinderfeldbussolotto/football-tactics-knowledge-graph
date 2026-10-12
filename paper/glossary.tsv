@@ -15,3 +15,5 @@ Contexto longo	eventos no prompt|tabela no prompt	nome da abordagem events_in_pr
 Estatísticas resumidas	estatísticas no prompt|estatísticas prontas	nome da abordagem stats_in_prompt; use \armStatsInPrompt
 Consulta escrita pelo modelo	text-to-cypher|texto para cypher|texto-para-consulta	nome da abordagem text_to_cypher; use \armTextToCypher
 Ferramentas sobre o grafo	graph tools|ferramentas do grafo	nome da abordagem graph_tools; use \armGraphTools; "ferramentas prontas" descreve a consulta já escrita
+pergunta encadeada	pergunta relacional|perguntas relacionais|pergunta composta|perguntas compostas|multi-hop	resposta depende sobretudo de ligar eventos entre si (rede de passes, jogadas, antes e depois de um momento)
+pergunta direta	pergunta simples|perguntas simples|pergunta factual|perguntas factuais	resposta sai de um evento ou de uma soma (grupo busca e contagem)
