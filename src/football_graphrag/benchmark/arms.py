@@ -279,9 +279,18 @@ def _call(ctx: RunContext[GraphDeps], tool_name: str, fn, **kwargs):
 def _unquote(value):
     """Drop stray quotes the model sometimes wraps around a string argument
     ('"player"' or '"player'), in any argument, nested ones included. No real value
-    starts or ends with a quote, and the argument schema sent to the model is unchanged."""
+    starts or ends with a quote, and the argument schema sent to the model is unchanged.
+    An object or list sent as JSON text ('{"yellow_card": true}') becomes the object, which
+    still goes through the argument's own validation. No real string value starts with
+    a brace or bracket, and text that is not valid JSON stays as it is."""
     if isinstance(value, str):
-        return value.strip().strip("\"'").strip()
+        text = value.strip().strip("\"'").strip()
+        if text[:1] in ("{", "[") and text[-1:] in ("}", "]"):
+            try:
+                return _unquote(json.loads(text))
+            except json.JSONDecodeError:
+                pass
+        return text
     if isinstance(value, list):
         return [_unquote(v) for v in value]
     if isinstance(value, dict):
