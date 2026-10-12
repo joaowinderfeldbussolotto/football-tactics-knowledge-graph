@@ -123,3 +123,39 @@ def test_reasoning_effort_em_outro_provedor_e_ignorado_com_aviso(llm_provider, c
 def test_reasoning_effort_valor_invalido_e_rejeitado_na_configuracao():
     with pytest.raises(Exception):
         make_settings(llm_provider="openrouter", llm_reasoning_effort="muito-alto")
+
+
+def test_provider_order_vai_como_extra_body_sem_fallback_no_openrouter():
+    s = provider.pydantic_ai_model_settings(
+        make_settings(llm_provider="openrouter", llm_provider_order="baidu/fp8")
+    )
+    assert s["extra_body"] == {"provider": {"order": ["baidu/fp8"], "allow_fallbacks": False}}
+
+
+def test_provider_order_aceita_varios_e_ignora_espacos():
+    s = provider.pydantic_ai_model_settings(
+        make_settings(llm_provider="openrouter", llm_provider_order=" baidu/fp8 , deepseek ,")
+    )
+    assert s["extra_body"]["provider"]["order"] == ["baidu/fp8", "deepseek"]
+
+
+def test_provider_order_vazio_nao_envia_nada():
+    s = provider.pydantic_ai_model_settings(make_settings(llm_provider="openrouter"))
+    assert "extra_body" not in s
+
+
+def test_provider_order_convive_com_reasoning_effort():
+    s = provider.pydantic_ai_model_settings(
+        make_settings(llm_provider="openrouter", llm_reasoning_effort="low", llm_provider_order="baidu/fp8")
+    )
+    assert set(s["extra_body"]) == {"reasoning", "provider"}
+
+
+@pytest.mark.parametrize("llm_provider", ["mistral", "anthropic", "gemini"])
+def test_provider_order_em_outro_provedor_e_ignorado_com_aviso(llm_provider, caplog):
+    with caplog.at_level("WARNING"):
+        s = provider.pydantic_ai_model_settings(
+            make_settings(llm_provider=llm_provider, llm_provider_order="baidu/fp8")
+        )
+    assert "extra_body" not in s
+    assert "LLM_PROVIDER_ORDER" in caplog.text
