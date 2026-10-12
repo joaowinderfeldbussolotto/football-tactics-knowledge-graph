@@ -71,6 +71,24 @@ mais importante é a trajetória de ajuste (item 1).
    ainda não existem.
 5. **Declaração de IA e hipóteses:** ajustar conforme `paper/ALERTAS.md` (itens 2 e 3).
 
+## Espaço (limite de 12 páginas)
+
+Com Trabalhos relacionados, Metodologia e Resultados escritos, o PDF tem 9 páginas; faltam Introdução,
+Contribuições, Discussão, Conclusão, Resumo e a declaração de IA (cerca de 4 páginas). A combinação com o autor é
+escrever sem se limitar e cortar no fim, com o artigo inteiro. Candidatos a corte, do maior ganho ao menor:
+
+1. Figura do JSON de resposta (Metodologia, conferência): o exemplo vira uma frase.
+2. Tabela dos tipos de conferência: vira uma frase com os quatro tipos.
+3. Figura do ciclo do agente: o texto já descreve o ciclo.
+4. Enxugar linhas das tabelas de transformações e de exemplos de perguntas.
+
+## Mais de um modelo
+
+Os modelos avaliados estão em `paper/data/models.yaml` (o primeiro é o principal). Para acrescentar um modelo,
+acrescente a entrada com o arquivo de resultados e o custo, rode `python scripts/paper_numbers.py` e suba as
+tabelas `generated/tables/*_models.tex` e `models.tex` para o Overleaf (lá, `tab-<nome>.tex`) e as macros novas
+de `numbers.tex`. O texto dos Resultados é genérico e não precisa mudar.
+
 ## Decisões que são suas
 
 - Português ou inglês (o dossiê assume português; o `lint_paper.py` tem a exceção `% lang: en` para o resumo).
