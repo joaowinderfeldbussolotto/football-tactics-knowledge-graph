@@ -59,7 +59,9 @@ bibliotecas usadas foram socceraction~\cite{socceraction}, Neo4j Graph Data Scie
 networkx~\cite{networkx}, PydanticAI~\cite{pydanticai} e Langfuse~\cite{langfuse}, nas versões indicadas nas
 referências.\par\endgroup
 
-\subsection{Acerto por abordagem}
+\subsection{Análise dos resultados}
+
+\subsubsection{Acerto por abordagem}
 
 A Tabela~\ref{tab:acerto} mostra, para cada modelo, o acerto de cada abordagem nas \nAnswerable{} perguntas com
 resposta, com o intervalo de confiança de Wilson.
@@ -72,7 +74,7 @@ resposta, com o intervalo de confiança de Wilson.
 \ciLevel{} entre parênteses.}\label{tab:acerto}
 \end{minipage}\par\smallskip
 
-\subsection{Acerto por grupo de perguntas}
+\subsubsection{Acerto por grupo de perguntas}
 
 A Tabela~\ref{tab:grupos} mostra o número de acertos de cada abordagem em cada grupo de perguntas
 (Seção~\ref{sec:perguntas}), com o \modelName{}.
@@ -85,7 +87,7 @@ A Tabela~\ref{tab:grupos} mostra o número de acertos de cada abordagem em cada 
 Jogadas: jogadas e sequências; Momento: antes e depois de um momento do jogo.}\label{tab:grupos}
 \end{minipage}\par\smallskip
 
-\subsection{Comparações pareadas}
+\subsubsection{Comparações pareadas}
 
 A Tabela~\ref{tab:mcnemar} mostra, para cada modelo, o teste exato de McNemar entre \armTextToCypher{} e
 \armEventsInPrompt{}, entre \armGraphTools{} e \armTextToCypher{} e entre \armGraphTools{} e \armEventsInPrompt{}.
@@ -99,7 +101,7 @@ valor $p$ traz o ajuste de Holm, feito dentro de cada modelo.
 \captionof{table}{Teste exato de McNemar nas perguntas com resposta, por modelo.}\label{tab:mcnemar}
 \end{minipage}\par\smallskip
 
-\subsection{Erros e custo}
+\subsubsection{Erros e custo}
 
 A Tabela~\ref{tab:erros} mostra, para cada modelo e sobre as \nQuestions{} perguntas, a proporção de alucinações,
 de abstenções e de erros de formato (Seção~\ref{sec:conferencia}) e, por execução, a média de tokens de entrada e
