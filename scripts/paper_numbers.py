@@ -137,13 +137,115 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
         if info.get("usd") is not None:
             m[f"cost{name.capitalize()}"] = num(info["usd"], 2)
 
+    models = load_models()
+    m.update(model_macros(models))
+
     tables = {
+        "models.tex": models_table(models),
+        "mcnemar_models.tex": models_mcnemar_table(models),
+        "errors_models.tex": models_errors_table(models),
         "groups.tex": groups_table(per_arm, types, arms),
         "mcnemar.tex": mcnemar_table(pair_rows, m),
         "cost.tex": cost_table(rows, arms),
         "ladder.tex": ladder_table(per_arm, types, arms),
     }
     return m, tables
+
+
+# --------------------------------------------------------------------------- models
+
+def load_models() -> list[dict]:
+    """The models of paper/data/models.yaml with their rows; the first is the main one."""
+    spec = yaml.safe_load((PAPER / "data" / "models.yaml").read_text(encoding="utf-8"))["models"]
+    out = []
+    for entry in spec:
+        rows = ps.load(ROOT / entry["results"])
+        types = ps.question_types(rows)
+        arms = [a for a in ps.LADDER if any(r["arm"] == a for r in rows)]
+        out.append({**entry, "rows": rows, "types": types, "arms": arms,
+                    "per_arm": {a: ps.by_question(rows, a) for a in arms}})
+    return out
+
+
+def model_pairs(model: dict) -> list[tuple]:
+    """The comparisons of PAIRS for one model: (first, second, only first, only second, p, p Holm)."""
+    per_arm, types = model["per_arm"], model["types"]
+    found = [(a, b) + ps.pair_counts(ps.select(per_arm[a], types, answerable=True),
+                                    ps.select(per_arm[b], types, answerable=True))
+             for a, b in PAIRS if a in per_arm and b in per_arm]
+    return [r + (adj,) for r, adj in zip(found, ps.holm([r[4] for r in found]))]
+
+
+def model_macros(models: list[dict]) -> dict[str, str]:
+    names = [md["name"] for md in models]
+    m = {"nModels": str(len(models)),
+         "modelList": names[0] if len(names) == 1 else ", ".join(names[:-1]) + " e " + names[-1]}
+    for md in models:
+        key, per_arm, types = md["key"], md["per_arm"], md["types"]
+        m[f"model{key}"] = md["name"]
+        if md.get("usd") is not None:
+            m[f"cost{key}"] = num(md["usd"], 2)
+        for a in md["arms"]:
+            k = key + ps.ARM_KEYS[a]
+            acc = ps.accuracy(ps.select(per_arm[a], types, answerable=True))
+            every = ps.accuracy(per_arm[a])
+            control = ps.accuracy(ps.select(per_arm[a], types, groups=(ps.CONTROL,)))
+            m[f"acc{k}"], m[f"k{k}"] = pct(acc.share), num(acc.correct)
+            m[f"ciLow{k}"], m[f"ciHigh{k}"] = num(round(100 * acc.low)), num(round(100 * acc.high))
+            m[f"accAll{k}"], m[f"accControl{k}"] = pct(every.share), pct(control.share)
+            c = ps.cost_profile(md["rows"], a)
+            m[f"hall{k}"], m[f"abst{k}"], m[f"fmt{k}"] = pct(c["hallucination"]), pct(c["abstention"]), pct(c["format_error"])
+            m[f"tokIn{k}"], m[f"calls{k}"], m[f"lat{k}"] = num(round(c["tokens_in"])), num(c["calls"], 1), num(c["latency"], 1)
+        for a, b, x, y, p, adj in model_pairs(md):
+            pk = f"mc{key}{ps.ARM_KEYS[a]}{ps.ARM_KEYS[b]}"
+            m[f"{pk}First"], m[f"{pk}Second"], m[f"{pk}P"], m[f"{pk}PHolm"] = str(x), str(y), p_value(p), p_value(adj)
+    return m
+
+
+def models_table(models: list[dict]) -> str:
+    """Accuracy on the answerable questions, one column per model: share and Wilson interval."""
+    body = []
+    for a in ps.LADDER:
+        cells = [LABEL[a]]
+        for md in models:
+            if a not in md["per_arm"]:
+                cells.append("--")
+                continue
+            acc = ps.accuracy(ps.select(md["per_arm"][a], md["types"], answerable=True))
+            cells.append(f"{round(100 * acc.share)} ({round(100 * acc.low)} a {round(100 * acc.high)})")
+        body.append(cells)
+    return _tabular("l" + "r" * len(models), ["Abordagem"] + [md["short"] for md in models], body)
+
+
+def p_cell(p: float) -> str:
+    """A p value in a narrow table cell."""
+    return "$<$0,001" if p < 0.001 else num(p, 3)
+
+
+def models_mcnemar_table(models: list[dict]) -> str:
+    """The comparisons of PAIRS, one block of rows per model."""
+    lines = ["\\begin{tabular}{lrrr}", "\\toprule", r"Par (A contra B) & Só A & Só B & $p$ (Holm) \\"]
+    for md in models:
+        lines += ["\\midrule", f"\\multicolumn{{4}}{{l}}{{\\textit{{{md['name']}}}}} \\\\"]
+        for a, b, x, y, p, adj in model_pairs(md):
+            lines.append(" & ".join([f"{LABEL[a]} contra {LABEL[b]}", str(x), str(y), p_cell(adj)]) + r" \\")
+    lines += ["\\bottomrule", "\\end{tabular}", ""]
+    return "\n".join(lines)
+
+
+def models_errors_table(models: list[dict]) -> str:
+    """Error profile and cost per execution, one block of rows per model."""
+    lines = ["\\begin{tabular}{lrrrrr}", "\\toprule",
+             r"Abordagem & Aluc. & Abst. & Formato & Tokens & Lat. (s) \\"]
+    for md in models:
+        cost = f" (rodada: US\\$ {num(md['usd'], 2)})" if md.get("usd") is not None else ""
+        lines += ["\\midrule", f"\\multicolumn{{6}}{{l}}{{\\textit{{{md['name']}}}{cost}}} \\\\"]
+        for a in md["arms"]:
+            c = ps.cost_profile(md["rows"], a)
+            lines.append(" & ".join([LABEL[a], pct(c["hallucination"]), pct(c["abstention"]), pct(c["format_error"]),
+                                     num(round(c["tokens_in"])), num(c["latency"], 1)]) + r" \\")
+    lines += ["\\bottomrule", "\\end{tabular}", ""]
+    return "\n".join(lines)
 
 
 # --------------------------------------------------------------------------- tables
@@ -166,17 +268,22 @@ def ladder_table(per_arm, types, arms) -> str:
     return _tabular("lrrr", ["Abordagem", "Acertos", "Acerto", "IC 95\\%"], body)
 
 
+# Short group names for the table by group (the caption spells them out); its approach columns are rotated.
+GROUP_SHORT = {"Busca e contagem": "Busca", "Relações na rede de passes": "Relações", "Jogadas e sequências": "Jogadas",
+               "Antes e depois de um momento do jogo": "Momento", ps.CONTROL: "Controle"}
+
+
 def groups_table(per_arm, types, arms) -> str:
     body = []
     for g in GROUP_ORDER:
-        cells = [g]
+        cells = [GROUP_SHORT[g]]
         n = None
         for a in arms:
             sel = ps.select(per_arm[a], types, groups=(g,))
             n = len(sel)
             cells.append(f"{num(ps.accuracy(sel).correct)}")
         body.append([cells[0], str(n)] + cells[1:])
-    header = ["Grupo", "$n$"] + [LABEL[a] for a in arms]
+    header = ["Grupo", "$n$"] + [f"\\rotatebox{{90}}{{{LABEL[a]}}}" for a in arms]
     return _tabular("l" + "r" * (len(arms) + 1), header, body)
 
 

@@ -84,8 +84,20 @@ def test_the_numbers_the_dossier_states():
     assert (macros["preFixKGraphTools"], macros["preFixNGraphTools"]) == ("39", "52")
     assert macros["accPlaysGraphTools"] == "80\\%" and macros["accPlaysTextToCypher"] == "40\\%"
     assert macros["tokInGraphTools"] == "76.118" and macros["costFinal"] == "1,04"
-    assert set(tables) == {"groups.tex", "mcnemar.tex", "cost.tex", "ladder.tex"}
+    assert set(tables) == {"groups.tex", "mcnemar.tex", "cost.tex", "ladder.tex", "models.tex", "mcnemar_models.tex", "errors_models.tex"}
     assert all(re.fullmatch(r"[A-Za-z]+", name) for name in macros)  # LaTeX control sequences: letters only
+
+
+def test_every_model_of_the_registry_has_macros_and_a_column():
+    macros, tables = numbers.build(ROOT / "data" / "benchmark" / "final_results.jsonl")
+    models = numbers.load_models()
+    assert macros["nModels"] == str(len(models)) and len(models) >= 2
+    assert macros["accHaikuGraphTools"] == macros["accGraphTools"]  # the first model is the main one
+    for md in models:
+        assert f"acc{md['key']}GraphTools" in macros and f"fmt{md['key']}TextToCypher" in macros
+        assert md["short"] in tables["models.tex"] and md["name"] in tables["errors_models.tex"]
+        assert md["name"] in tables["mcnemar_models.tex"]
+    assert macros["accQwenGraphTools"] == "83\\%" and macros["mcQwenGraphToolsTextToCypherPHolm"] == "0,015"
 
 
 def test_pt_br_number_format():
@@ -189,8 +201,11 @@ def test_every_cited_key_exists_and_every_input_file_exists():
         for group in cite.CITE.findall(text):
             assert {k.strip() for k in group.split(",")} <= keys, tex.name
         assert text.count("{") == text.count("}"), f"unbalanced braces in {tex.name}"
-    for name in re.findall(r"\\input\{([^}]+)\}", main):
+    for name in re.findall(r"\\input\{([^}#]+)\}", main):  # \input{...#1} is the \gentable definition
         assert (PAPER / f"{name}.tex").exists(), name
+    for tex in sorted((PAPER / "sections").glob("*.tex")):
+        for name in re.findall(r"\\gentable\{([^}]+)\}", tex.read_text(encoding="utf-8")):
+            assert (PAPER / "generated" / "tables" / f"{name}.tex").exists(), name
     assert len(re.findall(r"\\input\{sections/", main)) == len(list((PAPER / "sections").glob("*.tex")))
 
 

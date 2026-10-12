@@ -1,15 +1,10 @@
 % Seção: Experimentos e resultados  (orçamento: 2.5 página(s))
 %
-% Roteiro (apague os comentários ao escrever; o texto passa por paper/scripts/lint_paper.py):
-%  - Configuração (modelo, temperatura, limite de chamadas, repetições).
-%  - Acerto total com intervalo: \input{generated/tables/ladder} e a figura F2.
-%  - Acerto por grupo: \input{generated/tables/groups} e a figura F3.
-%  - Pares de McNemar: \input{generated/tables/mcnemar}.
-%  - Custo e perfil de erro: \input{generated/tables/cost}.
-%  - Trajetória de ajuste do graph_tools: figura F4 (séries com as mesmas perguntas; ler paper/ALERTAS.md antes de descrevê-la).
-%  - Usar 'indica' e não 'demonstra' enquanto houver uma repetição por pergunta.
-%
-% Referências previstas (chaves de refs.bib): liu2024lostinthemiddle, li2024ragorlongcontext, han2025ragvsgraphrag, sui2024tablemeetsllm, ozsoy2025text2cypher
+% Resultados descritivos, sem conclusões: o texto aponta as tabelas e não repete os números delas, nem usa
+% palavras de ordem ("maior", "supera"), porque os resultados ainda vão mudar (mais modelos, repetições).
+% Interpretação (ordem das abordagens entre modelos, dependência do modelo em Consulta e Contexto longo) vai para a
+% Discussão. Os modelos vêm de paper/data/models.yaml; as tabelas, de scripts/paper_numbers.py (\gentable).
+% Usar 'indica' e não 'demonstra' enquanto houver uma repetição por pergunta.
 
 \section{Experimentos e resultados}\label{sec:experimentos}
 
@@ -18,7 +13,7 @@
 Os dados são os eventos da final da Copa do Mundo de 2022: \nEvents{} eventos no JSON bruto, que viraram
 \nActions{} ações na tabela de ações. As amostras do experimento são as perguntas: \nQuestions{} perguntas em cinco
 grupos (Tabela~\ref{tab:perguntas}), das quais \nAnswerable{} têm resposta nos dados e \nControl{} formam o grupo de
-controle. Cada pergunta foi feita a cada uma das \nArms{} abordagens, num total de \nRuns{} execuções.
+controle. Cada pergunta foi feita a cada uma das \nArms{} abordagens, num total de \nRuns{} execuções por modelo.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -39,9 +34,10 @@ Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo
 
 \subsection{\textit{Setup} experimental}
 
-Todas as abordagens usaram o modelo \modelName{}, com temperatura zero. A abordagem \armVector{} usou embeddings do modelo
+Foram avaliados \nModels{} modelos de linguagem: \modelList{}. Cada modelo respondeu a todas as perguntas em
+todas as abordagens, com temperatura zero e os mesmos prompts. A abordagem \armVector{} usou embeddings do modelo
 \texttt{\embedModel}. Nas abordagens com agente, cada pergunta admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A
-rodada teve \nRepeats{} repetição por pergunta.
+rodada de cada modelo teve \nRepeats{} repetição por pergunta.
 
 % TODO autor: REVISAR este parágrafo (movido da Metodologia; ainda não decidido se entra no artigo)
 \begingroup\color{red}\textbf{[REVISAR]} O acerto de uma abordagem é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
@@ -63,4 +59,56 @@ bibliotecas usadas foram socceraction~\cite{socceraction}, Neo4j Graph Data Scie
 networkx~\cite{networkx}, PydanticAI~\cite{pydanticai} e Langfuse~\cite{langfuse}, nas versões indicadas nas
 referências.\par\endgroup
 
-% TODO: escrever.
+\subsection{Acerto por abordagem}
+
+A Tabela~\ref{tab:acerto} mostra, para cada modelo, o acerto de cada abordagem nas \nAnswerable{} perguntas com
+resposta, com o intervalo de confiança de Wilson.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}
+\gentable{models}
+\captionof{table}{Acerto, em porcentagem, nas perguntas com resposta, com o intervalo de confiança de Wilson de
+\ciLevel{} entre parênteses.}\label{tab:acerto}
+\end{minipage}\par\smallskip
+
+\subsection{Acerto por grupo de perguntas}
+
+A Tabela~\ref{tab:grupos} mostra o número de acertos de cada abordagem em cada grupo de perguntas
+(Seção~\ref{sec:perguntas}), com o \modelName{}.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}
+\gentable{groups}
+\captionof{table}{Acertos do \modelName{} por grupo. Busca: busca e contagem; Relações: relações na rede de passes;
+Jogadas: jogadas e sequências; Momento: antes e depois de um momento do jogo.}\label{tab:grupos}
+\end{minipage}\par\smallskip
+
+\subsection{Comparações pareadas}
+
+A Tabela~\ref{tab:mcnemar} mostra, para cada modelo, o teste exato de McNemar entre \armTextToCypher{} e
+\armEventsInPrompt{}, entre \armGraphTools{} e \armTextToCypher{} e entre \armGraphTools{} e \armEventsInPrompt{}.
+As colunas Só A e Só B contam as perguntas em que só a primeira ou só a segunda abordagem do par acertou, e o
+valor $p$ traz o ajuste de Holm, feito dentro de cada modelo.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\gentable{mcnemar_models}
+\captionof{table}{Teste exato de McNemar nas perguntas com resposta, por modelo.}\label{tab:mcnemar}
+\end{minipage}\par\smallskip
+
+\subsection{Erros e custo}
+
+A Tabela~\ref{tab:erros} mostra, para cada modelo e sobre as \nQuestions{} perguntas, a proporção de alucinações,
+de abstenções e de erros de formato (Seção~\ref{sec:conferencia}) e, por execução, a média de tokens de entrada e
+a latência, além do custo da rodada.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{2.5pt}
+\gentable{errors_models}
+\captionof{table}{Perfil de erro sobre todas as perguntas (alucinação, abstenção e erro de formato) e médias por
+execução (tokens de entrada e latência), por modelo.}\label{tab:erros}
+\end{minipage}\par\smallskip

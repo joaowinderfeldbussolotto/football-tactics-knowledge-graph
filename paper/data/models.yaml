@@ -1,0 +1,17 @@
+# Modelos avaliados, na ordem das colunas das tabelas. O primeiro é o principal: os números sem prefixo de
+# modelo (\accGraphTools...), a tabela por grupo e o resto do texto vêm dele. Para acrescentar um modelo,
+# acrescente uma entrada e rode python scripts/paper_numbers.py; as macros com prefixo (\accQwenGraphTools...)
+# e as tabelas por modelo passam a incluí-lo.
+# short: nome curto, para o cabeçalho das tabelas.
+# usd: custo real da rodada, lido do consumo da chave antes e depois (página da execução em docs/execucoes/).
+models:
+  - key: Haiku
+    name: Claude Haiku 5.5
+    short: Haiku 5.5
+    results: data/benchmark/final_results.jsonl
+    usd: 1.04
+  - key: Qwen
+    name: Qwen3.8-flash
+    short: Qwen3.8
+    results: data/benchmark/qwen_results.jsonl
+    usd: 0.48
