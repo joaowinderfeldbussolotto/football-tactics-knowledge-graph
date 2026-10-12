@@ -109,6 +109,26 @@ def test_stray_quotes_around_arguments_are_dropped():
         {"team": "France", "period": [3], "action": ["passe"]}
 
 
+def test_json_text_arguments_become_objects():
+    assert arms._unquote('{"yellow_card": true}') == {"yellow_card": True}
+    assert arms._unquote('\n{"team": "\'France\'"}\n') == {"team": "France"}
+    assert arms._unquote("[1, 2]") == [1, 2]
+    # not JSON: unchanged
+    assert arms._unquote("{not json}") == "{not json}"
+    assert arms._unquote("Lionel Messi") == "Lionel Messi"
+
+
+def test_filters_sent_as_json_text_still_go_through_the_filters_validation():
+    from pydantic import ValidationError
+    from pydantic_ai import Tool
+
+    validator = Tool(arms.ALL_TOOLS["list_actions"], takes_ctx=True).function_schema.validator
+    args = validator.validate_python({"filters": '{"yellow_card": true, "period": 3}', "limit": 10})
+    assert args["filters"] == tools.ActionFilters(yellow_card=True, period=3)
+    with pytest.raises(ValidationError):
+        validator.validate_python({"filters": '{"period": 9}', "limit": 10})
+
+
 def test_tool_calls_are_logged_as_plain_data():
     class Ctx:
         deps = arms.GraphDeps(toolbox=None)

@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     # esforço menor pode piorar o uso de ferramenta e a saída estruturada, e isso
     # não foi medido neste projeto.
     llm_reasoning_effort: Literal["", "none", "low", "medium", "high"] = ""
+    # Provedor FIXO no OpenRouter, enviado como extra_body["provider"] com
+    # allow_fallbacks=false: o pedido falha em vez de cair em outro provedor (que
+    # pode custar várias vezes mais ou servir outra quantização). Slug do provedor
+    # como na página do modelo, ex. "baidu/fp8"; vários separados por vírgula
+    # formam uma ordem de preferência. Vazio = o OpenRouter escolhe. Só openrouter.
+    llm_provider_order: str = ""
 
     # --- Embeddings ---
     embedder_provider: str = ""
