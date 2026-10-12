@@ -46,6 +46,7 @@ E preencha:
 | `LLM_MAX_RETRIES` | quantas vezes o próprio SDK tenta de novo após erro temporário (limite de uso, servidor fora) | `5` (use 6 a 8 em chaves gratuitas) |
 | `LLM_MAX_TOKENS` | teto de tokens que o modelo pode **escrever** por resposta | `16000` |
 | `LLM_REASONING_EFFORT` | só OpenRouter: quanto o modelo "pensa" antes de responder. Vazio = padrão do modelo | vazio |
+| `LLM_PROVIDER_ORDER` | só OpenRouter: provedor fixo (slug da página do modelo, ex. `baidu/fp8`), sem cair em outro. Vazio = o OpenRouter escolhe | vazio |
 | `EMBEDDER_PROVIDER` | quem gera os embeddings do braço `vector`. O OpenRouter não oferece embeddings, então é preciso outro | `gemini` ou `mistral` |
 | `EMBEDDER_API_KEY`, `EMBEDDER_MODEL` | chave e modelo de embeddings | `gemini-embedding-001` |
 | `NEO4J_URI` | endereço do Neo4j | `bolt://localhost:7687` no caminho A; no B o compose ajusta sozinho |

@@ -151,23 +151,37 @@ def pydantic_ai_model_settings(settings: Settings) -> dict:
     desta camada — e porque a ``extra_body`` que o
     OpenRouter entende não existe nos outros.
 
-    ``max_tokens`` vem de ``LLM_MAX_TOKENS``. ``LLM_REASONING_EFFORT`` só é
-    traduzido para o OpenRouter, via ``extra_body["reasoning"]``, que o
-    OpenAI SDK repassa como está. Em outro provedor a opção é
+    ``max_tokens`` vem de ``LLM_MAX_TOKENS``. ``LLM_REASONING_EFFORT`` e
+    ``LLM_PROVIDER_ORDER`` só são traduzidos para o OpenRouter, via
+    ``extra_body["reasoning"]`` e ``extra_body["provider"]``, que o
+    OpenAI SDK repassa como estão. Em outro provedor a opção é
     ignorada COM aviso — ignorar em silêncio faria parecer que o botão
     funciona.
     """
     configuradas: dict = {"max_tokens": settings.llm_max_tokens}
+    extra_body: dict = {}
     esforco = settings.llm_reasoning_effort
     if esforco:
         if settings.llm_provider == "openrouter":
-            configuradas["extra_body"] = {"reasoning": {"effort": esforco}}
+            extra_body["reasoning"] = {"effort": esforco}
         else:
             logger.warning(
                 "LLM_REASONING_EFFORT=%s ignorado: só é traduzido para o provedor openrouter "
                 "(provedor atual: %s)",
                 esforco, settings.llm_provider,
             )
+    fixos = [p.strip() for p in settings.llm_provider_order.split(",") if p.strip()]
+    if fixos:
+        if settings.llm_provider == "openrouter":
+            extra_body["provider"] = {"order": fixos, "allow_fallbacks": False}
+        else:
+            logger.warning(
+                "LLM_PROVIDER_ORDER=%s ignorado: só é traduzido para o provedor openrouter "
+                "(provedor atual: %s)",
+                settings.llm_provider_order, settings.llm_provider,
+            )
+    if extra_body:
+        configuradas["extra_body"] = extra_body
     return configuradas
 
 
