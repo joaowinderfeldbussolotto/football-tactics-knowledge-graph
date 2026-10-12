@@ -138,7 +138,8 @@ def test_lint_glossary_and_the_shipped_glossary():
     terms = lint.glossary()
     assert any(p.search("a accuracy") for p, _ in terms) and any(p.search("each arm") for p, _ in terms)
     assert [f.rule for f in lint.scan("O arm acertou.", "t", allowed=set(), terms=terms)] == ["glossary"]
-    assert lint.scan("O braço acertou.", "t", allowed=set(), terms=terms) == []
+    assert [f.rule for f in lint.scan("O braço acertou.", "t", allowed=set(), terms=terms)] == ["glossary"]  # the paper says "abordagem"
+    assert lint.scan("A abordagem acertou.", "t", allowed=set(), terms=terms) == []
 
 
 def test_the_shipped_section_files_are_lint_clean():

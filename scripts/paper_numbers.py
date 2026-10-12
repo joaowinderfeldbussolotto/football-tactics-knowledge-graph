@@ -163,7 +163,7 @@ def ladder_table(per_arm, types, arms) -> str:
     for a in arms:
         acc = ps.accuracy(ps.select(per_arm[a], types, answerable=True))
         body.append([LABEL[a], f"{num(acc.correct)}/{acc.n}", pct(acc.share), f"{round(100 * acc.low)} a {round(100 * acc.high)}"])
-    return _tabular("lrrr", ["Braço", "Acertos", "Acerto", "IC 95\\%"], body)
+    return _tabular("lrrr", ["Abordagem", "Acertos", "Acerto", "IC 95\\%"], body)
 
 
 def groups_table(per_arm, types, arms) -> str:
@@ -191,7 +191,7 @@ def cost_table(rows, arms) -> str:
         c = ps.cost_profile(rows, a)
         body.append([LABEL[a], pct(c["hallucination"]), pct(c["abstention"]), num(round(c["tokens_in"])),
                      num(c["calls"], 1), f"{num(c['latency'], 1)}"])
-    return _tabular("lrrrrr", ["Braço", "Alucinação", "Abstenção", "Tokens de entrada", "Chamadas", "Latência (s)"], body)
+    return _tabular("lrrrrr", ["Abordagem", "Alucinação", "Abstenção", "Tokens de entrada", "Chamadas", "Latência (s)"], body)
 
 
 # --------------------------------------------------------------------------- output

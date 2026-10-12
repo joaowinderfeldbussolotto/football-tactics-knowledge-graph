@@ -54,12 +54,12 @@ mais importante é a trajetória de ajuste (item 1).
    PY
    LLM_MODEL=anthropic/claude-haiku-5.5 python scripts/run_benchmark.py \
      --arms events_in_prompt,text_to_cypher,graph_tools --repeats 3 --resume \
-     --output data/benchmark/repeats_results.jsonl --title "52 perguntas, 3 braços, 3 repetições"
+     --output data/benchmark/repeats_results.jsonl --title "52 perguntas, 3 abordagens, 3 repetições"
    python scripts/merge_results.py data/benchmark/final_results.jsonl data/benchmark/repeats_results.jsonl \
      --output data/benchmark/repeats_final_results.jsonl
    ```
 
-   O `graph_tools` (o braço caro, cerca de US$ 1,2 nas três repetições, sem cache) deve rodar primeiro; use
+   O `graph_tools` (a abordagem cara, cerca de US$ 1,2 nas três repetições, sem cache) deve rodar primeiro; use
    `--arms graph_tools` na primeira chamada se o saldo for curto, e `--resume` continua de onde parou. Depois:
    preencher `paper/data/costs.yaml`, e `python scripts/paper_numbers.py --results data/benchmark/repeats_final_results.jsonl`
    (idem `scripts/figures.py`). `vector`, `no_context` e `stats_in_prompt` ficam com uma repetição; a Metodologia diz.

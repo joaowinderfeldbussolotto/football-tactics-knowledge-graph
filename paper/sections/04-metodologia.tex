@@ -4,14 +4,14 @@
 % A tabela de exemplos de perguntas, os números do conjunto e a configuração estão em 05-resultados.tex.
 % O modelo é a macro \modelName, definida no preâmbulo (main.tex); trocar lá.
 % Enquadramento: forma de recuperação. "Quem faz o cálculo" fica só como interpretação na Discussão.
-% Brandes (intermediação) ficou fora do texto a pedido do autor; a chave continua em refs.bib.
+% Termo: "abordagem" (não "braço"). Brandes (intermediação) ficou fora do texto a pedido do autor; a chave continua em refs.bib.
 % O parágrafo de análise estatística foi movido para 05-resultados.tex (Setup experimental), em vermelho.
 
 \section{Metodologia}\label{sec:metodologia}
 
 O trabalho seguiu as seis fases do CRISP-DM~\cite{schroer2021crispdm}. O entendimento do problema e dos dados
 levou à pergunta de partida: como a forma de recuperar os dados afeta as respostas de um modelo de linguagem
-sobre eventos de futebol. A preparação dos dados está na Seção~\ref{sec:dados}, a modelagem das arquiteturas na
+sobre eventos de futebol. A preparação dos dados está na Seção~\ref{sec:dados}, a modelagem das abordagens na
 Seção~\ref{sec:arquiteturas} e a avaliação nas Seções~\ref{sec:perguntas} a~\ref{sec:execucao}, que descrevem
 também o registro de cada execução, parte da implantação.
 
@@ -52,9 +52,9 @@ real por essas etapas, e a Figura~\ref{fig:esquema} mostra o esquema do grafo.
 
 \input{fig-esquema}
 
-\subsection{Arquiteturas comparadas}\label{sec:arquiteturas}
+\subsection{Abordagens comparadas}\label{sec:arquiteturas}
 
-Foram comparadas \nArms{} arquiteturas (braços), ordenadas pela complexidade do que há entre a pergunta e o
+Foram comparadas \nArms{} abordagens, ordenadas pela complexidade do que há entre a pergunta e o
 modelo, da ausência de dados à consulta ao grafo com ferramentas (Tabela~\ref{tab:bracos}). Todas usam o mesmo
 modelo, o mesmo prompt de sistema e a mesma saída estruturada (jogadores, valor, indicação de ausência de dados e
 justificativa); a configuração está na Seção~\ref{sec:experimentos}.
@@ -64,9 +64,9 @@ justificativa); a configuração está na Seção~\ref{sec:experimentos}.
 \centering\small\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
 \begin{tabular}{>{\raggedright\arraybackslash}p{0.27\columnwidth}>{\raggedright\arraybackslash}p{0.31\columnwidth}>{\raggedright\arraybackslash}p{0.31\columnwidth}} % lint: ignore
 \toprule
-Braço & Forma de recuperação & O que o modelo recebe \\
+Abordagem & Forma de recuperação & O que o modelo recebe \\
 \midrule
-\armNoContext{} & nenhuma & só a pergunta \\
+\armNoContext{} & nenhuma & só a pergunta (linha de base) \\
 \armEventsInPrompt{} & tabela inteira no prompt & as \nActions{} ações \\
 \armStatsInPrompt{} & totais já calculados, no prompt & totais por jogador e por time \\
 \armVector{} & similaridade de embeddings & as \nTopK{} linhas mais parecidas com a pergunta \\
@@ -74,13 +74,12 @@ Braço & Forma de recuperação & O que o modelo recebe \\
 \armGraphTools{} & \nTools{} ferramentas com consulta fixa & o resultado das ferramentas que chama \\
 \bottomrule
 \end{tabular}
-\captionof{table}{As \nArms{} arquiteturas, da menos à mais complexa, e a forma de recuperação de cada uma.}\label{tab:bracos}
+\captionof{table}{As \nArms{} abordagens, da menos à mais complexa, e a forma de recuperação de cada uma.}\label{tab:bracos}
 \end{minipage}\par\smallskip
 
-Quatro braços colocam os dados diretamente no prompt. \armNoContext{} recebe só a pergunta e serve de linha de
-base. \armEventsInPrompt{} recebe a tabela de ações inteira, e \armStatsInPrompt{}, só os totais da súmula.
-\armVector{} representa cada linha da tabela e a pergunta por embeddings e recupera as \nTopK{} linhas mais
-próximas por similaridade de cosseno, no padrão de recuperação aumentada por geração~\cite{lewis2020rag}.
+Na \armVector{}, cada linha da tabela e a pergunta são representadas por embeddings, e as \nTopK{} linhas mais
+próximas por similaridade de cosseno são recuperadas, no padrão de recuperação aumentada por
+geração~\cite{lewis2020rag}.
 
 Em \armTextToCypher{} e \armGraphTools{}, o modelo atua como agente: em vez de responder de uma vez, decide a cada
 passo qual ação tomar, recebe o resultado e decide de novo, até responder ou atingir o limite de chamadas por
@@ -90,7 +89,7 @@ externa cujo nome e argumentos o modelo escolhe e cujo resultado volta ao seu co
 
 \input{fig-agente}
 
-Os dois braços de agente consultam o mesmo grafo e diferem em de onde vem a consulta. Em \armTextToCypher{}, a
+As duas abordagens com agente consultam o mesmo grafo e diferem em de onde vem a consulta. Em \armTextToCypher{}, a
 ferramenta executa no grafo a consulta Cypher que o modelo escreve~\cite{ozsoy2025text2cypher}, sem a biblioteca de
 algoritmos de grafos (GDS)~\cite{neo4j_gds} e sem os padrões táticos já calculados; ela só aceita leitura e devolve
 até \nMaxRows{} linhas. Em \armGraphTools{}, cada ferramenta executa no grafo uma consulta fixa, definida no código
@@ -111,7 +110,7 @@ foram eliminadas as perguntas com maior chance de ser interpretadas de mais de u
 
 \subsection{Resposta e conferência}\label{sec:conferencia}
 
-Todos os braços respondem no mesmo formato: uma justificativa, uma lista de jogadores, um valor numérico e um
+Todas as abordagens respondem no mesmo formato: uma justificativa, uma lista de jogadores, um valor numérico e um
 indicador de ausência de dados. A justificativa é escrita antes da resposta e nunca é pontuada. Uma resposta vazia
 (sem jogador, sem valor e sem o indicador) é inválida e o modelo é reperguntado até duas vezes; se a resposta
 continuar inválida, a execução conta como erro de formato.
@@ -139,8 +138,8 @@ Ausência de dados (\nCheckNoData{}) & o modelo indica que não há dados \\
 \end{minipage}\par\smallskip
 
 A Figura~\ref{fig:json} mostra respostas reais à pergunta a02 (``Quem deu mais passes certos no terço final do
-campo pela França?''), cujo gabarito é Adrien Rabiot, e a uma pergunta do controle. O braço \armTextToCypher{}
-devolveu um único jogador. O braço \armGraphTools{} listou cinco jogadores, em ordem, com Rabiot primeiro; como
+campo pela França?''), cujo gabarito é Adrien Rabiot, e a uma pergunta do controle. A abordagem \armTextToCypher{}
+devolveu um único jogador. A abordagem \armGraphTools{} listou cinco jogadores, em ordem, com Rabiot primeiro; como
 vale o primeiro da lista, as duas respostas são acertos. No controle, o acerto é a lista vazia com o indicador de
 ausência de dados ligado.
 
@@ -149,7 +148,7 @@ ausência de dados ligado.
 
 \subsection{Resultados de uma execução}\label{sec:execucao}
 
-Cada execução (uma pergunta feita a um braço) termina em um de quatro resultados (Tabela~\ref{tab:resultados}).
+Cada execução (uma pergunta feita a uma abordagem) termina em um de quatro resultados (Tabela~\ref{tab:resultados}).
 O termo alucinação é usado aqui em sentido operacional, mais estreito que o da literatura~\cite{ji2023survey}.
 Além do resultado, registram-se tokens, chamadas de ferramenta e latência, e cada execução fica registrada, com o
 prompt, as chamadas de ferramenta e a resposta, na ferramenta de observabilidade de código aberto

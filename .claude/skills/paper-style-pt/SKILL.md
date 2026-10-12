@@ -25,23 +25,23 @@ pega (tempo verbal, afirmação sem fonte, força da conclusão) é com você.
    Afirmação sobre o método: aponte o arquivo ou a seção. Sem nenhum dos três, corte ou marque `% TODO fonte`.
 6. **Nenhum número digitado.** Use a macro (skill `paper-numbers`). Número por extenso só para contagem que não
    vem dos resultados ("duas condições").
-7. **Glossário fixo** (`paper/glossary.tsv`): braço, degrau, primeiro contato, gabarito, execução, repetição,
+7. **Glossário fixo** (`paper/glossary.tsv`): abordagem, degrau, primeiro contato, gabarito, execução, repetição,
    acerto, consulta, ferramentas prontas, abstenção. Um conceito, um termo, no artigo inteiro. Se faltar um
    termo, acrescente no glossário antes de usar.
 8. **Força da conclusão proporcional à evidência.** Com uma repetição por pergunta: "indica", "sugere",
    "é compatível com". "Demonstra" e "prova" só com o teste (`\mc...PHolm` abaixo de 0,05) e com as repetições.
-   "Significativa" só para diferença testada. Correlação não vira causa: o texto compara braços, não explica
+   "Significativa" só para diferença testada. Correlação não vira causa: o texto compara abordagens, não explica
    por que o modelo errou, a menos que mostre o trace.
 9. **Limites ditos onde se aplicam,** não só em "Ameaças": a assimetria de ajuste na comparação entre
    `text_to_cypher` e `graph_tools`; "uma partida, um modelo" ao generalizar.
-10. **Nomes de braços e código em `\texttt{}`.** Frases curtas. Um parágrafo, uma ideia.
+10. **Nomes de abordagens e código em `\texttt{}`.** Frases curtas. Um parágrafo, uma ideia.
 
 ## Padrões de frase
 
 | Em vez de | Escreva |
 |---|---|
 | "Nosso método supera os demais" | "O `graph_tools` acertou \accGraphTools{} das perguntas com resposta, contra \accEventsInPrompt{} do `events_in_prompt`." |
-| "O grafo é mais robusto" | "A diferença entre os braços concentra-se nas jogadas (\accPlaysGraphTools{} contra \accPlaysTextToCypher{})." |
+| "O grafo é mais robusto" | "A diferença entre as abordagens concentra-se nas jogadas (\accPlaysGraphTools{} contra \accPlaysTextToCypher{})." |
 | "Resultado notável de 87%" | "Acerto de \accGraphTools{} (IC 95\%: \ciLowGraphTools{} a \ciHighGraphTools{})." |
 | "Isso mostra que ferramentas são melhores" | "Isso é compatível com a hipótese de que ferramentas com a consulta já escrita ajudam onde a consulta é difícil de escrever." |
 | "— que é o caso aqui —" | "(o caso aqui)" ou duas frases |

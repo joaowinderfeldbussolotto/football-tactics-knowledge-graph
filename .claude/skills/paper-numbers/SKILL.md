@@ -24,9 +24,9 @@ Depois das três repetições (ver `paper/README.md`), aponte os dois primeiros 
 ## Como usar no texto
 
 1. Liste o vocabulário: `grep newcommand paper/generated/numbers.tex`. Os nomes têm só letras:
-   prefixo + grupo + braço. Exemplos: `\accGraphTools` (acerto nas perguntas com resposta), `\kGraphTools`
+   prefixo + grupo + abordagem. Exemplos: `\accGraphTools` (acerto nas perguntas com resposta), `\kGraphTools`
    (quantas), `\ciLowGraphTools` e `\ciHighGraphTools` (intervalo de Wilson), `\accAllGraphTools` (com o
-   controle), `\accPlaysTextToCypher` (grupo × braço), `\mcTextToCypherEventsInPromptFirst`, `...Second`, `...P`,
+   controle), `\accPlaysTextToCypher` (grupo × abordagem), `\mcTextToCypherEventsInPromptFirst`, `...Second`, `...P`,
    `...PHolm` (McNemar), `\hallGraphTools`, `\abstGraphTools`, `\tokInGraphTools`, `\callsGraphTools`,
    `\latGraphTools`, `\nQuestions`, `\nAnswerable`, `\nRuns`, `\costFinal`, `\preFixKGraphTools`.
 2. Escreva `\accGraphTools{}` com chaves vazias quando a macro vier antes de uma palavra, para o espaço não sumir.
@@ -40,12 +40,12 @@ Depois das três repetições (ver `paper/README.md`), aponte os dois primeiros 
 
 ## Regras de leitura dos números
 
-- **Unidade é a pergunta.** Com repetições, o acerto de um braço numa pergunta é a fração de repetições certas;
+- **Unidade é a pergunta.** Com repetições, o acerto de uma abordagem numa pergunta é a fração de repetições certas;
   o intervalo é o de Wilson com n = perguntas; o McNemar usa o resultado por maioria. Está no cabeçalho de
   `paper_stats.py` e vai para a Metodologia.
 - Reporte sempre **com e sem as perguntas sem resposta**. O controle é acertado por quem responde "sem dados".
 - Diga o **denominador** de cada erro (47 com resposta, 52 no total).
-- Os braços `no_context`, `vector` e `stats_in_prompt` têm uma repetição mesmo depois da rodada de repetições
+- As abordagens `no_context`, `vector` e `stats_in_prompt` têm uma repetição mesmo depois da rodada de repetições
   (`\repNoContext`, `\repVector`...): a Metodologia diz isso.
 - Antes de afirmar uma diferença, olhe `\mc...PHolm` (três testes, ajuste de Holm), não só `\mc...P`.
-- Não compare custos de braços com e sem cache de prompt sem dizer (`paper/ALERTAS.md`, item 7).
+- Não compare custos de abordagens com e sem cache de prompt sem dizer (`paper/ALERTAS.md`, item 7).

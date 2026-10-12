@@ -18,7 +18,7 @@
 Os dados são os eventos da final da Copa do Mundo de 2022: \nEvents{} eventos no JSON bruto, que viraram
 \nActions{} ações na tabela de ações. As amostras do experimento são as perguntas: \nQuestions{} perguntas em cinco
 grupos (Tabela~\ref{tab:perguntas}), das quais \nAnswerable{} têm resposta nos dados e \nControl{} formam o grupo de
-controle. Cada pergunta foi feita a cada um dos \nArms{} braços, num total de \nRuns{} execuções.
+controle. Cada pergunta foi feita a cada uma das \nArms{} abordagens, num total de \nRuns{} execuções.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -39,17 +39,17 @@ Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo
 
 \subsection{\textit{Setup} experimental}
 
-Todos os braços usaram o modelo \modelName{}, com temperatura zero. O braço \armVector{} usou embeddings do modelo
-\texttt{\embedModel}. Nos braços de agente, cada pergunta admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A
+Todas as abordagens usaram o modelo \modelName{}, com temperatura zero. A abordagem \armVector{} usou embeddings do modelo
+\texttt{\embedModel}. Nas abordagens com agente, cada pergunta admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A
 rodada teve \nRepeats{} repetição por pergunta.
 
 % TODO autor: REVISAR este parágrafo (movido da Metodologia; ainda não decidido se entra no artigo)
-\begingroup\color{red}\textbf{[REVISAR]} O acerto de um braço é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
+\begingroup\color{red}\textbf{[REVISAR]} O acerto de uma abordagem é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
 foi executada uma vez, duas análises acompanham essa proporção, ambas calculadas depois da rodada, a partir do
 arquivo de resultados. A primeira é o intervalo de confiança de Wilson~\cite{wilson1927probable}, de \ciLevel{}
 para cada acerto; diferentemente do intervalo normal, ele não ultrapassa zero nem cem por cento, o que importa para
-os braços em zero por cento. A segunda compara pares de braços que responderam às mesmas perguntas: o teste exato
-de McNemar~\cite{mcnemar1947note} considera apenas as perguntas em que um braço acertou e o outro errou, e é o que
+as abordagens em zero por cento. A segunda compara pares de abordagens que responderam às mesmas perguntas: o teste exato
+de McNemar~\cite{mcnemar1947note} considera apenas as perguntas em que uma abordagem acertou e a outra errou, e é o que
 Dietterich~\cite{dietterich1998approximate} indica quando o algoritmo é executado uma só vez. Foram comparados
 \armTextToCypher{} e \armEventsInPrompt{}, \armGraphTools{} e \armTextToCypher{}, e \armGraphTools{} e
 \armEventsInPrompt{}. Como são três testes, os valores $p$ recebem o ajuste de Holm~\cite{holm1979simple}, que

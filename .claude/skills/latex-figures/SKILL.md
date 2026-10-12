@@ -22,7 +22,7 @@ Todas as figuras de dados saem de `scripts/figures.py`, a partir dos resultados 
 4. **Vetorial.** PDF com fontes embutidas (`pdf.fonttype` 42), sem imagens raster, sem metadados de data
    (para o arquivo não mudar a cada geração).
 5. **Honestidade do eixo.** Eixo de acerto de 0 a 100; intervalo de Wilson visível quando a figura compara
-   braços; $n$ no título ou na legenda quando a série muda de tamanho.
+   abordagens; $n$ no título ou na legenda quando a série muda de tamanho.
 6. **Legenda no LaTeX,** não dentro da figura: o texto da legenda diz o que se vê e a unidade; a figura não
    tem título.
 7. **Sem enfeite:** sem grade pesada, sem 3D, sem sombra, sem moldura; só as bordas esquerda e inferior.
@@ -41,6 +41,6 @@ Todas as figuras de dados saem de `scripts/figures.py`, a partir dos resultados 
 
 ## Figuras previstas (dossiê)
 
-F2 escada (acerto dos seis braços em ordem de complexidade, com IC), F3 acerto por grupo, F4 trajetória de
+F2 escada (acerto das seis abordagens em ordem de complexidade, com IC), F3 acerto por grupo, F4 trajetória de
 ajuste (**ler `paper/ALERTAS.md`, item 1, antes de descrevê-la**: as séries não sobem de forma contínua), F1
 arquitetura (a fazer), F5 exemplo de robustez (tabela). A apresentação reaproveita F1 a F4.

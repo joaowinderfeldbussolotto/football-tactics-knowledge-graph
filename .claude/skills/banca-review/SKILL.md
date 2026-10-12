@@ -1,6 +1,6 @@
 ---
 name: banca-review
-description: Revisão adversarial do artigo por seção, no papel da banca, com as objeções prováveis (ajuste guiado por erros, n pequeno, um modelo só, graph_tools misturando ferramenta e grafo, U invertido sustentado por braço que zera por construção). Use ao terminar uma seção, antes de entregar o artigo, ou quando o autor pedir "revise como a banca", "quais objeções virão" ou ensaio para a defesa.
+description: Revisão adversarial do artigo por seção, no papel da banca, com as objeções prováveis (ajuste guiado por erros, n pequeno, um modelo só, graph_tools misturando ferramenta e grafo, U invertido sustentado por abordagem que zera por construção). Use ao terminar uma seção, antes de entregar o artigo, ou quando o autor pedir "revise como a banca", "quais objeções virão" ou ensaio para a defesa.
 ---
 
 # Revisão adversarial (banca)
@@ -28,15 +28,15 @@ mostre a evidência e proponha a correção.**
 
 ## Categorias para procurar
 
-- **Validade interna:** ajuste assimétrico entre braços; perguntas escritas ou removidas depois de ver erros;
-  reexecução só em um braço; mudança de regra de correção no meio; ordem de execução e cache.
+- **Validade interna:** ajuste assimétrico entre abordagens; perguntas escritas ou removidas depois de ver erros;
+  reexecução só em uma abordagem; mudança de regra de correção no meio; ordem de execução e cache.
 - **Validade de construção:** o que "acerto" mede; "alucinação" contra abstenção; o que o `graph_tools` mistura
   (primitivas, algoritmos do GDS, o banco em grafo); o que o `text_to_cypher` não tem (GDS, padrões prontos);
   perguntas fechadas medem correção e não a qualidade da explicação.
 - **Validade estatística:** uma repetição; n = 47; intervalos largos; três testes sem correção; perguntas
   correlacionadas; "significativo" sem teste; percentuais em grupos de 4 a 6 perguntas.
 - **Validade externa:** uma partida, um modelo, uma versão de provedor; final famosa (memorização).
-- **Argumento:** conclusão mais forte que a evidência; o U invertido sustentado por um braço que zera por
+- **Argumento:** conclusão mais forte que a evidência; o U invertido sustentado por uma abordagem que zera por
   construção; comparação de custos com e sem cache; trajetória lida como melhora contínua quando não é.
 - **Literatura:** afirmação sobre trabalho relacionado que o `cite-check` não sustentou; lacuna declarada
   ("nenhum trabalho compara...") sem busca descrita.
