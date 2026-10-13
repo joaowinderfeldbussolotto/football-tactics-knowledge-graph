@@ -90,3 +90,52 @@ limites: o agente esgotou as chamadas de ferramenta, ou o modelo esgotou o limit
 \captionof{table}{Mediana por execução das três abordagens que leem os dados, por modelo. Os tokens de entrada
 incluem os lidos do cache do prompt.}\label{tab:custo}
 \end{minipage}\par\smallskip
+
+\subsection{Discussão}\label{sec:discussao}
+
+O resultado mais estável do experimento é o de \armGraphTools{}: foi a única abordagem com acerto alto nos
+\nModels{} modelos, e a que menos variou entre eles. Nela, a consulta já vem escrita na ferramenta, e o modelo só
+decide qual ferramenta chamar e com quais parâmetros, como na definição de ferramentas para consultar bancos de
+dados proposta por Shorten et al.~\cite{shorten2025dbfunction}. Contar os passes entre dois jogadores, percorrer uma
+jogada ou separar o que aconteceu antes e depois de uma substituição fica a cargo do código, e não da capacidade do
+modelo. É por isso que um modelo de preço baixo chegou à mesma faixa de acerto dos modelos de preço alto.
+
+Em \armTextToCypher{}, esse mesmo trabalho passa para o modelo, que precisa escrevê-lo em Cypher, e o acerto
+acompanhou essa capacidade. Gerar consultas Cypher corretas ainda é um ponto fraco dos LLMs~\cite{ozsoy2025text2cypher},
+e os modelos de preço baixo mostraram isso de forma direta: precisaram de mais tentativas para chegar a uma
+consulta útil. No \modelQwen{}, foram em média \callsQwenTextToCypher{} chamadas por pergunta, perto do limite de
+\nMaxCalls{}, e a entrada típica ficou próxima da de \armEventsInPrompt{}, porque cada nova chamada reenvia a
+conversa inteira. Nos modelos de preço alto, a abordagem alcançou \armGraphTools{} com menos tokens de entrada.
+
+\armEventsInPrompt{} faz o caminho oposto: entrega ao modelo a tabela de ações inteira e deixa com ele a tarefa de
+encontrar e combinar as linhas certas. Nos modelos de preço baixo, isso falhou sobretudo nas perguntas encadeadas,
+justamente as que exigem juntar eventos espalhados pela tabela. O comportamento é coerente com o que se sabe sobre
+contextos longos: os modelos usam pior a informação que está no meio deles~\cite{liu2024lostinthemiddle} e têm
+dificuldade com raciocínio composicional quando recebem o corpus inteiro~\cite{lee2024loft}. Com raciocínio
+estendido, nos modelos de preço alto, o acerto se aproximou das outras duas abordagens, mas a um custo visível na
+Tabela~\ref{tab:custo}: milhares de tokens de raciocínio e dezenas de segundos por pergunta. Li
+et al.~\cite{li2024ragorlongcontext} observaram que, com recursos suficientes, o contexto longo supera a
+recuperação. Aqui ele superou \armVector{} em todos os modelos, mas só chegou perto das abordagens com agente
+quando o modelo raciocinou longamente.
+
+\armVector{} e \armStatsInPrompt{} ficaram baixas em todos os modelos, e, nesse caso, o limite está no desenho de
+cada uma, e não no modelo. As \nTopK{} linhas mais parecidas com a pergunta não bastam para contar nem para ligar
+eventos, e o resumo traz totais por jogador e por time, sem registrar quem passou para quem. Diante disso, os
+modelos responderam, na maior parte das vezes, que não havia dados. O mesmo vale para \armNoContext{}, que não
+acertou nenhuma pergunta em nenhum modelo, o que indica que os modelos não responderam a partir de memória.
+Tzikas et al.~\cite{tzikas2025dynamic} obtiveram acerto maior com recuperação vetorial sobre eventos de futebol,
+mas em perguntas diretas, sobre quando, onde e quem. A diferença parece estar mais no tipo de pergunta do que na
+forma de recuperação.
+
+Nada disso funciona se o modelo não souber chamar ferramentas. A vantagem de \armGraphTools{} supõe chamadas
+confiáveis, e os erros de formato mostram onde ela pode se perder: agentes que esgotaram o limite de chamadas e
+modelos que esgotaram o limite de saída antes de responder. Em testes curtos com outros modelos, fora das rodadas
+relatadas aqui, apareceram também falhas no formato das chamadas e da resposta final. O uso de ferramentas varia
+entre modelos e provedores, e é condição para que a abordagem funcione.
+
+Alguns limites devem ser considerados. O estudo usa uma única partida, \nAnswerable{} perguntas com resposta e
+\nRepeats{} repetição por pergunta, o que deixa os intervalos de confiança largos. Nos modelos de preço alto, o
+tamanho e o raciocínio estendido vieram juntos, e não é possível separar o efeito de um do outro. O raciocínio
+também esbarrou no limite de saída: em \armEventsInPrompt{}, o \modelSonnet{} só respondeu dentro do limite com um
+nível de raciocínio menor, e algumas perguntas precisaram de um limite maior. Por fim, as faixas de preço refletem
+a tabela de outubro de 2026 e podem mudar, embora a distância entre elas seja grande.
