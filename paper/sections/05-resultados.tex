@@ -68,12 +68,10 @@ referências.\par\endgroup
 
 \subsubsection{Acerto}
 
-A Figura~\ref{fig:modelos} mostra o acerto das três abordagens que leem os dados da partida nas \nAnswerable{}
-perguntas com resposta. \armGraphTools{} acertou de \accRangeGraphTools{} nas duas faixas de preço.
-\armTextToCypher{} e \armEventsInPrompt{} ficaram abaixo dela nos modelos de preço baixo e se aproximaram dela nos de
-preço alto: \armTextToCypher{} passou de \accRangeLowTextToCypher{} para \accRangeHighTextToCypher{}, e
-\armEventsInPrompt{}, de \accRangeLowEventsInPrompt{} para \accRangeHighEventsInPrompt{}. Nos modelos de preço
-baixo, a distância se concentrou nas perguntas de jogadas e de relações na rede de passes.
+A Figura~\ref{fig:modelos} mostra o acerto das três abordagens que leem os dados nas \nAnswerable{} perguntas com
+resposta. \armGraphTools{} variou pouco entre os modelos (\accRangeGraphTools{}). As outras duas dependeram da faixa
+de preço: ficaram abaixo dela nos modelos de preço baixo e se aproximaram dela nos de preço alto. Nos modelos de
+preço baixo, a diferença se concentrou nas perguntas de jogadas e de relações na rede de passes.
 
 As outras três abordagens não passaram de \accMaxOthers{} em nenhum modelo e erraram sobretudo por abstenção,
 respondendo que não havia dados. Nas três que leem os dados, a abstenção foi rara, exceto
@@ -89,14 +87,16 @@ intervalo de Wilson de \ciLevel{}. A área cinza marca os modelos de preço alto
 
 \subsubsection{Custo}
 
-A Tabela~\ref{tab:custo} mostra a média de tokens de saída e a latência por execução. Nos modelos de preço alto,
-\armEventsInPrompt{} produziu de \outRangeHighEventsInPrompt{} tokens de saída por pergunta, quase todos de
-raciocínio, e levou de \latRangeHighEventsInPrompt{} segundos. Os erros de formato, quando ocorreram, vieram de
+A Tabela~\ref{tab:custo} mostra a média de tokens de entrada e de saída e a latência por execução.
+\armEventsInPrompt{} leva a tabela de ações inteira em cada pergunta, de \inRangeEventsInPrompt{} mil tokens de
+entrada. Nos modelos de preço alto, também produziu de \outRangeHighEventsInPrompt{} tokens de saída, quase todos
+de raciocínio, e levou de \latRangeHighEventsInPrompt{} segundos. Os erros de formato, quando ocorreram, vieram de
 limites: o agente esgotou as chamadas de ferramenta, ou o modelo esgotou o limite de saída.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
 \centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{5pt}
 \gentable{cost_models}
-\captionof{table}{Média por execução das três abordagens que leem os dados, por modelo.}\label{tab:custo}
+\captionof{table}{Média por execução das três abordagens que leem os dados, por modelo. Os tokens de entrada
+incluem os lidos do cache do prompt.}\label{tab:custo}
 \end{minipage}\par\smallskip

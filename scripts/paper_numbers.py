@@ -258,11 +258,12 @@ def models_errors_table(models: list[dict]) -> str:
 
 
 def models_cost_table(models: list[dict]) -> str:
-    """Output tokens (thousands) and latency (s) per execution of the three data approaches: one column per model,
-    one block per measure."""
+    """Input and output tokens (thousands) and latency (s) per execution of the three data approaches: one column
+    per model, one block per measure. Input tokens include the ones read from the prompt cache."""
     lines = ["\\begin{tabular}{l" + "r" * len(models) + "}", "\\toprule",
              "Abordagem & " + " & ".join(md["short"] for md in models) + r" \\"]
-    for title, key, fmt in (("Tokens de saída (mil)", "tokens_out", lambda x: num(x / 1000, 1)),
+    for title, key, fmt in (("Tokens de entrada (mil)", "tokens_in", lambda x: num(round(x / 1000))),
+                            ("Tokens de saída (mil)", "tokens_out", lambda x: num(x / 1000, 1)),
                             ("Latência (s)", "latency", lambda x: num(round(x)))):
         lines += ["\\midrule", f"\\multicolumn{{{len(models) + 1}}}{{l}}{{\\textit{{{title}}}}} \\\\"]
         for a in DATA_ARMS:
@@ -349,6 +350,7 @@ def tier_ranges(models: list[dict]) -> dict[str, str]:
             costs = [ps.cost_profile(md["rows"], a) for md in ms]
             m[f"accRange{tk}{k}"] = rng(accs, pct)
             m[f"outRange{tk}{k}"] = rng([c["tokens_out"] for c in costs], lambda x: num(round(x)))
+            m[f"inRange{tk}{k}"] = rng([c["tokens_in"] / 1000 for c in costs], lambda x: num(round(x)))
             m[f"latRange{tk}{k}"] = rng([c["latency"] for c in costs], lambda x: num(round(x)))
             m[f"abstRange{tk}{k}"] = rng([c["abstention"] for c in costs], pct)
     return m
