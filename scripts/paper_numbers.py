@@ -15,6 +15,7 @@ Usage:
 """
 
 import argparse
+import statistics
 import difflib
 import sys
 from pathlib import Path
@@ -257,9 +258,18 @@ def models_errors_table(models: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def median_profile(rows: list[dict], arm: str) -> dict[str, float]:
+    """Medians per execution: a few questions with many tool calls pull the agents' means far up (each call sends
+    the whole conversation again), so the table and its ranges show the typical question."""
+    rs = [r for r in rows if r["arm"] == arm]
+    return {"tokens_in": statistics.median(r["input_tokens"] for r in rs),
+            "tokens_out": statistics.median(r["output_tokens"] for r in rs),
+            "latency": statistics.median(r["latency_s"] for r in rs)}
+
+
 def models_cost_table(models: list[dict]) -> str:
-    """Input and output tokens (thousands) and latency (s) per execution of the three data approaches: one column
-    per model, one block per measure. Input tokens include the ones read from the prompt cache."""
+    """Medians per execution of input and output tokens (thousands) and latency (s) of the three data approaches:
+    one column per model, one block per measure. Input tokens include the ones read from the prompt cache."""
     lines = ["\\begin{tabular}{l" + "r" * len(models) + "}", "\\toprule",
              "Abordagem & " + " & ".join(md["short"] for md in models) + r" \\"]
     for title, key, fmt in (("Tokens de entrada (mil)", "tokens_in", lambda x: num(round(x / 1000))),
@@ -267,7 +277,7 @@ def models_cost_table(models: list[dict]) -> str:
                             ("Latência (s)", "latency", lambda x: num(round(x)))):
         lines += ["\\midrule", f"\\multicolumn{{{len(models) + 1}}}{{l}}{{\\textit{{{title}}}}} \\\\"]
         for a in DATA_ARMS:
-            lines.append(" & ".join([LABEL[a]] + [fmt(ps.cost_profile(md["rows"], a)[key]) for md in models]) + r" \\")
+            lines.append(" & ".join([LABEL[a]] + [fmt(median_profile(md["rows"], a)[key]) for md in models]) + r" \\")
     lines += ["\\bottomrule", "\\end{tabular}", ""]
     return "\n".join(lines)
 
@@ -347,12 +357,12 @@ def tier_ranges(models: list[dict]) -> dict[str, str]:
             if not ms:
                 continue
             accs = [ps.accuracy(ps.select(md["per_arm"][a], md["types"], answerable=True)).share for md in ms]
-            costs = [ps.cost_profile(md["rows"], a) for md in ms]
+            costs = [median_profile(md["rows"], a) for md in ms]  # medians, as in the cost table
             m[f"accRange{tk}{k}"] = rng(accs, pct)
             m[f"outRange{tk}{k}"] = rng([c["tokens_out"] for c in costs], lambda x: num(round(x)))
             m[f"inRange{tk}{k}"] = rng([c["tokens_in"] / 1000 for c in costs], lambda x: num(round(x)))
             m[f"latRange{tk}{k}"] = rng([c["latency"] for c in costs], lambda x: num(round(x)))
-            m[f"abstRange{tk}{k}"] = rng([c["abstention"] for c in costs], pct)
+            m[f"abstRange{tk}{k}"] = rng([ps.cost_profile(md["rows"], a)["abstention"] for md in ms], pct)
     return m
 
 
