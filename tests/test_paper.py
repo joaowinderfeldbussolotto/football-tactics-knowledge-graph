@@ -84,7 +84,7 @@ def test_the_numbers_the_dossier_states():
     assert (macros["preFixKGraphTools"], macros["preFixNGraphTools"]) == ("39", "52")
     assert macros["accPlaysGraphTools"] == "80\\%" and macros["accPlaysTextToCypher"] == "40\\%"
     assert macros["tokInGraphTools"] == "76.118" and macros["costFinal"] == "1,04"
-    assert set(tables) == {"groups.tex", "mcnemar.tex", "cost.tex", "ladder.tex", "models.tex", "mcnemar_models.tex", "errors_models.tex", "fig_models.tex", "groups_models.tex"}
+    assert set(tables) == {"groups.tex", "mcnemar.tex", "cost.tex", "ladder.tex", "models.tex", "mcnemar_models.tex", "errors_models.tex", "fig_models.tex", "groups_models.tex", "cost_models.tex"}
     assert all(re.fullmatch(r"[A-Za-z]+", name) for name in macros)  # LaTeX control sequences: letters only
 
 

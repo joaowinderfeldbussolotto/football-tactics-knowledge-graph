@@ -147,6 +147,7 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
         "models.tex": models_table(models),
         "fig_models.tex": models_figure(models),
         "groups_models.tex": models_groups_table(models),
+        "cost_models.tex": models_cost_table(models),
         "mcnemar_models.tex": models_mcnemar_table(models),
         "errors_models.tex": models_errors_table(models),
         "groups.tex": groups_table(per_arm, types, arms),
@@ -256,6 +257,20 @@ def models_errors_table(models: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def models_cost_table(models: list[dict]) -> str:
+    """Output tokens (thousands) and latency (s) per execution of the three data approaches: one column per model,
+    one block per measure."""
+    lines = ["\\begin{tabular}{l" + "r" * len(models) + "}", "\\toprule",
+             "Abordagem & " + " & ".join(md["short"] for md in models) + r" \\"]
+    for title, key, fmt in (("Tokens de saída (mil)", "tokens_out", lambda x: num(x / 1000, 1)),
+                            ("Latência (s)", "latency", lambda x: num(round(x)))):
+        lines += ["\\midrule", f"\\multicolumn{{{len(models) + 1}}}{{l}}{{\\textit{{{title}}}}} \\\\"]
+        for a in DATA_ARMS:
+            lines.append(" & ".join([LABEL[a]] + [fmt(ps.cost_profile(md["rows"], a)[key]) for md in models]) + r" \\")
+    lines += ["\\bottomrule", "\\end{tabular}", ""]
+    return "\n".join(lines)
+
+
 def models_groups_table(models: list[dict]) -> str:
     """Correct answers per group of answerable questions: one column per model, each cell the three data
     approaches in the order of DATA_ARMS."""
@@ -319,6 +334,9 @@ def tier_ranges(models: list[dict]) -> dict[str, str]:
         lo, hi = min(values), max(values)
         return fmt(lo) if fmt(lo) == fmt(hi) else f"{fmt(lo)} a {fmt(hi)}"
 
+    others = [ps.accuracy(ps.select(md["per_arm"][a], md["types"], answerable=True)).share
+              for md in models for a in ps.LADDER if a not in DATA_ARMS and a in md["per_arm"]]
+    m["accMaxOthers"] = pct(max(others))  # the best of no_context, stats_in_prompt and vector in any model
     tiers = {"": models, "Low": [md for md in models if md.get("tier") == "baixo"],
              "High": [md for md in models if md.get("tier") == "alto"]}
     for a in ps.LADDER:

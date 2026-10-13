@@ -38,10 +38,7 @@ baixa, de centavos de dólar por milhão de tokens, ficaram \modelHaiku{} e \mod
 por milhão, \modelSonnet{} e \modelKimi{}. Em cada faixa há um modelo de código fechado e um de pesos abertos. Cada
 modelo respondeu a todas as perguntas em todas as abordagens, com os mesmos prompts. Os modelos de preço baixo rodaram
 sem raciocínio estendido e com temperatura zero; os de preço alto, com raciocínio estendido no nível padrão e na
-temperatura padrão do provedor. A resposta de cada chamada ao modelo, raciocínio incluído, foi limitada a
-\nMaxOutTokens{} tokens. Na abordagem \armEventsInPrompt{} do \modelSonnet{}, o raciocínio no nível padrão esgotou
-esse limite em parte das perguntas, que ficaram sem resposta; nessa abordagem, o nível de raciocínio foi reduzido, e
-as perguntas que ainda esgotaram o limite foram refeitas com o dobro dele.
+temperatura padrão do provedor. A resposta de cada chamada ao modelo, raciocínio incluído, foi limitada a \nMaxOutTokens{} tokens.
 
 A abordagem \armVector{} usou embeddings do modelo \texttt{\embedModel}. Nas abordagens com agente, cada pergunta
 admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A rodada de cada modelo teve \nRepeats{} repetição por
@@ -69,25 +66,18 @@ referências.\par\endgroup
 
 \subsection{Análise dos resultados}
 
-\subsubsection{Acerto por abordagem e modelo}
+\subsubsection{Acerto}
 
-A Tabela~\ref{tab:acerto} mostra o acerto das \nArms{} abordagens nos \nModels{} modelos, e a
-Figura~\ref{fig:modelos} destaca as três que leem os dados da partida. \armGraphTools{} acertou de
-\accRangeGraphTools{} das perguntas com resposta, nas duas faixas de preço. \armTextToCypher{} acertou de
-\accRangeLowTextToCypher{} nos modelos de preço baixo e de \accRangeHighTextToCypher{} nos de preço alto;
-\armEventsInPrompt{}, de \accRangeLowEventsInPrompt{} e de \accRangeHighEventsInPrompt{}. Nos modelos de preço
-baixo, \armGraphTools{} ficou à frente das outras duas, com intervalos que não se sobrepõem aos de
-\armEventsInPrompt{}; nos de preço alto, os intervalos das três se sobrepõem. As outras abordagens ficaram
-abaixo em todos os modelos: \armVector{} acertou de \accRangeVector{}, \armStatsInPrompt{} de
-\accRangeStatsInPrompt{} e \armNoContext{}, \accRangeNoContext{}.
+A Figura~\ref{fig:modelos} mostra o acerto das três abordagens que leem os dados da partida nas \nAnswerable{}
+perguntas com resposta. \armGraphTools{} acertou de \accRangeGraphTools{} nas duas faixas de preço.
+\armTextToCypher{} e \armEventsInPrompt{} ficaram abaixo dela nos modelos de preço baixo e se aproximaram dela nos de
+preço alto: \armTextToCypher{} passou de \accRangeLowTextToCypher{} para \accRangeHighTextToCypher{}, e
+\armEventsInPrompt{}, de \accRangeLowEventsInPrompt{} para \accRangeHighEventsInPrompt{}. Nos modelos de preço
+baixo, a distância se concentrou nas perguntas de jogadas e de relações na rede de passes.
 
-\vspace{2mm}
-\noindent\begin{minipage}{\columnwidth}
-\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
-\gentable{models}
-\captionof{table}{Acerto, em porcentagem, nas perguntas com resposta. Os intervalos de confiança das três
-abordagens que leem os dados estão na Figura~\ref{fig:modelos}.}\label{tab:acerto}
-\end{minipage}\par\smallskip
+As outras três abordagens não passaram de \accMaxOthers{} em nenhum modelo e erraram sobretudo por abstenção,
+respondendo que não havia dados. Nas três que leem os dados, a abstenção foi rara, exceto
+em \armEventsInPrompt{} nos modelos de preço baixo.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -97,39 +87,16 @@ abordagens que leem os dados estão na Figura~\ref{fig:modelos}.}\label{tab:acer
 intervalo de Wilson de \ciLevel{}. A área cinza marca os modelos de preço alto.}\label{fig:modelos}
 \end{minipage}\par\smallskip
 
-\subsubsection{Acerto por grupo de perguntas}
+\subsubsection{Custo}
 
-A Tabela~\ref{tab:grupos} mostra os acertos das três abordagens em cada grupo de perguntas
-(Seção~\ref{sec:perguntas}). Nos modelos de preço baixo, a distância entre \armGraphTools{} e as outras duas
-abordagens aparece sobretudo nos grupos de jogadas e de relações na rede de passes. Nos modelos de preço alto,
-\armGraphTools{} acertou menos que \armTextToCypher{} no grupo antes e depois de um momento do jogo.
-
-\vspace{2mm}
-\noindent\begin{minipage}{\columnwidth}
-\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
-\gentable{groups_models}
-\captionof{table}{Acertos por grupo de perguntas, em cada célula na ordem \armShortEventsInPrompt{},
-\armShortTextToCypher{} e \armShortGraphTools{}. Busca: busca e contagem; Relações: relações na rede de passes;
-Jogadas: jogadas e sequências; Momento: antes e depois de um momento do jogo.}\label{tab:grupos}
-\end{minipage}\par\smallskip
-
-\subsubsection{Erros e custo}
-
-A Tabela~\ref{tab:erros} mostra, para as três abordagens que leem os dados, a proporção de alucinações, de
-abstenções e de erros de formato (Seção~\ref{sec:conferencia}) e, por execução, a média de tokens de entrada e de
-saída e a latência. Nos modelos de preço alto, \armEventsInPrompt{} produziu em média de
-\outRangeHighEventsInPrompt{} tokens de saída por pergunta, quase todos de raciocínio, contra
-\outRangeLowEventsInPrompt{} nos de preço baixo, e levou de \latRangeHighEventsInPrompt{} segundos. Os erros de
-formato vieram de limites: no \modelQwen{}, o agente esgotou as chamadas de ferramenta em \armTextToCypher{}
-(\fmtQwenTextToCypher{}) e em \armGraphTools{} (\fmtQwenGraphTools{}); no \modelKimi{}, em \armGraphTools{}
-(\fmtKimiGraphTools{}), o modelo esgotou o limite de saída ou as tentativas de resposta; no \modelSonnet{}, em
-\armEventsInPrompt{} (\fmtSonnetEventsInPrompt{}), esgotou o limite de saída mesmo com o dobro dele. Fora da tabela, \armNoContext{} e \armStatsInPrompt{} se abstiveram em
-\abstRangeNoContext{} e \abstRangeStatsInPrompt{} das perguntas, e \armVector{}, em \abstRangeVector{}.
+A Tabela~\ref{tab:custo} mostra a média de tokens de saída e a latência por execução. Nos modelos de preço alto,
+\armEventsInPrompt{} produziu de \outRangeHighEventsInPrompt{} tokens de saída por pergunta, quase todos de
+raciocínio, e levou de \latRangeHighEventsInPrompt{} segundos. Os erros de formato, quando ocorreram, vieram de
+limites: o agente esgotou as chamadas de ferramenta, ou o modelo esgotou o limite de saída.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
-\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{3pt}
-\gentable{errors_models}
-\captionof{table}{Perfil de erro sobre todas as perguntas e médias por execução das três abordagens que leem os
-dados, por modelo. Form.: erro de formato; entrada e saída em milhares de tokens; latência em segundos.}\label{tab:erros}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{5pt}
+\gentable{cost_models}
+\captionof{table}{Média por execução das três abordagens que leem os dados, por modelo.}\label{tab:custo}
 \end{minipage}\par\smallskip
