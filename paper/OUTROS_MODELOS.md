@@ -93,34 +93,39 @@ dos braços) precisa ser revisto à luz disso.
 - Arquivos: `data/benchmark/sonnet46_results.jsonl` (rodada com raciocínio "medium", 312 execuções; página
   `docs/execucoes/2026-10-13_17_sonnet46.md`), `sonnet46_events_low_results.jsonl` (events_in_prompt refeito com
   raciocínio "low", 52 perguntas) e `sonnet46_combined_results.jsonl` (o que o artigo usa: a rodada "medium" com
-  as linhas do events_in_prompt trocadas pelas "low", por `scripts/merge_results.py`).
+  as linhas do events_in_prompt trocadas pelas "low", e as 6 que ainda estouraram com "low" trocadas pela nova
+  tentativa com teto de 32 mil em `sonnet46_events_low32k_results.jsonl`, por `scripts/merge_results.py`).
 - Chamada direta ao Amazon Bedrock (provedor `bedrock` do código, API Converse), perfil de inferência
   `us.anthropic.claude-sonnet-4-6`, região us-east-2. Raciocínio estendido ligado (`LLM_REASONING_EFFORT`, que no
   Bedrock vira o ajuste `thinking` do PydanticAI) e, por exigência da Anthropic, temperatura 1.
 - **Esforço diferente por braço (declarar):** com "medium", em 19 das 52 perguntas do events_in_prompt o modelo
   gastou os 16 mil tokens de saída raciocinando e não respondeu. Nas 28 que responderam, acertou 25. Com "low" e o
-  mesmo teto, o events_in_prompt passou a 68% (32/47), com 12% de estouros. Os outros braços ficam com "medium":
-  neles não houve nenhum estouro.
+  mesmo teto, o events_in_prompt passou a 68% (32/47), com 6 estouros. Essas 6 foram refeitas com "low" e teto de
+  32 mil: s04 e p02 certas, s12 e b06 erradas (responderam com 6 a 8,5 mil tokens; com o teto de 16 mil tinham
+  estourado, então parte dos estouros é aleatória, a temperatura é 1), a05 e n09 estouraram de novo (também
+  estouram com "medium"). Com elas, 72% (34/47). Os outros braços ficam com "medium": neles não houve estouro.
+  Assim, o events_in_prompt do Sonnet tem duas condições (teto de 16 mil e, em 6 perguntas, 32 mil).
 - Amostra de sensibilidade em 5 das perguntas que estouraram (`sonnet46_events_32k_results.jsonl` e as 5 primeiras
   linhas do arquivo "low"): "medium" com 16 mil, 0/5; "medium" com 32 mil, 3/5 (raciocínios de 10 a 32 mil tokens,
   até 4,5 min por pergunta, uma estourou de novo); "low" com 16 mil, 4/5. Raciocinar mais não ajudou nessa tarefa.
 - Custo calculado pelos tokens (chamada direta, sem consumo de chave para ler): US$ 17,76 a rodada "medium",
-  US$ 6,05 o events_in_prompt "low", US$ 2,21 a amostra de 32 mil. Créditos do OpenRouter: zero.
+  US$ 6,05 o events_in_prompt "low", US$ 1,99 a nova tentativa "low" com 32 mil, US$ 2,21 a amostra "medium" de
+  32 mil; total US$ 28,01. Créditos do OpenRouter: zero.
 
 | Braço | Sonnet 4.6 | IC 95% |
 |---|---|---|
 | graph_tools | 42/47 = 89% | 77 a 95 |
 | text_to_cypher | 42/47 = 89% | 77 a 95 |
-| events_in_prompt ("low") | 32/47 = 68% | 54 a 80 |
+| events_in_prompt ("low"; 6 com teto de 32 mil) | 34/47 = 72% | 58 a 83 |
 | vector | 7/47 = 15% | 7 a 28 |
 | stats_in_prompt | 4/47 = 9% | 3 a 20 |
 | no_context | 0/47 | 0 a 8 |
 
-McNemar exato (arquivo combinado): text_to_cypher x events_in_prompt 10/0, p = 0,002 (Holm 0,006); graph_tools x
-text_to_cypher 5/5, p = 1; graph_tools x events_in_prompt 13/3, p = 0,021 (Holm 0,043).
+McNemar exato (arquivo combinado): text_to_cypher x events_in_prompt 8/0, p = 0,008 (Holm 0,023); graph_tools x
+text_to_cypher 5/5, p = 1; graph_tools x events_in_prompt 12/4, p = 0,077 (Holm 0,154, não significativo).
 
-Por grupo (events_in_prompt / text_to_cypher / graph_tools): busca e contagem 9/11/11 de 11; relações 13/17/18 de
-20; jogadas 7/8/9 de 10; antes e depois 3/6/4 de 6. Latência média: events_in_prompt 51 s ("low"), text_to_cypher
+Por grupo (events_in_prompt / text_to_cypher / graph_tools): busca e contagem 9/11/11 de 11; relações 14/17/18 de
+20; jogadas 8/8/9 de 10; antes e depois 3/6/4 de 6. Latência média: events_in_prompt 51 s ("low"), text_to_cypher
 16 s, graph_tools 19 s.
 
 ## Raciocínio e temperatura dos modelos caros (declarar no método)
@@ -164,13 +169,13 @@ resultado medido.
 |---|---|---|---|---|
 | graph_tools | 87% | 83% | 89% | 89% |
 | text_to_cypher | 70% | 57% | 89% | 94% |
-| events_in_prompt | 45% | 40% | 68% | 85% |
+| events_in_prompt | 45% | 40% | 72% | 85% |
 
 - O graph_tools é estável: 83 a 89% nos quatro modelos, baratos e caros, abertos e fechados.
 - O text_to_cypher cresce com o modelo: 57 a 70% nos baratos, 89 a 94% nos caros, onde empata com o graph_tools
   (Sonnet 5/5; Kimi 2/4, sem diferença).
-- O events_in_prompt depende do modelo e do raciocínio: 40 a 45% nos baratos, 68 a 85% nos caros, e ainda abaixo
-  dos braços de consulta no Sonnet (diferença significativa). Ler a tabela inteira custa caro: 51 a 71 s por
+- O events_in_prompt depende do modelo e do raciocínio: 40 a 45% nos baratos, 72 a 85% nos caros. No Sonnet fica
+  abaixo do text_to_cypher (significativo) e do graph_tools (não significativo depois de Holm). Ler a tabela inteira custa caro: 51 a 71 s por
   pergunta e milhares de tokens de raciocínio nos modelos caros.
 - Leitura geral: ferramentas prontas tornam um modelo barato competitivo com os caros; com um modelo caro, escrever
   a consulta (text_to_cypher) chega ao mesmo lugar. Tamanho e raciocínio vêm juntos nos caros (ver acima).
