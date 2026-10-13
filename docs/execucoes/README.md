@@ -22,6 +22,7 @@ vêm sempre do arquivo de resultados da execução, nunca do Langfuse.
 | [14](2026-10-10_14_final.md) | 2026-10-10 | Consolidado: 52 perguntas, 6 braços, 1 repetição | claude-haiku-5.5 | 312 | 45/52 | US$ 1.04 |
 | [15](2026-10-12_15_qwen.md) | 2026-10-12 | Qwen3.8-flash, seis braços | qwen3.8-flash | 312 | 44/52 | US$ 0.48 |
 | [16](2026-10-12_16_kimi-k3.md) | 2026-10-12 | Kimi K3 (Bedrock), seis braços | kimi-k3 | 312 | 47/52 | US$ 33.40 |
+| [17](2026-10-13_17_sonnet46.md) | 2026-10-13 | Sonnet 4.6 (Bedrock, raciocínio médio), seis braços | us.anthropic.claude-sonnet-4-6 | 312 | 47/52 | US$ 17,76 (calculado) |
 
 > **As execuções 01 a 03 usaram dados com um erro na camada 0**, corrigido
 > depois: em 44% das ações o lado do ataque estava invertido, o que deixava
