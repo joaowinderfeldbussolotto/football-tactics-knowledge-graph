@@ -190,3 +190,13 @@ def test_bedrock_needs_only_the_model_id(monkeypatch):
     assert arms.missing_config(["graph_tools"]) == []
     monkeypatch.setattr(arms, "get_settings", lambda: Settings(_env_file=None, llm_provider="bedrock", llm_model=""))
     assert "LLM_MODEL" in arms.missing_config(["graph_tools"])[0]
+
+
+def test_temperature_is_zero_unless_the_provider_sets_one(monkeypatch):
+    from football_graphrag.config import Settings
+
+    monkeypatch.setattr(arms, "get_settings", lambda: Settings(_env_file=None, llm_provider="mistral"))
+    assert arms._model_settings()["temperature"] == 0.0
+    monkeypatch.setattr(arms, "get_settings", lambda: Settings(
+        _env_file=None, llm_provider="bedrock", llm_model="m", llm_aws_region="us-east-2", llm_reasoning_effort="medium"))
+    assert arms._model_settings()["temperature"] == 1.0

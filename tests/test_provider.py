@@ -178,12 +178,11 @@ def test_bedrock_usa_a_api_converse_com_o_id_do_modelo():
     assert provider.pydantic_ai_model_name(bedrock_settings()) == "bedrock:openai.gpt-oss-120b-1:0"
 
 
-def test_bedrock_ignora_opcoes_do_openrouter_com_aviso(caplog):
+def test_bedrock_ignora_o_provedor_fixo_do_openrouter_com_aviso(caplog):
     with caplog.at_level("WARNING"):
-        s = provider.pydantic_ai_model_settings(
-            bedrock_settings(llm_provider_order="baidu/fp8", llm_reasoning_effort="low"))
+        s = provider.pydantic_ai_model_settings(bedrock_settings(llm_provider_order="baidu/fp8"))
     assert "extra_body" not in s
-    assert "LLM_PROVIDER_ORDER" in caplog.text and "LLM_REASONING_EFFORT" in caplog.text
+    assert "LLM_PROVIDER_ORDER" in caplog.text
 
 
 def test_bedrock_envia_a_requisicao_converse_com_ferramenta_e_limite_de_saida():
@@ -211,3 +210,19 @@ def test_bedrock_envia_a_requisicao_converse_com_ferramenta_e_limite_de_saida():
     assert result.output == "ok"
     assert seen["modelId"] == "openai.gpt-oss-120b-1:0"
     assert seen["inferenceConfig"]["maxTokens"] == 1234
+
+
+def test_bedrock_traduz_o_esforco_de_raciocinio_para_thinking_com_temperatura_1():
+    s = provider.pydantic_ai_model_settings(bedrock_settings(llm_reasoning_effort="medium"))
+    assert s["thinking"] == "medium" and s["temperature"] == 1.0
+    assert "extra_body" not in s
+
+
+def test_bedrock_esforco_none_desliga_o_raciocinio_sem_mudar_a_temperatura():
+    s = provider.pydantic_ai_model_settings(bedrock_settings(llm_reasoning_effort="none"))
+    assert s["thinking"] is False and "temperature" not in s
+
+
+def test_bedrock_sem_esforco_nao_envia_thinking():
+    s = provider.pydantic_ai_model_settings(bedrock_settings())
+    assert "thinking" not in s and "temperature" not in s

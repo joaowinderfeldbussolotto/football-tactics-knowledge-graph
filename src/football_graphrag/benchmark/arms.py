@@ -237,7 +237,8 @@ async def similar_events(text: str, k: int = VECTOR_TOP_K) -> list[str]:
 # --------------------------------------------------------------------------- agents
 
 def _model_settings() -> dict:
-    return {**pydantic_ai_model_settings(get_settings()), "temperature": 0.0}
+    # Temperature 0 unless the provider layer sets one (extended thinking requires 1).
+    return {"temperature": 0.0, **pydantic_ai_model_settings(get_settings())}
 
 
 @lru_cache

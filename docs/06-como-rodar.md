@@ -45,7 +45,7 @@ E preencha:
 | `LLM_MODEL` | o nome do modelo no provedor. No OpenRouter, sempre `laboratório/modelo` | `z-ai/glm-5.3-flash` |
 | `LLM_MAX_RETRIES` | quantas vezes o próprio SDK tenta de novo após erro temporário (limite de uso, servidor fora) | `5` (use 6 a 8 em chaves gratuitas) |
 | `LLM_MAX_TOKENS` | teto de tokens que o modelo pode **escrever** por resposta | `16000` |
-| `LLM_REASONING_EFFORT` | só OpenRouter: quanto o modelo "pensa" antes de responder. Vazio = padrão do modelo | vazio |
+| `LLM_REASONING_EFFORT` | OpenRouter e Bedrock: quanto o modelo "pensa" antes de responder. No Bedrock liga o raciocínio estendido com temperatura 1. Vazio = padrão do modelo | vazio |
 | `LLM_PROVIDER_ORDER` | só OpenRouter: provedor fixo (slug da página do modelo, ex. `baidu/fp8`), sem cair em outro. Vazio = o OpenRouter escolhe | vazio |
 | `LLM_AWS_REGION` | só Bedrock (`LLM_PROVIDER=bedrock`, `pip install -e ".[bedrock]"`): região do endpoint. `LLM_MODEL` é o ID do modelo no Bedrock e `LLM_API_KEY` a chave de API do Bedrock; vazio = credenciais AWS padrão | vazio |
 | `LLM_PROMPT_CACHE` | `false` tira o ponto de cache dos prompts (modelo sem cache de prompt no provedor). Não muda o que o modelo lê | `true` |

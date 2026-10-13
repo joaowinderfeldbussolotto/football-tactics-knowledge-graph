@@ -165,10 +165,10 @@ def pydantic_ai_model_settings(settings: Settings) -> dict:
     desta camada — e porque a ``extra_body`` que o
     OpenRouter entende não existe nos outros.
 
-    ``max_tokens`` vem de ``LLM_MAX_TOKENS``. ``LLM_REASONING_EFFORT`` e
-    ``LLM_PROVIDER_ORDER`` só são traduzidos para o OpenRouter, via
-    ``extra_body["reasoning"]`` e ``extra_body["provider"]``, que o
-    OpenAI SDK repassa como estão. Em outro provedor a opção é
+    ``max_tokens`` vem de ``LLM_MAX_TOKENS``. ``LLM_PROVIDER_ORDER`` só é
+    traduzido para o OpenRouter (``extra_body["provider"]``); ``LLM_REASONING_EFFORT``
+    vai ao OpenRouter como ``extra_body["reasoning"]`` e ao Bedrock como o ajuste
+    ``thinking`` do PydanticAI, com temperatura 1 (exigência da Anthropic). Em outro provedor a opção é
     ignorada COM aviso — ignorar em silêncio faria parecer que o botão
     funciona.
     """
@@ -178,6 +178,13 @@ def pydantic_ai_model_settings(settings: Settings) -> dict:
     if esforco:
         if settings.llm_provider == "openrouter":
             extra_body["reasoning"] = {"effort": esforco}
+        elif settings.llm_provider == "bedrock":
+            # Ajuste unificado do PydanticAI (raciocínio estendido do Claude no Bedrock).
+            # Com ele ligado a Anthropic só aceita temperatura 1: o valor sai daqui e
+            # prevalece sobre o padrão dos agentes.
+            configuradas["thinking"] = False if esforco == "none" else esforco
+            if esforco != "none":
+                configuradas["temperature"] = 1.0
         else:
             logger.warning(
                 "LLM_REASONING_EFFORT=%s ignorado: só é traduzido para o provedor openrouter "
