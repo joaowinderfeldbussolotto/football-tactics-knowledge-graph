@@ -23,6 +23,7 @@ import yaml
 
 from football_graphrag.benchmark import arms as arm_defs
 from football_graphrag.benchmark import cypher
+from football_graphrag.config import Settings
 from football_graphrag.benchmark import paper_stats as ps
 from football_graphrag.benchmark.questions import GROUPS, QUESTIONS
 
@@ -82,6 +83,7 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
         "nPlayers": str(N_PLAYERS), "nPhases": str(N_PHASES), "nZones": str(N_ZONES),
         "nMaxCalls": str(arm_defs.MAX_TOOL_CALLS), "nTopK": str(arm_defs.VECTOR_TOP_K), "nTools": str(len(arm_defs.TOOLS)),
         "nMaxRows": str(cypher.MAX_ROWS),
+        "nMaxOutTokens": f"{Settings.model_fields['llm_max_tokens'].default // 1000} mil",
         "nCheckPlayer": str(sum(q.check == "player" for q in QUESTIONS)),
         "nCheckSet": str(sum(q.check == "set" for q in QUESTIONS)),
         "nCheckValue": str(sum(q.check in ("value", "player_and_value") for q in QUESTIONS)),
@@ -139,10 +141,12 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
 
     models = load_models()
     m.update(model_macros(models))
+    m.update(tier_ranges(models))
 
     tables = {
         "models.tex": models_table(models),
         "fig_models.tex": models_figure(models),
+        "groups_models.tex": models_groups_table(models),
         "mcnemar_models.tex": models_mcnemar_table(models),
         "errors_models.tex": models_errors_table(models),
         "groups.tex": groups_table(per_arm, types, arms),
@@ -179,7 +183,8 @@ def model_pairs(model: dict) -> list[tuple]:
 
 def model_macros(models: list[dict]) -> dict[str, str]:
     names = [md["name"] for md in models]
-    m = {"nModels": str(len(models)),
+    m = {"nModels": str(len(models)), "nModelsLow": str(sum(md.get("tier") == "baixo" for md in models)),
+         "nModelsHigh": str(sum(md.get("tier") == "alto" for md in models)),
          "modelList": names[0] if len(names) == 1 else ", ".join(names[:-1]) + " e " + names[-1]}
     for md in models:
         key, per_arm, types = md["key"], md["per_arm"], md["types"]
@@ -204,7 +209,7 @@ def model_macros(models: list[dict]) -> dict[str, str]:
 
 
 def models_table(models: list[dict]) -> str:
-    """Accuracy on the answerable questions, one column per model: share and Wilson interval."""
+    """Accuracy (%) on the answerable questions, one column per model (the intervals are in the figure and the macros)."""
     body = []
     for a in ps.LADDER:
         cells = [LABEL[a]]
@@ -213,7 +218,7 @@ def models_table(models: list[dict]) -> str:
                 cells.append("--")
                 continue
             acc = ps.accuracy(ps.select(md["per_arm"][a], md["types"], answerable=True))
-            cells.append(f"{round(100 * acc.share)} ({round(100 * acc.low)} a {round(100 * acc.high)})")
+            cells.append(str(round(100 * acc.share)))
         body.append(cells)
     return _tabular("l" + "r" * len(models), ["Abordagem"] + [md["short"] for md in models], body)
 
@@ -235,48 +240,100 @@ def models_mcnemar_table(models: list[dict]) -> str:
 
 
 def models_errors_table(models: list[dict]) -> str:
-    """Error profile and cost per execution, one block of rows per model."""
-    lines = ["\\begin{tabular}{lrrrrr}", "\\toprule",
-             r"Abordagem & Aluc. & Abst. & Formato & Tokens & Lat. (s) \\"]
+    """Error profile and cost per execution of the three data approaches, one block of rows per model.
+
+    Tokens are in thousands; the money cost is left out on purpose (prices change, tokens and latency do not)."""
+    lines = ["\\begin{tabular}{lrrrrrr}", "\\toprule",
+             r"Abordagem & Aluc. & Abst. & Form. & Entrada & Saída & Lat. \\"]
     for md in models:
-        cost = f" (rodada: US\\$ {num(md['usd'], 2)})" if md.get("usd") is not None else ""
-        lines += ["\\midrule", f"\\multicolumn{{6}}{{l}}{{\\textit{{{md['name']}}}{cost}}} \\\\"]
-        for a in md["arms"]:
+        lines += ["\\midrule", f"\\multicolumn{{7}}{{l}}{{\\textit{{{md['name']}}}}} \\\\"]
+        for a in DATA_ARMS:
             c = ps.cost_profile(md["rows"], a)
             lines.append(" & ".join([LABEL[a], pct(c["hallucination"]), pct(c["abstention"]), pct(c["format_error"]),
-                                     num(round(c["tokens_in"])), num(c["latency"], 1)]) + r" \\")
+                                     num(c["tokens_in"] / 1000, 1), num(c["tokens_out"] / 1000, 1),
+                                     num(c["latency"], 1)]) + r" \\")
     lines += ["\\bottomrule", "\\end{tabular}", ""]
     return "\n".join(lines)
 
 
-# The three approaches that read the match data, in the order of the figure's bars.
+def models_groups_table(models: list[dict]) -> str:
+    """Correct answers per group of answerable questions: one column per model, each cell the three data
+    approaches in the order of DATA_ARMS."""
+    body = []
+    for g in GROUP_ORDER:
+        if g == ps.CONTROL:
+            continue
+        cells, n = [GROUP_SHORT[g]], None
+        for md in models:
+            counts = []
+            for a in DATA_ARMS:
+                sel = ps.select(md["per_arm"][a], md["types"], groups=(g,))
+                n = len(sel)
+                counts.append(num(ps.accuracy(sel).correct))
+            cells.append("/".join(counts))
+        body.append([cells[0], str(n)] + cells[1:])
+    return _tabular("lr" + "c" * len(models), ["Grupo", "$n$"] + [md["short"] for md in models], body)
+
+
+# The three approaches that read the match data, in the order of the figure and of the cells "a/b/c".
 DATA_ARMS = ("events_in_prompt", "text_to_cypher", "graph_tools")
 
 
 def models_figure(models: list[dict]) -> str:
-    """Grouped bars: accuracy of the three data approaches in each model, with the Wilson interval."""
-    styles = {"events_in_prompt": "fill=black!20, draw=black!45", "text_to_cypher": "fill=black!55, draw=black!70",
-              "graph_tools": "fill=accent, draw=accent"}
+    """Lines: accuracy of the three data approaches in each model, low price tier first, with the Wilson
+    interval; the high price tier is shaded."""
+    styles = {"events_in_prompt": "black!45, thick, mark=square*, mark options={fill=black!25}",
+              "text_to_cypher": "black!80, thick, mark=triangle*, mark options={fill=black!60}",
+              "graph_tools": "accent, very thick, mark=*"}
     coords = ",".join(md["short"] for md in models)
+    high = [md["short"] for md in models if md.get("tier") == "alto"]
     lines = ["\\definecolor{accent}{HTML}{1F5C99}", "\\begin{tikzpicture}", "\\begin{axis}[",
-             "  width=\\columnwidth, height=5cm, ybar=0.6pt, bar width=7pt, ymin=0, ymax=100,",
-             f"  symbolic x coords={{{coords}}}, xtick=data, enlarge x limits=0.15,",
+             "  width=0.97\\columnwidth, height=5.2cm, ymin=0, ymax=100, clip=false,",
+             f"  symbolic x coords={{{coords}}}, xtick=data, enlarge x limits={{abs=26pt}},",
              "  ylabel={Acerto (\\%)}, ytick={0,25,50,75,100}, axis x line*=bottom, axis y line*=left,",
-             "  tick label style={font=\\small}, label style={font=\\small}, legend style={font=\\small, draw=none,",
-             "  at={(0.5,1.02)}, anchor=south, legend columns=-1, /tikz/every even column/.append style={column sep=6pt}},",
-             "  legend image code/.code={\\draw[#1] (0cm,-0.1cm) rectangle (0.25cm,0.12cm);},",
-             "  error bars/y dir=both, error bars/y explicit, error bars/error bar style={black!80, line width=0.4pt},",
+             "  tick label style={font=\\small}, label style={font=\\small}, legend style={font=\\footnotesize, draw=none,",
+             "  fill=none, at={(0.5,1.03)}, anchor=south, legend columns=-1,",
+             "  /tikz/every even column/.append style={column sep=3pt}},",
+             "  error bars/y dir=both, error bars/y explicit, error bars/error bar style={line width=0.4pt},",
              "]"]
+    if high:
+        lines.append(f"\\fill[black!6] ([xshift=-16pt]axis cs:{high[0]},0) rectangle ([xshift=16pt]axis cs:{high[-1]},100);")
+        lines.append(f"\\node[font=\\footnotesize, black!60, anchor=south] at ([xshift=24pt]axis cs:{high[0]},2) {{preço alto}};")
     for a in DATA_ARMS:
         pts = []
         for md in models:
             acc = ps.accuracy(ps.select(md["per_arm"][a], md["types"], answerable=True))
             v, lo, hi = 100 * acc.share, 100 * acc.low, 100 * acc.high
-            pts.append(f"({md['short']},{v:.1f}) +- (0,0) += (0,{hi - v:.1f}) -= (0,{v - lo:.1f})")
+            pts.append(f"({md['short']},{v:.1f}) += (0,{hi - v:.1f}) -= (0,{v - lo:.1f})")
         lines.append(f"\\addplot[{styles[a]}] coordinates {{{' '.join(pts)}}};")
     lines.append("\\legend{" + ",".join(ARM_NAMES[a][1] for a in DATA_ARMS) + "}")
     lines += ["\\end{axis}", "\\end{tikzpicture}", ""]
     return "\n".join(lines)
+
+
+def tier_ranges(models: list[dict]) -> dict[str, str]:
+    """Ranges across models ("83\\% a 89\\%"), overall and per price tier, for the text."""
+    m = {}
+
+    def rng(values: list[float], fmt) -> str:
+        lo, hi = min(values), max(values)
+        return fmt(lo) if fmt(lo) == fmt(hi) else f"{fmt(lo)} a {fmt(hi)}"
+
+    tiers = {"": models, "Low": [md for md in models if md.get("tier") == "baixo"],
+             "High": [md for md in models if md.get("tier") == "alto"]}
+    for a in ps.LADDER:
+        k = ps.ARM_KEYS[a]
+        for tk, ms in tiers.items():
+            ms = [md for md in ms if a in md["per_arm"]]
+            if not ms:
+                continue
+            accs = [ps.accuracy(ps.select(md["per_arm"][a], md["types"], answerable=True)).share for md in ms]
+            costs = [ps.cost_profile(md["rows"], a) for md in ms]
+            m[f"accRange{tk}{k}"] = rng(accs, pct)
+            m[f"outRange{tk}{k}"] = rng([c["tokens_out"] for c in costs], lambda x: num(round(x)))
+            m[f"latRange{tk}{k}"] = rng([c["latency"] for c in costs], lambda x: num(round(x)))
+            m[f"abstRange{tk}{k}"] = rng([c["abstention"] for c in costs], pct)
+    return m
 
 
 # --------------------------------------------------------------------------- tables

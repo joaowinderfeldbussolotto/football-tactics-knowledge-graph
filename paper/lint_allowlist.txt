@@ -1,3 +1,4 @@
 # Literais que podem aparecer digitados no texto (um por linha). Todo o resto vem de numbers.tex.
 2022      # Copa do Mundo de 2022
 3869685   # identificador da partida no StatsBomb Open Data
+2026      # data dos preços de tabela que definem as faixas dos modelos

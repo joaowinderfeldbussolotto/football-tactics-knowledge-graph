@@ -1,10 +1,9 @@
 % Seção: Experimentos e resultados  (orçamento: 2.5 página(s))
 %
-% Resultados descritivos, sem conclusões: o texto aponta as tabelas e não repete os números delas, nem usa
-% palavras de ordem ("maior", "supera"), porque os resultados ainda vão mudar (mais modelos, repetições).
-% Interpretação (ordem das abordagens entre modelos, dependência do modelo em Consulta e Contexto longo) vai para a
-% Discussão. Os modelos vêm de paper/data/models.yaml; as tabelas, de scripts/paper_numbers.py (\gentable).
-% Usar 'indica' e não 'demonstra' enquanto houver uma repetição por pergunta.
+% Narrativa combinada com o autor (13/10/2026): Ferramentas mantêm o acerto nas duas faixas de preço; Consulta e
+% Contexto longo dependem de modelos de preço alto, com raciocínio, e pagam em tokens de saída e latência; tool calling
+% efetivo é condição. Os Resultados descrevem; a Discussão interpreta. Sem McNemar no texto por ora (a tabela
+% generated/tables/mcnemar_models.tex continua gerada). Sem preço em dólar (os preços mudam): só tokens e latência.
 
 \section{Experimentos e resultados}\label{sec:experimentos}
 
@@ -34,10 +33,19 @@ Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo
 
 \subsection{\textit{Setup} experimental}
 
-Foram avaliados \nModels{} modelos de linguagem: \modelList{}. Cada modelo respondeu a todas as perguntas em
-todas as abordagens, com temperatura zero e os mesmos prompts. A abordagem \armVector{} usou embeddings do modelo
-\texttt{\embedModel}. Nas abordagens com agente, cada pergunta admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A
-rodada de cada modelo teve \nRepeats{} repetição por pergunta.
+Foram avaliados \nModels{} modelos de linguagem, em duas faixas de preço de tabela (outubro de 2026). Na faixa
+baixa, de centavos de dólar por milhão de tokens, ficaram \modelHaiku{} e \modelQwen{}; na alta, de alguns dólares
+por milhão, \modelSonnet{} e \modelKimi{}. Em cada faixa há um modelo de código fechado e um de pesos abertos. Cada
+modelo respondeu a todas as perguntas em todas as abordagens, com os mesmos prompts. Os modelos de preço baixo rodaram
+sem raciocínio estendido e com temperatura zero; os de preço alto, com raciocínio estendido no nível padrão e na
+temperatura padrão do provedor. A resposta de cada chamada ao modelo, raciocínio incluído, foi limitada a
+\nMaxOutTokens{} tokens. Na abordagem \armEventsInPrompt{} do \modelSonnet{}, o raciocínio no nível padrão esgotou
+esse limite em parte das perguntas, que ficaram sem resposta; nessa abordagem, o nível de raciocínio foi reduzido, e
+as perguntas que ainda esgotaram o limite foram refeitas com o dobro dele.
+
+A abordagem \armVector{} usou embeddings do modelo \texttt{\embedModel}. Nas abordagens com agente, cada pergunta
+admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A rodada de cada modelo teve \nRepeats{} repetição por
+pergunta.
 
 % TODO autor: REVISAR este parágrafo (movido da Metodologia; ainda não decidido se entra no artigo)
 \begingroup\color{red}\textbf{[REVISAR]} O acerto de uma abordagem é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
@@ -61,56 +69,67 @@ referências.\par\endgroup
 
 \subsection{Análise dos resultados}
 
-\subsubsection{Acerto por abordagem}
+\subsubsection{Acerto por abordagem e modelo}
 
-A Tabela~\ref{tab:acerto} mostra, para cada modelo, o acerto de cada abordagem nas \nAnswerable{} perguntas com
-resposta, com o intervalo de confiança de Wilson.
-
-\vspace{2mm}
-\noindent\begin{minipage}{\columnwidth}
-\centering\footnotesize\renewcommand{\arraystretch}{1.15}
-\gentable{models}
-\captionof{table}{Acerto, em porcentagem, nas perguntas com resposta, com o intervalo de confiança de Wilson de
-\ciLevel{} entre parênteses.}\label{tab:acerto}
-\end{minipage}\par\smallskip
-
-\subsubsection{Acerto por grupo de perguntas}
-
-A Tabela~\ref{tab:grupos} mostra o número de acertos de cada abordagem em cada grupo de perguntas
-(Seção~\ref{sec:perguntas}), com o \modelName{}.
-
-\vspace{2mm}
-\noindent\begin{minipage}{\columnwidth}
-\centering\footnotesize\renewcommand{\arraystretch}{1.15}
-\gentable{groups}
-\captionof{table}{Acertos do \modelName{} por grupo. Busca: busca e contagem; Relações: relações na rede de passes;
-Jogadas: jogadas e sequências; Momento: antes e depois de um momento do jogo.}\label{tab:grupos}
-\end{minipage}\par\smallskip
-
-\subsubsection{Comparações pareadas}
-
-A Tabela~\ref{tab:mcnemar} mostra, para cada modelo, o teste exato de McNemar entre \armTextToCypher{} e
-\armEventsInPrompt{}, entre \armGraphTools{} e \armTextToCypher{} e entre \armGraphTools{} e \armEventsInPrompt{}.
-As colunas Só A e Só B contam as perguntas em que só a primeira ou só a segunda abordagem do par acertou, e o
-valor $p$ traz o ajuste de Holm, feito dentro de cada modelo.
+A Tabela~\ref{tab:acerto} mostra o acerto das \nArms{} abordagens nos \nModels{} modelos, e a
+Figura~\ref{fig:modelos} destaca as três que leem os dados da partida. \armGraphTools{} acertou de
+\accRangeGraphTools{} das perguntas com resposta, nas duas faixas de preço. \armTextToCypher{} acertou de
+\accRangeLowTextToCypher{} nos modelos de preço baixo e de \accRangeHighTextToCypher{} nos de preço alto;
+\armEventsInPrompt{}, de \accRangeLowEventsInPrompt{} e de \accRangeHighEventsInPrompt{}. Nos modelos de preço
+baixo, \armGraphTools{} ficou à frente das outras duas, com intervalos que não se sobrepõem aos de
+\armEventsInPrompt{}; nos de preço alto, os intervalos das três se sobrepõem. As outras abordagens ficaram
+abaixo em todos os modelos: \armVector{} acertou de \accRangeVector{}, \armStatsInPrompt{} de
+\accRangeStatsInPrompt{} e \armNoContext{}, \accRangeNoContext{}.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
 \centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
-\gentable{mcnemar_models}
-\captionof{table}{Teste exato de McNemar nas perguntas com resposta, por modelo.}\label{tab:mcnemar}
+\gentable{models}
+\captionof{table}{Acerto, em porcentagem, nas perguntas com resposta. Os intervalos de confiança das três
+abordagens que leem os dados estão na Figura~\ref{fig:modelos}.}\label{tab:acerto}
+\end{minipage}\par\smallskip
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering
+\gentable{fig_models}
+\captionof{figure}{Acerto das três abordagens que leem os dados nas perguntas com resposta, por modelo, com o
+intervalo de Wilson de \ciLevel{}. A área cinza marca os modelos de preço alto.}\label{fig:modelos}
+\end{minipage}\par\smallskip
+
+\subsubsection{Acerto por grupo de perguntas}
+
+A Tabela~\ref{tab:grupos} mostra os acertos das três abordagens em cada grupo de perguntas
+(Seção~\ref{sec:perguntas}). Nos modelos de preço baixo, a distância entre \armGraphTools{} e as outras duas
+abordagens aparece sobretudo nos grupos de jogadas e de relações na rede de passes. Nos modelos de preço alto,
+\armGraphTools{} acertou menos que \armTextToCypher{} no grupo antes e depois de um momento do jogo.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
+\gentable{groups_models}
+\captionof{table}{Acertos por grupo de perguntas, em cada célula na ordem \armShortEventsInPrompt{},
+\armShortTextToCypher{} e \armShortGraphTools{}. Busca: busca e contagem; Relações: relações na rede de passes;
+Jogadas: jogadas e sequências; Momento: antes e depois de um momento do jogo.}\label{tab:grupos}
 \end{minipage}\par\smallskip
 
 \subsubsection{Erros e custo}
 
-A Tabela~\ref{tab:erros} mostra, para cada modelo e sobre as \nQuestions{} perguntas, a proporção de alucinações,
-de abstenções e de erros de formato (Seção~\ref{sec:conferencia}) e, por execução, a média de tokens de entrada e
-a latência, além do custo da rodada.
+A Tabela~\ref{tab:erros} mostra, para as três abordagens que leem os dados, a proporção de alucinações, de
+abstenções e de erros de formato (Seção~\ref{sec:conferencia}) e, por execução, a média de tokens de entrada e de
+saída e a latência. Nos modelos de preço alto, \armEventsInPrompt{} produziu em média de
+\outRangeHighEventsInPrompt{} tokens de saída por pergunta, quase todos de raciocínio, contra
+\outRangeLowEventsInPrompt{} nos de preço baixo, e levou de \latRangeHighEventsInPrompt{} segundos. Os erros de
+formato vieram de limites: no \modelQwen{}, o agente esgotou as chamadas de ferramenta em \armTextToCypher{}
+(\fmtQwenTextToCypher{}) e em \armGraphTools{} (\fmtQwenGraphTools{}); no \modelKimi{}, em \armGraphTools{}
+(\fmtKimiGraphTools{}), o modelo esgotou o limite de saída ou as tentativas de resposta; no \modelSonnet{}, em
+\armEventsInPrompt{} (\fmtSonnetEventsInPrompt{}), esgotou o limite de saída mesmo com o dobro dele. Fora da tabela, \armNoContext{} e \armStatsInPrompt{} se abstiveram em
+\abstRangeNoContext{} e \abstRangeStatsInPrompt{} das perguntas, e \armVector{}, em \abstRangeVector{}.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
-\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{2.5pt}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{3pt}
 \gentable{errors_models}
-\captionof{table}{Perfil de erro sobre todas as perguntas (alucinação, abstenção e erro de formato) e médias por
-execução (tokens de entrada e latência), por modelo.}\label{tab:erros}
+\captionof{table}{Perfil de erro sobre todas as perguntas e médias por execução das três abordagens que leem os
+dados, por modelo. Form.: erro de formato; entrada e saída em milhares de tokens; latência em segundos.}\label{tab:erros}
 \end{minipage}\par\smallskip
