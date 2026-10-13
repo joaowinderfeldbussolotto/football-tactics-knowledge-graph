@@ -34,7 +34,7 @@ SECRET = 7341
 
 async def main() -> int:
     settings = get_settings()
-    if not settings.llm_api_key:
+    if not settings.llm_api_key and settings.llm_provider != "bedrock":
         print("LLM_API_KEY is missing in .env: nothing to test.")
         return 1
     print(f"provider={settings.llm_provider}  model={settings.llm_model}")
