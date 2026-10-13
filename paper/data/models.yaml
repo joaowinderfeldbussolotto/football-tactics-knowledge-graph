@@ -20,3 +20,12 @@ models:
     short: Kimi K3
     results: data/benchmark/kimi_k3_results.jsonl
     usd: 33.40
+  # Sonnet 4.6: chamada direta ao Bedrock (us-east-2), raciocínio "medium" com temperatura 1, exceto no
+  # events_in_prompt, que usa "low" (com "medium" o raciocínio esgotava o teto de 16 mil tokens em 19 das 52
+  # perguntas). O arquivo combina as duas rodadas; usd é a soma das duas, calculada pelos tokens (sem leitura
+  # de consumo de chave). Ver paper/OUTROS_MODELOS.md.
+  - key: Sonnet
+    name: Claude Sonnet 4.6
+    short: Sonnet 4.6
+    results: data/benchmark/sonnet46_combined_results.jsonl
+    usd: 23.81
