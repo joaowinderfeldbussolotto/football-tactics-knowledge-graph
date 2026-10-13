@@ -44,18 +44,10 @@ A abordagem \armVector{} usou embeddings do modelo \texttt{\embedModel}. Nas abo
 admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A rodada de cada modelo teve \nRepeats{} repetição por
 pergunta.
 
-% TODO autor: REVISAR este parágrafo (movido da Metodologia; ainda não decidido se entra no artigo)
-\begingroup\color{red}\textbf{[REVISAR]} O acerto de uma abordagem é a proporção de perguntas respondidas corretamente. Como as perguntas são poucas e cada uma
-foi executada uma vez, duas análises acompanham essa proporção, ambas calculadas depois da rodada, a partir do
-arquivo de resultados. A primeira é o intervalo de confiança de Wilson~\cite{wilson1927probable}, de \ciLevel{}
-para cada acerto; diferentemente do intervalo normal, ele não ultrapassa zero nem cem por cento, o que importa para
-as abordagens em zero por cento. A segunda compara pares de abordagens que responderam às mesmas perguntas: o teste exato
-de McNemar~\cite{mcnemar1947note} considera apenas as perguntas em que uma abordagem acertou e a outra errou, e é o que
-Dietterich~\cite{dietterich1998approximate} indica quando o algoritmo é executado uma só vez. Foram comparados
-\armTextToCypher{} e \armEventsInPrompt{}, \armGraphTools{} e \armTextToCypher{}, e \armGraphTools{} e
-\armEventsInPrompt{}. Como são três testes, os valores $p$ recebem o ajuste de Holm~\cite{holm1979simple}, que
-mantém no nível escolhido a probabilidade de algum falso positivo no conjunto. A rodada tem \nRepeats{} repetição
-por pergunta; as conclusões são lidas como indícios, e não como demonstração.\par\endgroup
+O acerto de uma abordagem é a proporção de perguntas respondidas corretamente. Cada acerto vem com o intervalo
+de confiança de Wilson~\cite{wilson1927probable} de \ciLevel{}, que, ao contrário do intervalo normal, não
+ultrapassa zero nem cem por cento. Com \nAnswerable{} perguntas e \nRepeats{} repetição por pergunta, os intervalos
+são largos, e as diferenças entre abordagens são lidas como indícios, e não como demonstração.
 
 O código, as perguntas, o gabarito, os resultados de cada execução e uma página por rodada estão em
 \repoURL{}. As bibliotecas usadas foram socceraction~\cite{socceraction}, Neo4j Graph Data
