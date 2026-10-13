@@ -1,4 +1,4 @@
-# Modelos avaliados, na ordem das colunas das tabelas. O primeiro é o principal: os números sem prefixo de
+# Modelos avaliados, na ordem das colunas das tabelas (os dois de preço baixo, depois os dois de preço alto). O primeiro é o principal: os números sem prefixo de
 # modelo (\accGraphTools...), a tabela por grupo e o resto do texto vêm dele. Para acrescentar um modelo,
 # acrescente uma entrada e rode python scripts/paper_numbers.py; as macros com prefixo (\accQwenGraphTools...)
 # e as tabelas por modelo passam a incluí-lo.
@@ -15,11 +15,6 @@ models:
     short: Qwen3.8
     results: data/benchmark/qwen_results.jsonl
     usd: 0.48
-  - key: Kimi
-    name: Kimi K3
-    short: Kimi K3
-    results: data/benchmark/kimi_k3_results.jsonl
-    usd: 33.40
   # Sonnet 4.6: chamada direta ao Bedrock (us-east-2), raciocínio "medium" com temperatura 1, exceto no
   # events_in_prompt, que usa "low" (com "medium" o raciocínio esgotava o teto de 16 mil tokens em 19 das 52
   # perguntas); as 6 que ainda estouraram com "low" foram refeitas com teto de 32 mil. O arquivo combina as
@@ -30,3 +25,8 @@ models:
     short: Sonnet 4.6
     results: data/benchmark/sonnet46_combined_results.jsonl
     usd: 28.01
+  - key: Kimi
+    name: Kimi K3
+    short: Kimi K3
+    results: data/benchmark/kimi_k3_results.jsonl
+    usd: 33.40

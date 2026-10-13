@@ -142,6 +142,7 @@ def build(results: Path) -> tuple[dict[str, str], dict[str, str]]:
 
     tables = {
         "models.tex": models_table(models),
+        "fig_models.tex": models_figure(models),
         "mcnemar_models.tex": models_mcnemar_table(models),
         "errors_models.tex": models_errors_table(models),
         "groups.tex": groups_table(per_arm, types, arms),
@@ -245,6 +246,36 @@ def models_errors_table(models: list[dict]) -> str:
             lines.append(" & ".join([LABEL[a], pct(c["hallucination"]), pct(c["abstention"]), pct(c["format_error"]),
                                      num(round(c["tokens_in"])), num(c["latency"], 1)]) + r" \\")
     lines += ["\\bottomrule", "\\end{tabular}", ""]
+    return "\n".join(lines)
+
+
+# The three approaches that read the match data, in the order of the figure's bars.
+DATA_ARMS = ("events_in_prompt", "text_to_cypher", "graph_tools")
+
+
+def models_figure(models: list[dict]) -> str:
+    """Grouped bars: accuracy of the three data approaches in each model, with the Wilson interval."""
+    styles = {"events_in_prompt": "fill=black!20, draw=black!45", "text_to_cypher": "fill=black!55, draw=black!70",
+              "graph_tools": "fill=accent, draw=accent"}
+    coords = ",".join(md["short"] for md in models)
+    lines = ["\\definecolor{accent}{HTML}{1F5C99}", "\\begin{tikzpicture}", "\\begin{axis}[",
+             "  width=\\columnwidth, height=5cm, ybar=0.6pt, bar width=7pt, ymin=0, ymax=100,",
+             f"  symbolic x coords={{{coords}}}, xtick=data, enlarge x limits=0.15,",
+             "  ylabel={Acerto (\\%)}, ytick={0,25,50,75,100}, axis x line*=bottom, axis y line*=left,",
+             "  tick label style={font=\\small}, label style={font=\\small}, legend style={font=\\small, draw=none,",
+             "  at={(0.5,1.02)}, anchor=south, legend columns=-1, /tikz/every even column/.append style={column sep=6pt}},",
+             "  legend image code/.code={\\draw[#1] (0cm,-0.1cm) rectangle (0.25cm,0.12cm);},",
+             "  error bars/y dir=both, error bars/y explicit, error bars/error bar style={black!80, line width=0.4pt},",
+             "]"]
+    for a in DATA_ARMS:
+        pts = []
+        for md in models:
+            acc = ps.accuracy(ps.select(md["per_arm"][a], md["types"], answerable=True))
+            v, lo, hi = 100 * acc.share, 100 * acc.low, 100 * acc.high
+            pts.append(f"({md['short']},{v:.1f}) +- (0,0) += (0,{hi - v:.1f}) -= (0,{v - lo:.1f})")
+        lines.append(f"\\addplot[{styles[a]}] coordinates {{{' '.join(pts)}}};")
+    lines.append("\\legend{" + ",".join(ARM_NAMES[a][1] for a in DATA_ARMS) + "}")
+    lines += ["\\end{axis}", "\\end{tikzpicture}", ""]
     return "\n".join(lines)
 
 
