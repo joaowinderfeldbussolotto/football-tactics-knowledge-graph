@@ -44,8 +44,7 @@ admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A rodada de cada modelo 
 pergunta.
 
 O acerto de uma abordagem é a proporção de perguntas respondidas corretamente. Cada acerto vem com o intervalo
-de confiança de Wilson~\cite{wilson1927probable} de \ciLevel{}, que, ao contrário do intervalo normal, não
-ultrapassa zero nem cem por cento. Com \nAnswerable{} perguntas e \nRepeats{} repetição por pergunta, os intervalos
+de confiança de Wilson~\cite{wilson1927probable} de \ciLevel{}, que fica sempre entre zero e cem por cento. Com \nAnswerable{} perguntas e \nRepeats{} repetição por pergunta, os intervalos
 são largos, e as diferenças entre abordagens são lidas como indícios, e não como demonstração.
 
 O código, as perguntas, o gabarito, os resultados de cada execução e uma página por rodada estão em
@@ -94,8 +93,7 @@ incluem os lidos do cache do prompt.}\label{tab:custo}
 
 O resultado mais estável do experimento é o de \armGraphTools{}: foi a única abordagem com acerto alto nos
 \nModels{} modelos, e a que menos variou entre eles. Nela, a consulta já vem escrita na ferramenta, e o modelo só
-decide qual ferramenta chamar e com quais parâmetros, como na definição de ferramentas para consultar bancos de
-dados proposta por Shorten et al.~\cite{shorten2025dbfunction}. Contar os passes entre dois jogadores, percorrer uma
+decide qual ferramenta chamar e com quais parâmetros. Contar os passes entre dois jogadores, percorrer uma
 jogada ou separar o que aconteceu antes e depois de uma substituição fica a cargo do código, e não da capacidade do
 modelo. É por isso que um modelo menor chegou ao mesmo nível de acerto dos maiores.
 
@@ -123,8 +121,8 @@ eventos, e o resumo traz totais por jogador e por time, sem registrar quem passo
 modelos responderam, na maior parte das vezes, que não havia dados. O mesmo vale para \armNoContext{}, que não
 acertou nenhuma pergunta em nenhum modelo, o que indica que os modelos não responderam a partir de memória.
 Tzikas et al.~\cite{tzikas2025dynamic} obtiveram acerto maior com recuperação vetorial sobre eventos de futebol,
-mas em perguntas diretas, sobre quando, onde e quem. A diferença parece estar mais no tipo de pergunta do que na
-forma de recuperação.
+mas com outro desenho: cada trecho já trazia os eventos seguintes, a busca recuperava até cem trechos e os
+reordenava, e a conferência foi feita por um LLM. Aqui, cada linha recuperada é uma ação isolada.
 
 Nada disso funciona se o modelo não souber chamar ferramentas. A vantagem de \armGraphTools{} supõe chamadas
 confiáveis, e os erros de formato mostram onde ela pode se perder: agentes que esgotaram o limite de chamadas e

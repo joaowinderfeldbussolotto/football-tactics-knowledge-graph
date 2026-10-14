@@ -94,8 +94,9 @@ ferramenta executa no grafo a consulta Cypher que o modelo escreve~\cite{ozsoy20
 algoritmos de grafos (GDS)~\cite{neo4j_gds} e sem os padrões táticos já calculados; ela só aceita leitura e devolve
 até \nMaxRows{} linhas. Em \armGraphTools{}, cada ferramenta executa no grafo uma consulta fixa, definida no código
 da ferramenta; o modelo escolhe a ferramenta e preenche seus parâmetros (por exemplo, o time e o período de uma
-rede de passes e a métrica a calcular). É a ideia de oferecer ao modelo uma definição de ferramenta para consultar
-o banco, com filtros e agregações como argumentos~\cite{shorten2025dbfunction}.
+rede de passes e a métrica a calcular). Shorten et al.~\cite{shorten2025dbfunction} propõem um caminho
+intermediário: uma única ferramenta de consulta ao banco, cujos argumentos são filtros e agregações. Em
+\armGraphTools{}, os parâmetros são do futebol, e a consulta fica no código.
 
 \subsection{Perguntas e gabarito}\label{sec:perguntas}
 
@@ -154,7 +155,8 @@ ausência de dados ligado.
 \subsection{Resultados de uma execução}\label{sec:execucao}
 
 Cada execução (uma pergunta feita a uma abordagem) termina em um de quatro resultados (Tabela~\ref{tab:resultados}).
-O termo alucinação é usado aqui em sentido operacional, mais estreito que o da literatura~\cite{ji2023survey}.
+O termo alucinação é usado aqui em sentido operacional: toda resposta dada que não confere com o gabarito. Na
+literatura, o termo designa conteúdo sem sentido ou infiel à fonte~\cite{ji2023survey}.
 Além do resultado, registram-se tokens, chamadas de ferramenta e latência, e cada execução fica registrada, com o
 prompt, as chamadas de ferramenta e a resposta, na ferramenta de observabilidade de código aberto
 Langfuse~\cite{langfuse}.
