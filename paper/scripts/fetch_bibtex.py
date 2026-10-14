@@ -50,14 +50,38 @@ def field(entry: str, name: str) -> str:
     return m.group(1) if m else ""
 
 
+DROP = {"keywords", "copyright", "month", "issn", "collection"}  # noise, or (month) a bare macro bibtex warns about
+
+
+def clean(parts: list[str]) -> list[str]:
+    """Fix what the `plain` style renders wrong: lowercased titles, "page 1–2", arXiv entries without the id."""
+    out, arxiv = [], ""
+    for p in parts:
+        name, _, value = p.partition("=")
+        name, value = name.strip(), value.strip()
+        if name.lower() in DROP:
+            continue
+        if name.lower() == "title" and not value.startswith("{{"):
+            value = "{" + value + "}"  # keep the publisher's capitalization (SportQA, LLMs, CRISP-DM)
+        if name.lower() == "pages":
+            value = value.replace("–", "--")
+        if name.lower() == "doi":
+            m = re.search(r"arxiv\.(\d{4}\.\d{4,5})", value, re.I)
+            arxiv = m.group(1) if m else ""
+        out.append(f"{name} = {value}" if _ else p)
+    if arxiv and not any(p.lower().startswith("howpublished") for p in out):
+        out.append(f"howpublished = {{arXiv:{arxiv}}}")
+    return out
+
+
 def pretty(entry: str) -> str:
     """One field per line: easier to read in the Overleaf editor and in diffs."""
     entry = " ".join(entry.split()).replace("&amp;", r"\&")  # the DOI resolver leaves HTML entities; a bare & breaks LaTeX
     head, body = entry.split(",", 1)
     body = body.strip()
     body = body[:-1].strip() if body.endswith("}") else body  # the entry's own closing brace
-    parts = re.split(r",\s*(?=\w+\s*=)", body)
-    return head + ",\n  " + ",\n  ".join(p.strip() for p in parts) + "\n}"
+    parts = clean([p.strip() for p in re.split(r",\s*(?=\w+\s*=)", body)])
+    return head + ",\n  " + ",\n  ".join(parts) + "\n}"
 
 
 def main() -> int:
