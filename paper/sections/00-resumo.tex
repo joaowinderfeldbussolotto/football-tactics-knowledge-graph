@@ -1,11 +1,19 @@
-% Seção: Resumo  (orçamento: 0.5 página(s))
-%
-% Roteiro (apague os comentários ao escrever; o texto passa por paper/scripts/lint_paper.py):
-%  - Pergunta central: quanto do trabalho de consulta deve estar pronto antes de o modelo começar.
-%  - Seis formas de acesso, 52 perguntas sobre uma partida, a escada de abstração com os acertos (\accGraphTools, \accTextToCypher, \accEventsInPrompt, \accStatsInPrompt).
-%  - Achado de robustez: o jogador mais central depende de peso e direção da rede.
-%  - Escrever por último. Versão em inglês (Abstract) em arquivo próprio com a linha `% lang: en`, se o template pedir.
+% Resumo: ambiente abstract e palavras-chave, como no template da disciplina (src/abstract.tex no Overleaf).
+% Termina no último resultado, sem frase de implicação.
 
-\section{Resumo}\label{sec:resumo}
+\begin{abstract}
+Modelos de linguagem permitem fazer perguntas em linguagem natural sobre dados de eventos de futebol, mas os
+dados da partida precisam chegar ao contexto do modelo. Este trabalho compara \nArms{} abordagens de aprendizado
+em contexto para isso: sem dados, a tabela de ações inteira no prompt, estatísticas resumidas, busca vetorial,
+consulta Cypher escrita pelo modelo e ferramentas com consulta fixa sobre um grafo. A avaliação usou
+\nQuestions{} perguntas sobre a final da Copa do Mundo de 2022, com gabarito calculado dos dados brutos e
+conferência por código, em \nModels{} modelos, dois menores e dois maiores. \armGraphTools{} foi a única
+abordagem com acerto alto em todos os modelos (\accRangeGraphTools{}). A consulta escrita pelo modelo acertou
+\accRangeLowTextToCypher{} nos modelos menores e \accRangeHighTextToCypher{} nos maiores, com raciocínio
+estendido. A tabela inteira no prompt passou de \accRangeLowEventsInPrompt{} para \accRangeHighEventsInPrompt{},
+com mais tokens de saída e mais tempo por pergunta. A busca vetorial (\accRangeVector{}) e as estatísticas
+resumidas (\accRangeStatsInPrompt{}) ficaram baixas em todos os modelos.
+\end{abstract}
 
-% TODO: escrever.
+\noindent\textbf{Palavras-chave:} modelos de linguagem, aprendizado em contexto, recuperação de dados, grafos,
+dados de eventos de futebol.
