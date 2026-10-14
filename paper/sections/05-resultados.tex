@@ -115,14 +115,21 @@ et al.~\cite{li2024ragorlongcontext} observaram que, com recursos suficientes, o
 recuperação. Aqui ele superou \armVector{} em todos os modelos, mas só chegou perto das abordagens com agente
 quando o modelo raciocinou longamente.
 
-\armVector{} e \armStatsInPrompt{} ficaram baixas em todos os modelos, e, nesse caso, o limite está no desenho de
-cada uma, e não no modelo. As \nTopK{} linhas mais parecidas com a pergunta não bastam para contar nem para ligar
-eventos, e o resumo traz totais por jogador e por time, sem registrar quem passou para quem. Diante disso, os
-modelos responderam, na maior parte das vezes, que não havia dados. O mesmo vale para \armNoContext{}, que não
-acertou nenhuma pergunta em nenhum modelo, o que indica que os modelos não responderam a partir de memória.
+\armVector{} ficou baixa em todos os modelos. A busca traz as \nTopK{} linhas cujo texto mais se parece com o da
+pergunta, de um total de \nActions{}, e parecer com a pergunta não é o mesmo que servir para respondê-la. Quando a
+pergunta cita um jogador, as linhas recuperadas tendem a ser dele: na pergunta sobre a dupla da França que mais
+trocou passes, os modelos relataram ter recebido só ações de um jogador, sem nenhum passe com receptor. Contar
+exige todas as linhas de um tipo, e não só as mais parecidas, e ligar eventos exige as linhas vizinhas, como o
+passe que antecede uma finalização, que em geral não se parecem com a pergunta. Os modelos perceberam a falta e
+responderam que não havia dados em \abstRangeVector{} das perguntas, conforme o modelo. Han et al.~\cite{han2025ragvsgraphrag} observaram
+que a recuperação de trechos se sai melhor em perguntas de um passo, e a recuperação pelo grafo, nas de vários.
 Tzikas et al.~\cite{tzikas2025dynamic} obtiveram acerto maior com recuperação vetorial sobre eventos de futebol,
 mas com outro desenho: cada trecho já trazia os eventos seguintes, a busca recuperava até cem trechos e os
 reordenava, e a conferência foi feita por um LLM. Aqui, cada linha recuperada é uma ação isolada.
+
+\armStatsInPrompt{} também ficou baixa, por outro motivo: o resumo traz totais por jogador e por time, sem
+registrar quem passou para quem. \armNoContext{} não acertou nenhuma pergunta em nenhum modelo, o que indica que
+os modelos não responderam a partir de memória.
 
 Nada disso funciona se o modelo não souber chamar ferramentas. A vantagem de \armGraphTools{} supõe chamadas
 confiáveis, e os erros de formato mostram onde ela pode se perder: agentes que esgotaram o limite de chamadas e
