@@ -1,10 +1,21 @@
-% Seção: Conclusão  (orçamento: 0.5 página(s))
+% Seção: Conclusão  (orçamento: 0,5 página)
 %
-% Roteiro (apague os comentários ao escrever; o texto passa por paper/scripts/lint_paper.py):
-%  - Resposta a cada pergunta de pesquisa.
-%  - Trabalhos futuros: abordagem de texto para SQL sobre a mesma tabela, agente com Python, várias partidas, outros modelos, mais repetições.
-%  - Escrever por último.
+% Responde às três perguntas de pesquisa da Introdução e aponta direções futuras ligadas às limitações da
+% Discussão. Sem frase de fechamento.
 
 \section{Conclusão}\label{sec:conclusão}
 
-% TODO: escrever.
+Este trabalho comparou \nArms{} abordagens de aprendizado em contexto para responder perguntas sobre os eventos
+da final da Copa do Mundo de 2022, em \nModels{} modelos. Nenhuma abordagem acertou mais em todos os modelos, mas
+\armGraphTools{} foi a única que manteve o acerto alto em todos, de \accRangeGraphTools{}. \armTextToCypher{} e
+\armEventsInPrompt{} dependeram do modelo e ficaram abaixo dela nos menores. Nos maiores, com raciocínio
+estendido, \armTextToCypher{} chegou ao mesmo nível, e \armEventsInPrompt{} se aproximou, ao custo de mais
+tokens de saída e mais tempo por pergunta. \armVector{} e
+\armStatsInPrompt{} ficaram baixas em todos os modelos, porque o que entregam ao modelo não basta para contar nem
+para ligar eventos.
+
+Os resultados vêm de uma partida e de uma repetição por pergunta. Repetir as execuções permitiria medir a variação
+entre rodadas e testar as diferenças entre abordagens. Outros caminhos são estender as perguntas a várias
+partidas; avaliar modelos maiores sem raciocínio estendido, para separar o efeito do tamanho do efeito do
+raciocínio; e testar uma busca vetorial em que cada trecho traga também os eventos vizinhos, como
+em Tzikas et al.~\cite{tzikas2025dynamic}.
