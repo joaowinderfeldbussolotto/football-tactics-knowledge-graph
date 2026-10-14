@@ -1,13 +1,25 @@
-% Seção: Introdução  (orçamento: 1 página(s))
+% Seção: Introdução  (orçamento: 1 página)
 %
-% Roteiro (apague os comentários ao escrever; o texto passa por paper/scripts/lint_paper.py):
-%  - Dados de eventos de futebol são ricos e relacionais; redes de passes formalizam a leitura.
-%  - LLMs prometem consulta em linguagem natural; há várias formas de recuperar os dados para eles (no prompt, por similaridade, por consulta escrita pelo modelo, por ferramentas com consulta fixa).
-%  - Perguntas de pesquisa QP1 a QP4 (ver dossiê). Hipóteses: ver paper/ALERTAS.md antes de afirmar que foram registradas antes das rodadas.
-%  - Escrever por último.
-%
-% Referências previstas (chaves de refs.bib): wang2024tacticai, edge2024graphrag, duch2010quantifying, pappalardo2019public
+% Curta e sem detalhe: o como fica na Metodologia e os números nos Resultados. Sem hipóteses formais (ALERTAS,
+% item 2) e sem parágrafo de organização do texto.
 
 \section{Introdução}\label{sec:introdução}
 
-% TODO: escrever.
+Os dados de eventos de futebol registram cada ação de uma partida, com o jogador, o momento e a posição no
+campo, e há conjuntos desse tipo abertos ao público~\cite{pappalardo2019public}. Muitas perguntas de análise
+sobre esses dados exigem ligar eventos entre si: quem mais passou para quem, em que ordem a bola circulou em uma
+jogada, o que mudou depois de uma substituição.
+
+Um LLM permite fazer essas perguntas em linguagem natural, mas os dados da partida precisam chegar ao seu
+contexto. Isso pode ser feito de várias formas: com a tabela inteira no prompt, com as linhas mais parecidas com
+a pergunta, com estatísticas resumidas, com uma consulta escrita pelo próprio modelo ou com ferramentas que já
+trazem a consulta pronta. Em todas, o modelo não é treinado de novo; muda o que entra no contexto e quem junta
+os eventos, o modelo ou o código. No esporte, os trabalhos publicados avaliam uma dessas formas de cada vez
+(Seção~\ref{sec:trabalhos}).
+
+Este trabalho compara \nArms{} abordagens sobre a final da Copa do Mundo de 2022, com \nQuestions{} perguntas
+cujo gabarito foi calculado dos dados brutos, em \nModels{} modelos de tamanhos diferentes. As perguntas de
+pesquisa são qual abordagem acerta mais, como o acerto muda de um modelo para outro e quanto cada abordagem
+custa em tokens e tempo. \armGraphTools{} teve acerto alto em todos os modelos. \armTextToCypher{} e
+\armEventsInPrompt{} só se aproximaram dela nos modelos maiores, com mais tokens de saída e mais tempo por
+pergunta.

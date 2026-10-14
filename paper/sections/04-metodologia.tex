@@ -10,7 +10,7 @@
 \section{Metodologia}\label{sec:metodologia}
 
 O trabalho seguiu as seis fases do CRISP-DM~\cite{schroer2021crispdm}. O entendimento do problema e dos dados
-levou à pergunta de partida: como a forma de recuperar os dados afeta as respostas de um modelo de linguagem
+levou à pergunta de partida: como a forma de recuperar os dados afeta as respostas de modelos de linguagem
 sobre eventos de futebol. A preparação dos dados está na Seção~\ref{sec:dados}, a modelagem das abordagens na
 Seção~\ref{sec:arquiteturas} e a avaliação nas Seções~\ref{sec:perguntas} a~\ref{sec:execucao}, que descrevem
 também o registro de cada execução, parte da implantação.
@@ -182,6 +182,6 @@ Erro de formato & não há resposta estruturada válida ao fim das tentativas \\
 Foi usada uma única partida por dois motivos: a tabela de ações inteira ocupa \tokTableApprox{} (o valor varia
 com o tokenizador do modelo) e cabe no contexto do modelo, e um escopo menor permite conferir o gabarito de cada
 pergunta sobre os dados brutos. Ficam fora do escopo, além de várias partidas: dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
-saúde, valor de mercado, escalação, predição de resultado, qualidade da explicação tática, comparação entre modelos
+saúde, valor de mercado, escalação, predição de resultado, qualidade da explicação tática
 e agentes que escrevem código. Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
 o trabalho não infere condição de saúde de atleta.
