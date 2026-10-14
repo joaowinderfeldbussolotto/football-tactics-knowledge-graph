@@ -1,9 +1,10 @@
-# Modelos avaliados, na ordem das colunas das tabelas (os dois de preço baixo, depois os dois de preço alto). O primeiro é o principal: os números sem prefixo de
+# Modelos avaliados, na ordem das colunas das tabelas (os dois menores, depois os dois maiores). O primeiro é o principal: os números sem prefixo de
 # modelo (\accGraphTools...), a tabela por grupo e o resto do texto vêm dele. Para acrescentar um modelo,
 # acrescente uma entrada e rode python scripts/paper_numbers.py; as macros com prefixo (\accQwenGraphTools...)
 # e as tabelas por modelo passam a incluí-lo.
-# short: nome curto, para o cabeçalho das tabelas. tier: faixa de preço (baixo ou alto), pelo preço de tabela
-# em outubro de 2026; a faixa alta aparece sombreada no gráfico.
+# short: nome curto, para o cabeçalho das tabelas. tier: grupo do modelo (baixo: menores, sem raciocínio
+# estendido; alto: maiores, com raciocínio estendido), pela posição na linha do fabricante; o grupo alto aparece
+# sombreado no gráfico.
 # usd: custo real da rodada, lido do consumo da chave antes e depois (página da execução em docs/execucoes/).
 models:
   - key: Haiku

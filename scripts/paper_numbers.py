@@ -324,7 +324,7 @@ def models_figure(models: list[dict]) -> str:
              "]"]
     if high:
         lines.append(f"\\fill[black!6] ([xshift=-16pt]axis cs:{high[0]},0) rectangle ([xshift=16pt]axis cs:{high[-1]},100);")
-        lines.append(f"\\node[font=\\footnotesize, black!60, anchor=south] at ([xshift=24pt]axis cs:{high[0]},2) {{preço alto}};")
+        lines.append(f"\\node[font=\\footnotesize, black!60, anchor=south] at ([xshift=24pt]axis cs:{high[0]},2) {{modelos maiores}};")
     for a in DATA_ARMS:
         pts = []
         for md in models:
