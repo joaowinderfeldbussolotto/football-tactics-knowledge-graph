@@ -7,7 +7,9 @@ is the one in the table. The title returned is printed next to the short name fr
 table: read that list once, because a DOI that resolves to the wrong paper is not an
 error to the resolver.
 
-Software and data sources without a DOI are in paper/refs/software.bib and are appended.
+Software and data sources without a DOI are in paper/refs/software.bib and are appended. Entries in
+paper/refs/overrides.bib replace the resolver's entry with the same key (published version without a DOI of
+its own, or wrong metadata from the resolver).
 
 Usage:
     python paper/scripts/fetch_bibtex.py            # all
@@ -25,6 +27,7 @@ from pathlib import Path
 PAPER = Path(__file__).resolve().parents[1]
 TABLE = PAPER / "refs" / "references.tsv"
 SOFTWARE = PAPER / "refs" / "software.bib"
+OVERRIDES = PAPER / "refs" / "overrides.bib"
 OUT = PAPER / "refs.bib"
 
 
@@ -84,13 +87,24 @@ def pretty(entry: str) -> str:
     return head + ",\n  " + ",\n  ".join(parts) + "\n}"
 
 
+def overrides() -> dict[str, str]:
+    if not OVERRIDES.exists():
+        return {}
+    text = OVERRIDES.read_text(encoding="utf-8")
+    return {m.group(1): m.group(0).strip() for m in re.finditer(r"^@\w+\{([^,]+),.*?^\}", text, re.S | re.M)}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     rows = list(csv.DictReader(TABLE.open(encoding="utf-8"), delimiter="\t"))
-    entries, failed = [], []
+    entries, failed, manual = [], [], overrides()
     for row in rows:
+        if row["key"] in manual:
+            entries.append(manual[row["key"]])
+            print(f"{row['status']:10s} {row['key']:28s} {row['short'][:26]:26s} -> (overrides.bib)")
+            continue
         try:
             raw = fetch(row["doi"])
         except Exception as exc:  # network or unknown DOI

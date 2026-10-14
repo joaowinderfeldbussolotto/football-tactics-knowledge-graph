@@ -78,8 +78,8 @@ Abordagem & Forma de recuperação & O que o modelo recebe \\
 \end{minipage}\par\smallskip
 
 Na \armVector{}, cada linha da tabela e a pergunta são representadas por embeddings, e as \nTopK{} linhas mais
-próximas por similaridade de cosseno são recuperadas, no padrão de recuperação aumentada por
-geração~\cite{lewis2020rag}.
+próximas por similaridade de cosseno são recuperadas, no padrão de geração aumentada por
+recuperação~\cite{lewis2020rag}.
 
 Em \armTextToCypher{} e \armGraphTools{}, o modelo atua como agente: em vez de responder de uma vez, decide a cada
 passo qual ação tomar, recebe o resultado e decide de novo, até responder ou atingir o limite de chamadas por

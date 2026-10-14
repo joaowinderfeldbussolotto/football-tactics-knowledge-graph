@@ -28,8 +28,8 @@ resposta exata é viável no esporte. Os dados, porém, são estatísticas de jo
 cada ação da partida.
 
 Tzikas et al.~\cite{tzikas2025dynamic} usam eventos de cinco rodadas da liga alemã, com posição no campo, tempo e
-jogador. Cada evento vira uma frase montada a partir de um molde de texto, e a resposta vem de recuperação
-aumentada por geração, com reordenação dos trechos recuperados. As trinta perguntas são de três tipos (quando,
+jogador. Cada evento vira uma frase montada a partir de um molde de texto, e a resposta vem de geração
+aumentada por recuperação, com reordenação dos trechos recuperados. As trinta perguntas são de três tipos (quando,
 onde e quem), e a conferência é feita por um LLM, que julga se a resposta tem o mesmo sentido do gabarito. Os
 autores relatam erros desse julgamento e apontam a recuperação iterativa como caminho para as perguntas que
 exigem juntar informação espalhada pela partida.
@@ -44,7 +44,7 @@ Quando os dados estão em um banco de grafos, o modelo também pode escrever a c
 gerar consultas Cypher~\cite{ozsoy2025text2cypher}.
 
 O LOFT~\cite{lee2024loft} é o que mais se aproxima da comparação feita aqui. O conjunto testa se um modelo que
-recebe o corpus inteiro no contexto substitui sistemas de recuperação, de recuperação aumentada por geração e de
+recebe o corpus inteiro no contexto substitui sistemas de recuperação, de geração aumentada por recuperação e de
 SQL. O contexto longo teve desempenho comparável ao dos sistemas de recuperação, mas teve dificuldade com o
 raciocínio composicional das tarefas do tipo SQL, isto é, as que combinam várias partes dos dados.
 

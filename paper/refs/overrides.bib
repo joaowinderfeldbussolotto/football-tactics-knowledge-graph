@@ -1,0 +1,84 @@
+% Entries that replace, by key, what the DOI resolver returns (paper/scripts/fetch_bibtex.py).
+% Used when the peer-reviewed version has no DOI of its own (NeurIPS 2020, ICLR, GenAIK) or the resolver's
+% metadata is wrong (truncated author name, page range that differs from the proceedings). The doi field keeps
+% the preprint's DOI so that cite_check.py still finds the abstract; the plain style does not print it.
+% Checked on 14/10/2026 against the ACL Anthology, NeurIPS proceedings, OpenReview and Springer pages.
+
+@inproceedings{lewis2020rag,
+  doi = {10.48550/ARXIV.2005.11401},
+  url = {https://proceedings.neurips.cc/paper/2020/hash/6b493230205f780e1bc26945df7481e5-Abstract.html},
+  author = {Lewis, Patrick and Perez, Ethan and Piktus, Aleksandra and Petroni, Fabio and Karpukhin, Vladimir and Goyal, Naman and Küttler, Heinrich and Lewis, Mike and Yih, Wen-tau and Rocktäschel, Tim and Riedel, Sebastian and Kiela, Douwe},
+  title = {{Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks}},
+  booktitle = {Advances in Neural Information Processing Systems 33 (NeurIPS 2020)},
+  publisher = {Curran Associates, Inc.},
+  volume = {33},
+  pages = {9459--9474},
+  year = {2020}
+}
+
+@inproceedings{yao2023react,
+  doi = {10.48550/ARXIV.2210.03629},
+  url = {https://openreview.net/forum?id=WE_vluYUL-X},
+  author = {Yao, Shunyu and Zhao, Jeffrey and Yu, Dian and Du, Nan and Shafran, Izhak and Narasimhan, Karthik and Cao, Yuan},
+  title = {{ReAct: Synergizing Reasoning and Acting in Language Models}},
+  booktitle = {The Eleventh International Conference on Learning Representations (ICLR 2023)},
+  year = {2023}
+}
+
+@inproceedings{ozsoy2025text2cypher,
+  doi = {10.48550/ARXIV.2412.10064},
+  url = {https://aclanthology.org/2025.genaik-1.11/},
+  author = {Ozsoy, Makbule Gulcin and Messallem, Leila and Besga, Jon and Minneci, Gianandrea},
+  title = {{Text2Cypher: Bridging Natural Language and Graph Databases}},
+  booktitle = {Proceedings of the Workshop on Generative AI and Knowledge Graphs (GenAIK)},
+  publisher = {International Committee on Computational Linguistics},
+  address = {Abu Dhabi, UAE},
+  pages = {100--108},
+  year = {2025}
+}
+
+@inproceedings{lee2024loft,
+  doi = {10.18653/v1/2025.findings-naacl.374},
+  url = {https://aclanthology.org/2025.findings-naacl.374/},
+  author = {Lee, Jinhyuk and Chen, Anthony and Dai, Zhuyun and Dua, Dheeru and Sachan, Devendra Singh and Boratko, Michael and Luan, Yi and Arnold, Sébastien M. R. and Perot, Vincent and Dalmia, Siddharth and Hu, Hexiang and Lin, Xudong and Pasupat, Panupong and Amini, Aida and Cole, Jeremy R. and Riedel, Sebastian and Naim, Iftekhar and Chang, Ming-Wei and Guu, Kelvin},
+  title = {{LOFT: Scalable and More Realistic Long-Context Evaluation}},
+  booktitle = {Findings of the Association for Computational Linguistics: NAACL 2025},
+  publisher = {Association for Computational Linguistics},
+  address = {Albuquerque, New Mexico},
+  pages = {6713--6738},
+  year = {2025}
+}
+
+@inproceedings{schick2023toolformer,
+  doi = {10.52202/075280-2997},
+  url = {https://proceedings.neurips.cc/paper_files/paper/2023/hash/d842425e4bf79ba039352da0f658a906-Abstract-Conference.html},
+  author = {Schick, Timo and Dwivedi-Yu, Jane and Dessì, Roberto and Raileanu, Roberta and Lomeli, Maria and Hambro, Eric and Zettlemoyer, Luke and Cancedda, Nicola and Scialom, Thomas},
+  title = {{Toolformer: Language Models Can Teach Themselves to Use Tools}},
+  booktitle = {Advances in Neural Information Processing Systems 36 (NeurIPS 2023)},
+  publisher = {Curran Associates, Inc.},
+  pages = {68539--68551},
+  year = {2023}
+}
+
+@article{wang2024agentssurvey,
+  doi = {10.1007/s11704-024-40231-1},
+  url = {http://dx.doi.org/10.1007/s11704-024-40231-1},
+  author = {Wang, Lei and Ma, Chen and Feng, Xueyang and Zhang, Zeyu and Yang, Hao and Zhang, Jingsen and Chen, Zhiyuan and Tang, Jiakai and Chen, Xu and Lin, Yankai and Zhao, Wayne Xin and Wei, Zhewei and Wen, Jirong},
+  title = {{A survey on large language model based autonomous agents}},
+  journal = {Frontiers of Computer Science},
+  publisher = {Springer},
+  volume = {18},
+  number = {6},
+  pages = {186345},
+  year = {2024}
+}
+
+@misc{han2025ragvsgraphrag,
+  doi = {10.48550/ARXIV.2502.11371},
+  url = {https://arxiv.org/abs/2502.11371v3},
+  author = {Han, Haoyu and Ma, Li and Wang, Yu and Shomer, Harry and Lei, Yongjia and Qi, Zhisheng and Guo, Kai and Hua, Zhigang and Long, Bo and Liu, Hui and Aggarwal, Charu C. and Tang, Jiliang},
+  title = {{RAG vs. GraphRAG: A Systematic Evaluation and Key Insights}},
+  howpublished = {arXiv:2502.11371v3},
+  note = {Versão 3, de março de 2026, a que descreve o protocolo de avaliação comum},
+  year = {2025}
+}
