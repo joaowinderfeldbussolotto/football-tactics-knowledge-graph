@@ -10,12 +10,12 @@ campo, e há conjuntos desse tipo abertos ao público~\cite{pappalardo2019public
 sobre esses dados exigem ligar eventos entre si: quem mais passou para quem, em que ordem a bola circulou em uma
 jogada, o que mudou depois de uma substituição.
 
-Um LLM permite fazer essas perguntas em linguagem natural, mas os dados da partida precisam chegar ao seu
-contexto. Isso pode ser feito de várias formas: com a tabela inteira no prompt, com as linhas mais parecidas com
-a pergunta, com estatísticas resumidas, com uma consulta escrita pelo próprio modelo ou com ferramentas que já
-trazem a consulta pronta. Em todas, o modelo não é treinado de novo; muda o que entra no contexto e quem junta
-os eventos, o modelo ou o código. No esporte, os trabalhos publicados avaliam uma dessas formas de cada vez
-(Seção~\ref{sec:trabalhos}).
+Um LLM permite fazer essas perguntas em linguagem natural, mas precisa receber os dados da partida. Há mais de
+uma forma de dar esse conhecimento ao modelo, como ajustá-lo com novos dados ou entregar os dados no momento da
+pergunta. Este trabalho usa a segunda, o aprendizado em contexto~\cite{brown2020language}, em que o modelo não é
+treinado de novo e o que muda é o que entra no seu contexto. Isso pode ser feito de duas maneiras: levar ao
+contexto os próprios dados, brutos ou resumidos, ou consultar uma base externa e levar só o resultado. No
+esporte, os trabalhos publicados avaliam uma dessas formas de cada vez (Seção~\ref{sec:trabalhos}).
 
 Este trabalho compara \nArms{} abordagens sobre a final da Copa do Mundo de 2022, com \nQuestions{} perguntas
 cujo gabarito foi calculado dos dados brutos, em \nModels{} modelos de tamanhos diferentes. As perguntas de
