@@ -17,11 +17,20 @@ também o registro de cada execução, parte da implantação.
 
 \subsection{Dados e transformações}\label{sec:dados}
 
-Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022, com as
-escalações. No JSON, cada tipo de evento tem campos próprios. Os eventos da partida, sem a disputa de pênaltis, foram convertidos com a biblioteca socceraction~\cite{socceraction} em ações no formato
-SPADL~\cite{decroos2019actions}, que mantém só as ações com bola, em um vocabulário
-fechado e com os mesmos campos para todas. Sobre essa tabela de ações foram acrescentadas colunas de contexto
-(Tabela~\ref{tab:transformacoes}).
+Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022, em dois
+arquivos JSON: a lista de eventos da partida, em ordem, e as escalações, com o nome completo e o apelido de cada
+jogador. Cada evento tem período, minuto e segundo, time e tipo e, quando se aplica, jogador e posição no
+campo; cada tipo traz ainda um objeto com campos próprios: o passe traz o recebedor e o desfecho, e a
+finalização, o resultado e a parte do corpo. A mesma informação pode estar em lugares diferentes: um cartão amarelo vem dentro da falta que o
+provocou ou, quando não há falta, em um evento de comportamento.
+
+Os eventos da partida, sem a disputa de pênaltis, foram convertidos com a biblioteca
+socceraction~\cite{socceraction} em ações no formato SPADL~\cite{decroos2019actions}, que mantém só as ações com
+bola, em um vocabulário fechado, e dá a todas os mesmos campos: período, tempo, time, jogador, tipo da ação,
+resultado, parte do corpo e as coordenadas de início e de fim. Sobre essa tabela de ações foram acrescentadas
+colunas de contexto (Tabela~\ref{tab:transformacoes}). Cada linha da tabela final traz período, minuto, time,
+jogador, ação, sucesso, recebedor, zonas de início e de fim (em uma grade de \nZones{} zonas), fase de posse,
+desfecho e placar; é essa a tabela que \armEventsInPrompt{} entrega ao modelo.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -42,8 +51,8 @@ Rótulos em português & nomes das ações (passe, condução, drible) & o SPADL
 \captionof{table}{Transformações sobre a tabela de ações e o motivo de cada uma.}\label{tab:transformacoes}
 \end{minipage}\par\smallskip
 
-A tabela de ações foi carregada em um grafo Neo4j: cada ação vira uma aresta do jogador para a partida, cada passe
-certo com recebedor vira uma aresta entre dois jogadores, e uma súmula com totais por jogador e por time é contada
+A tabela de ações foi carregada em um grafo Neo4j: cada ação vira uma aresta do jogador para a partida, com as
+colunas da linha como propriedades, cada passe certo com recebedor vira uma aresta entre dois jogadores, e uma súmula com totais por jogador e por time é contada
 pelo próprio banco. As arestas não acrescentam informação à tabela, só a reorganizam em ligações; já a súmula é
 calculada, com o banco contando os totais a partir das arestas. A Figura~\ref{fig:pipeline} acompanha um passe
 real por essas etapas, e a Figura~\ref{fig:esquema} mostra o esquema do grafo.
@@ -57,7 +66,7 @@ real por essas etapas, e a Figura~\ref{fig:esquema} mostra o esquema do grafo.
 Foram comparadas \nArms{} abordagens, ordenadas pela complexidade do que há entre a pergunta e o
 modelo, da ausência de dados à consulta ao grafo com ferramentas (Tabela~\ref{tab:bracos}). Todas usam o mesmo
 modelo, o mesmo prompt de sistema e a mesma saída estruturada (jogadores, valor, indicação de ausência de dados e
-justificativa); a configuração está na Seção~\ref{sec:experimentos}.
+justificativa).
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -68,7 +77,7 @@ Abordagem & Forma de recuperação & O que o modelo recebe \\
 \midrule
 \armNoContext{} & nenhuma & só a pergunta (linha de base) \\
 \armEventsInPrompt{} & tabela inteira no prompt & as \nActions{} ações \\
-\armStatsInPrompt{} & totais já calculados, no prompt & totais por jogador e por time \\
+\armStatsInPrompt{} & totais já calculados, no prompt & a súmula: totais por jogador e por time \\
 \armVector{} & similaridade de embeddings & as \nTopK{} linhas mais parecidas com a pergunta \\
 \armTextToCypher{} & consulta escrita pelo modelo e executada no grafo & o esquema do grafo e o resultado das consultas \\
 \armGraphTools{} & \nTools{} ferramentas com consulta fixa & o resultado das ferramentas que chama \\
@@ -89,17 +98,39 @@ externa cujo nome e argumentos o modelo escolhe e cujo resultado volta ao seu co
 
 \input{fig-agente}
 
-As duas abordagens com agente consultam o mesmo grafo e diferem em de onde vem a consulta. Em \armTextToCypher{}, a
-ferramenta executa no grafo a consulta Cypher que o modelo escreve~\cite{ozsoy2025text2cypher}, sem a biblioteca de
-algoritmos de grafos (GDS)~\cite{neo4j_gds} e sem os padrões táticos já calculados; ela só aceita leitura e devolve
-até \nMaxRows{} linhas. Em \armGraphTools{}, cada ferramenta executa no grafo uma consulta fixa, definida no código
-da ferramenta; o modelo escolhe a ferramenta e preenche seus parâmetros (por exemplo, o time e o período de uma
-rede de passes e a métrica a calcular). As \nTools{} ferramentas cobrem três tipos de consulta: contar e
-listar jogadores e ações com filtros (time, jogador, tipo de ação, período, terço do campo); montar a rede de
-passes de um time e calcular métricas sobre ela, como a intermediação; e percorrer sequências de passes e posses
-de bola. Shorten et al.~\cite{shorten2025dbfunction} propõem um caminho
-intermediário: uma única ferramenta de consulta ao banco, cujos argumentos são filtros e agregações. Em
-\armGraphTools{}, os parâmetros são do futebol, e a consulta fica no código.
+As duas abordagens com agente consultam o mesmo grafo e diferem em quem escreve a consulta. Na pergunta sobre quem
+mais passou a bola para Mbappé, por exemplo, \armTextToCypher{} recebe o esquema do grafo e uma ferramenta que
+executa a consulta Cypher escrita pelo próprio modelo~\cite{ozsoy2025text2cypher}: cabe a ele montar a consulta
+que encontra os passes certos recebidos por Mbappé e os conta por jogador. A ferramenta só aceita leitura e
+devolve até \nMaxRows{} linhas.
+
+Em \armGraphTools{}, as consultas já estão escritas no código, uma por ferramenta, e o modelo só escolhe qual
+chamar e com quais argumentos. Na mesma pergunta, ele chama a ferramenta que monta a rede de passes, com o time
+França, e depois a que lista as ligações de um jogador, com Mbappé. A Tabela~\ref{tab:ferramentas} lista as
+\nTools{} ferramentas. Shorten et al.~\cite{shorten2025dbfunction} propõem uma única ferramenta genérica de
+consulta ao banco, cujos argumentos são filtros e agregações; aqui, cada ferramenta corresponde a um tipo de
+consulta do futebol.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\small\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.27\columnwidth}>{\raggedright\arraybackslash}p{0.63\columnwidth}} % lint: ignore
+\toprule
+Ferramenta & O que faz \\
+\midrule
+Listar jogadores & jogadores da partida, com time e posição \\
+Contar ações & conta as ações que passam nos filtros e agrupa os totais; ex.: desarmes certos por jogador \\
+Listar ações & lista as ações em ordem, lance a lance; ex.: as finalizações da França no segundo tempo \\
+Contar posses & conta posses de bola e quem participou delas; ex.: jogadas que terminaram em finalização \\
+Rede de passes & monta quem passou para quem em um time, no jogo todo ou em um trecho dele \\
+Métrica da rede & calcula uma métrica sobre a rede; ex.: o jogador por quem mais passa a circulação da bola \\
+Ligações da rede & pares de passador e recebedor, com o número de passes; ex.: quem mais passou para Mbappé \\
+Sequências de passes & cadeias de passes (A para B para C) mais frequentes de um time \\
+\bottomrule
+\end{tabular}
+\captionof{table}{As \nTools{} ferramentas de \armGraphTools{}. Os filtros comuns são time, jogador, recebedor,
+tipo de ação, acerto, período, intervalo de tempo, terço e corredor do campo.}\label{tab:ferramentas}
+\end{minipage}\par\smallskip
 
 \subsection{Perguntas e gabarito}\label{sec:perguntas}
 
@@ -115,13 +146,13 @@ O grupo de controle reúne perguntas cuja resposta não existe nos dados, como a
 percorrida; a resposta certa é a ausência de dados. Os resultados são reportados com e sem esse grupo.
 
 As perguntas foram escritas manualmente, e a resposta de cada uma (o gabarito) foi extraída dos dados brutos;
-foram eliminadas as perguntas com maior chance de ser interpretadas de mais de uma maneira.
+foram eliminadas as perguntas que, na avaliação dos autores, admitiam mais de uma interpretação.
 
 \subsection{Resposta e conferência}\label{sec:conferencia}
 
 Todas as abordagens respondem no mesmo formato: uma justificativa, uma lista de jogadores, um valor numérico e um
 indicador de ausência de dados. A justificativa é escrita antes da resposta e nunca é pontuada. Uma resposta vazia
-(sem jogador, sem valor e sem o indicador) é inválida e o modelo é reperguntado até duas vezes; se a resposta
+(sem jogador, sem valor e sem o indicador) é inválida e o modelo é requisitado novamente, até duas vezes; se a resposta
 continuar inválida, a execução conta como erro de formato.
 
 A conferência com o gabarito é determinística: é feita por código, e a mesma resposta recebe sempre o mesmo

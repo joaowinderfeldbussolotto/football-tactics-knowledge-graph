@@ -34,8 +34,8 @@ Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo
 \subsection{\textit{Setup} experimental}\label{sec:setup}
 
 Foram avaliados \nModels{} modelos de linguagem: dois menores, \modelHaiku{} e \modelQwen{}, e dois maiores,
-\modelSonnet{} e \modelKimi{}, pela posição de cada um na linha do seu fabricante. Em cada grupo há um modelo de
-código fechado e um de pesos abertos. Cada modelo respondeu a todas as perguntas em todas as abordagens, com os
+\modelSonnet{} e \modelKimi{}. Os grupos seguem a faixa de preço por token de cada modelo, já que nem todo
+fabricante divulga o número de parâmetros. Em cada grupo há um modelo de código fechado e um de pesos abertos. Cada modelo respondeu a todas as perguntas em todas as abordagens, com os
 mesmos prompts. Os modelos menores rodaram sem raciocínio estendido e com temperatura zero; os maiores, com
 raciocínio estendido no nível padrão e na temperatura padrão do provedor. A resposta de cada chamada ao modelo, raciocínio incluído, foi limitada a \nMaxOutTokens{} tokens.
 
@@ -100,8 +100,7 @@ Em \armTextToCypher{}, esse mesmo trabalho passa para o modelo, que precisa escr
 acompanhou essa capacidade. Gerar consultas Cypher corretas ainda é um ponto fraco dos LLMs~\cite{ozsoy2025text2cypher},
 e os modelos menores mostraram isso de forma direta: precisaram de mais tentativas para chegar a uma
 consulta útil. No \modelQwen{}, foram em média \callsQwenTextToCypher{} chamadas por pergunta, perto do limite de
-\nMaxCalls{}, e a entrada típica ficou próxima da de \armEventsInPrompt{}, porque cada nova chamada reenvia a
-conversa inteira. Nos modelos maiores, a abordagem alcançou \armGraphTools{} com menos tokens de entrada.
+\nMaxCalls{}. Nos modelos maiores, a abordagem alcançou \armGraphTools{} com menos tokens de entrada.
 
 \armEventsInPrompt{} faz o caminho oposto: entrega ao modelo a tabela de ações inteira e deixa com ele a tarefa de
 encontrar e combinar as linhas certas. Nos modelos menores, isso falhou sobretudo nas perguntas encadeadas,
@@ -126,17 +125,13 @@ Tzikas et al.~\cite{tzikas2025dynamic} obtiveram acerto maior com recuperação 
 mas com outro desenho: cada trecho já trazia os eventos seguintes, a busca recuperava até cem trechos e os
 reordenava, e a conferência foi feita por um LLM. Aqui, cada linha recuperada é uma ação isolada.
 
-\armStatsInPrompt{} também ficou baixa, por outro motivo: o resumo traz totais por jogador e por time, sem
+\armStatsInPrompt{} também ficou baixa, por outro motivo: a súmula traz totais por jogador e por time, sem
 registrar quem passou para quem. \armNoContext{} não acertou nenhuma pergunta em nenhum modelo, o que indica que
 os modelos não responderam a partir de memória.
-
-Nada disso funciona se o modelo não souber chamar ferramentas. A vantagem de \armGraphTools{} supõe chamadas
-confiáveis, e os erros de formato mostram onde ela pode se perder: agentes que esgotaram o limite de chamadas e
-modelos que esgotaram o limite de saída antes de responder. O uso de ferramentas varia entre modelos e
-provedores, e é condição para que a abordagem funcione.
 
 Alguns limites devem ser considerados. O estudo usa uma única partida, \nAnswerable{} perguntas com resposta e
 \nRepeats{} repetição por pergunta, o que deixa os intervalos de confiança largos. Nos modelos maiores, o
 tamanho e o raciocínio estendido vieram juntos, e não é possível separar o efeito de um do outro. O raciocínio
 também esbarrou no limite de saída: em \armEventsInPrompt{}, o \modelSonnet{} só respondeu dentro do limite com um
-nível de raciocínio menor, e algumas perguntas precisaram de um limite maior.
+nível de raciocínio menor, e algumas perguntas precisaram de um limite maior. As abordagens com agente supõem
+também um modelo que chame ferramentas de forma confiável, e esse suporte varia entre modelos e provedores.
