@@ -98,18 +98,19 @@ externa cujo nome e argumentos o modelo escolhe e cujo resultado volta ao seu co
 
 \input{fig-agente}
 
-As duas abordagens com agente consultam o mesmo grafo e diferem em quem escreve a consulta. Na pergunta sobre quem
-mais passou a bola para Mbappé, por exemplo, \armTextToCypher{} recebe o esquema do grafo e uma ferramenta que
-executa a consulta Cypher escrita pelo próprio modelo~\cite{ozsoy2025text2cypher}: cabe a ele montar a consulta
-que encontra os passes certos recebidos por Mbappé e os conta por jogador. A ferramenta só aceita leitura e
-devolve até \nMaxRows{} linhas.
+As duas abordagens com agente consultam o mesmo grafo e diferem em como a consulta é escrita
+(Figura~\ref{fig:trace}). Em \armTextToCypher{}, o modelo recebe o esquema do grafo e uma ferramenta que executa
+a consulta Cypher escrita por ele mesmo~\cite{ozsoy2025text2cypher}. A ferramenta só aceita leitura e devolve até
+\nMaxRows{} linhas.
 
 Em \armGraphTools{}, as consultas já estão escritas no código, uma por ferramenta, e o modelo só escolhe qual
-chamar e com quais argumentos. Na mesma pergunta, ele chama a ferramenta que monta a rede de passes, com o time
-França, e depois a que lista as ligações de um jogador, com Mbappé. A Tabela~\ref{tab:ferramentas} lista as
-\nTools{} ferramentas. Shorten et al.~\cite{shorten2025dbfunction} propõem uma única ferramenta genérica de
+chamar e preenche os argumentos. Na pergunta da Figura~\ref{fig:trace}, os filtros de time, tipo de ação, acerto
+e terço do campo, que em \armTextToCypher{} o modelo escreveu dentro da consulta, em \armGraphTools{} foram
+argumentos de uma ferramenta de contagem. A Tabela~\ref{tab:ferramentas} lista as \nTools{} ferramentas. Shorten et al.~\cite{shorten2025dbfunction} propõem uma única ferramenta genérica de
 consulta ao banco, cujos argumentos são filtros e agregações; aqui, cada ferramenta corresponde a um tipo de
 consulta do futebol.
+
+\input{fig-trace}
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
