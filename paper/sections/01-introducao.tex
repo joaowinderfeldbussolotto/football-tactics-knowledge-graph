@@ -18,8 +18,8 @@ contexto os próprios dados, brutos ou resumidos, ou consultar uma base externa 
 esporte, os trabalhos publicados avaliam uma dessas formas de cada vez (Seção~\ref{sec:trabalhos}).
 
 Este trabalho compara \nArms{} abordagens sobre a final da Copa do Mundo de 2022, com \nQuestions{} perguntas
-cujo gabarito foi calculado dos dados brutos, em \nModels{} modelos de tamanhos diferentes. As perguntas de
+cujo gabarito foi calculado por código, fora do grafo, em \nModels{} modelos de tamanhos diferentes. As perguntas de
 pesquisa são qual abordagem acerta mais, como o acerto muda de um modelo para outro e quanto cada abordagem
-custa em tokens e tempo. Dar ao modelo ferramentas com consultas prontas sobre um grafo da partida teve acerto
-alto em todos os modelos. Deixar o modelo escrever a consulta ou entregar a ele a tabela inteira só se aproximou
-disso nos modelos maiores, com mais tokens de saída e mais tempo por pergunta.
+custa em tokens e tempo. Com ferramentas de consulta pronta sobre um grafo da partida, o acerto foi alto em todos
+os modelos. Quando o modelo escreveu a consulta, o acerto só chegou a esse nível nos modelos maiores; com a tabela
+inteira no contexto, só se aproximou dele nesses modelos, com mais tokens de saída e mais tempo por pergunta.

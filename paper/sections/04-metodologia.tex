@@ -144,9 +144,10 @@ par de jogadores que os passes unem (relações na rede de passes), pela ordem d
 um momento do jogo).
 
 O grupo de controle reúne perguntas cuja resposta não existe nos dados, como as que pedem velocidade ou distância
-percorrida; a resposta certa é a ausência de dados. Os resultados são reportados com e sem esse grupo.
+percorrida; a resposta certa é a ausência de dados.
 
-As perguntas foram escritas manualmente, e a resposta de cada uma (o gabarito) foi extraída dos dados brutos;
+As perguntas foram escritas manualmente, e o gabarito de cada uma foi calculado por código, sem passar pelo
+grafo, a partir do JSON bruto e da tabela de ações;
 foram eliminadas as perguntas que, na avaliação dos autores, admitiam mais de uma interpretação.
 
 \subsection{Resposta e conferência}\label{sec:conferencia}
@@ -216,7 +217,7 @@ Erro de formato & não há resposta estruturada válida ao fim das tentativas \\
 
 Foi usada uma única partida por dois motivos: a tabela de ações inteira ocupa \tokTableApprox{} (o valor varia
 com o tokenizador do modelo) e cabe no contexto do modelo, e um escopo menor permite conferir o gabarito de cada
-pergunta sobre os dados brutos. Ficam fora do escopo, além de várias partidas: dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
+pergunta contra os dados. Ficam fora do escopo, além de várias partidas: dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
 saúde, valor de mercado, escalação, predição de resultado, qualidade da explicação tática
-e agentes que escrevem código. Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
+e agentes que escrevem e executam programas (por exemplo, em Python). Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
 o trabalho não infere condição de saúde de atleta.

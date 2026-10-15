@@ -6,10 +6,11 @@ Modelos de linguagem permitem fazer perguntas em linguagem natural sobre dados d
 dados da partida precisam chegar ao contexto do modelo. Este trabalho compara \nArms{} abordagens de aprendizado
 em contexto para isso: sem dados, a tabela de ações inteira no prompt, estatísticas resumidas, busca vetorial,
 consulta Cypher escrita pelo modelo e ferramentas com consulta fixa sobre um grafo. A avaliação usou
-\nQuestions{} perguntas sobre a final da Copa do Mundo de 2022, com gabarito calculado dos dados brutos, em
+\nQuestions{} perguntas sobre a final da Copa do Mundo de 2022, com gabarito calculado por código, fora do grafo, em
 \nModels{} modelos, dois menores e dois maiores. As ferramentas sobre o grafo foram a única abordagem com acerto
-alto em todos os modelos. A consulta escrita pelo modelo e a tabela inteira no prompt só se aproximaram dela nos
-modelos maiores, com raciocínio estendido, mais tokens de saída e mais tempo por pergunta. A busca vetorial e as
+alto em todos os modelos. A consulta escrita pelo modelo só chegou a esse nível nos modelos maiores, com
+raciocínio estendido, e a tabela inteira no prompt se aproximou dele nesses modelos, com mais tokens de saída e mais
+tempo por pergunta. A busca vetorial e as
 estatísticas resumidas ficaram baixas em todos os modelos.
 \end{abstract}
 

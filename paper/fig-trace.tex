@@ -24,7 +24,7 @@ Pergunta (a01): Quem deu mais passes certos no terço final do campo pela Argent
 \ \ (p:Partida [...])\\
 WHERE j.time = 'Argentina'\\
 \ \ AND r.acao = 'passe' AND r.sucesso = true\\
-\ \ AND r.terco = 'ataque'\\
+\ \ AND r.terco = 'ataque' [...]\\
 RETURN j.nome AS jogador,\\
 \ \ count(r) AS passes\_certos\_terco\_final\\
 ORDER BY passes\_certos\_terco\_final DESC\\
