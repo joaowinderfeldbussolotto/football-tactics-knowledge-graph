@@ -64,9 +64,9 @@ real por essas etapas, e a Figura~\ref{fig:esquema} mostra o esquema do grafo.
 \subsection{Abordagens comparadas}\label{sec:arquiteturas}
 
 Foram comparadas \nArms{} abordagens, ordenadas pela complexidade do que há entre a pergunta e o
-modelo, da ausência de dados à consulta ao grafo com ferramentas (Tabela~\ref{tab:bracos}). Todas usam o mesmo
-modelo, o mesmo prompt de sistema e a mesma saída estruturada (jogadores, valor, indicação de ausência de dados e
-justificativa).
+modelo, da ausência de dados à consulta ao grafo com ferramentas (Tabela~\ref{tab:bracos}). Em cada modelo,
+todas usam o mesmo prompt de sistema e a mesma saída estruturada (justificativa, jogadores, valor e indicador de
+ausência de dados).
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -104,7 +104,7 @@ a consulta Cypher escrita por ele mesmo~\cite{ozsoy2025text2cypher}. A ferrament
 \nMaxRows{} linhas.
 
 Em \armGraphTools{}, as consultas já estão escritas no código, uma por ferramenta, e o modelo só escolhe qual
-chamar e preenche os argumentos. Na pergunta da Figura~\ref{fig:trace}, os filtros de time, tipo de ação, acerto
+chamar e preenche os argumentos. Na pergunta da Figura~\ref{fig:trace}, os filtros de time, tipo de ação, sucesso
 e terço do campo, que em \armTextToCypher{} o modelo escreveu dentro da consulta, em \armGraphTools{} foram
 argumentos de uma ferramenta de contagem. A Tabela~\ref{tab:ferramentas} lista as \nTools{} ferramentas. Shorten et al.~\cite{shorten2025dbfunction} propõem uma única ferramenta genérica de
 consulta ao banco, cujos argumentos são filtros e agregações; aqui, cada ferramenta corresponde a um tipo de
@@ -128,7 +128,7 @@ Sequências de passes & cadeias de passes (A para B para C) mais frequentes de u
 \bottomrule
 \end{tabular}
 \captionof{table}{As \nTools{} ferramentas de \armGraphTools{}. Os filtros comuns são time, jogador, recebedor,
-tipo de ação, acerto, período, intervalo de tempo, terço e corredor do campo.}\label{tab:ferramentas}
+tipo de ação, sucesso, período, intervalo de tempo, terço e corredor do campo, gol, cartão amarelo e assistência.}\label{tab:ferramentas}
 \end{minipage}\par\smallskip
 
 \input{fig-trace}
@@ -136,12 +136,28 @@ tipo de ação, acerto, período, intervalo de tempo, terço e corredor do campo
 \subsection{Perguntas e gabarito}\label{sec:perguntas}
 
 As perguntas, em linguagem de futebol e de resposta fechada (quem, quantos, quais), formam cinco grupos
-(exemplos na Tabela~\ref{tab:perguntas}, na Seção~\ref{sec:experimentos}). As de busca e contagem são perguntas
+(exemplos na Tabela~\ref{tab:perguntas}). As de busca e contagem são perguntas
 diretas: a resposta sai de um evento ou de uma soma, como quem recebeu o primeiro cartão amarelo. Os outros três
 grupos com resposta reúnem perguntas encadeadas, cuja resposta depende sobretudo de ligar eventos entre si: pelo
 par de jogadores que os passes unem (relações na rede de passes), pela ordem das ações dentro de uma mesma posse
-(jogadas e sequências) ou pela posição em relação a um momento do jogo, como uma substituição (antes e depois de
-um momento do jogo).
+(jogadas e sequências) ou pela posição em relação a uma substituição (antes e depois de uma substituição).
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\small\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.28\columnwidth}>{\raggedright\arraybackslash}p{0.60\columnwidth}} % lint: ignore
+\toprule
+Grupo & Exemplo (resposta esperada) \\
+\midrule
+Busca e contagem (\nGroupSearch{}) & Quem recebeu o primeiro cartão amarelo da final? (jogador) \\
+Relações na rede de passes (\nGroupRelations{}) & Qual dupla da França mais trocou passes entre si na final? (conjunto de jogadores) \\
+Jogadas e sequências (\nGroupPlays{}) & Qual jogador participou de mais jogadas da Argentina que terminaram em finalização? (jogador) \\
+Antes e depois de uma substituição (\nGroupMoments{}) & Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé? (jogador) \\
+Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo De Paul na final? (ausência de dados) \\
+\bottomrule
+\end{tabular}
+\captionof{table}{Os cinco grupos de perguntas, com o número de perguntas de cada um e um exemplo.}\label{tab:perguntas}
+\end{minipage}\par\smallskip
 
 O grupo de controle reúne perguntas cuja resposta não existe nos dados, como as que pedem velocidade ou distância
 percorrida; a resposta certa é a ausência de dados.
@@ -158,7 +174,7 @@ indicador de ausência de dados. A justificativa é escrita antes da resposta e 
 continuar inválida, a execução conta como erro de formato.
 
 A conferência com o gabarito é determinística: é feita por código, e a mesma resposta recebe sempre o mesmo
-veredito. Ela depende do tipo da pergunta (Tabela~\ref{tab:conferencia}). O formato pede que os rankings sejam
+veredito. Ela depende do tipo da pergunta (Tabela~\ref{tab:conferencia}). O formato pede que as classificações sejam
 listados do melhor ao pior; por isso, nas perguntas que esperam um jogador, vale o primeiro jogador da lista e os
 demais não são conferidos. Os nomes são normalizados (caixa e acentos) e aceitos pelo nome da escalação, pelo
 apelido ou pelo sobrenome, este só quando é único entre os jogadores da partida.
@@ -219,5 +235,5 @@ Foi usada uma única partida por dois motivos: a tabela de ações inteira ocupa
 com o tokenizador do modelo) e cabe no contexto do modelo, e um escopo menor permite conferir o gabarito de cada
 pergunta contra os dados. Ficam fora do escopo, além de várias partidas: dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
 saúde, valor de mercado, escalação, predição de resultado, qualidade da explicação tática
-e agentes que escrevem e executam programas (por exemplo, em Python). Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
+e agentes com ambiente de execução próprio, que rodam programas em Python ou comandos de terminal. Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
 o trabalho não infere condição de saúde de atleta.
