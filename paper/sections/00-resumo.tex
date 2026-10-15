@@ -1,18 +1,16 @@
 % Resumo: ambiente abstract e palavras-chave, como no template da disciplina (src/abstract.tex no Overleaf).
-% Termina no último resultado, sem frase de implicação.
+% Resultado só qualitativo, sem números (pedido do autor); termina no último resultado, sem frase de implicação.
 
 \begin{abstract}
 Modelos de linguagem permitem fazer perguntas em linguagem natural sobre dados de eventos de futebol, mas os
 dados da partida precisam chegar ao contexto do modelo. Este trabalho compara \nArms{} abordagens de aprendizado
 em contexto para isso: sem dados, a tabela de ações inteira no prompt, estatísticas resumidas, busca vetorial,
 consulta Cypher escrita pelo modelo e ferramentas com consulta fixa sobre um grafo. A avaliação usou
-\nQuestions{} perguntas sobre a final da Copa do Mundo de 2022, com gabarito calculado dos dados brutos e
-conferência por código, em \nModels{} modelos, dois menores e dois maiores. \armGraphTools{} foi a única
-abordagem com acerto alto em todos os modelos (\accRangeGraphTools{}). A consulta escrita pelo modelo acertou
-\accRangeLowTextToCypher{} nos modelos menores e \accRangeHighTextToCypher{} nos maiores, com raciocínio
-estendido. A tabela inteira no prompt passou de \accRangeLowEventsInPrompt{} para \accRangeHighEventsInPrompt{},
-com mais tokens de saída e mais tempo por pergunta. A busca vetorial (\accRangeVector{}) e as estatísticas
-resumidas (\accRangeStatsInPrompt{}) ficaram baixas em todos os modelos.
+\nQuestions{} perguntas sobre a final da Copa do Mundo de 2022, com gabarito calculado dos dados brutos, em
+\nModels{} modelos, dois menores e dois maiores. As ferramentas sobre o grafo foram a única abordagem com acerto
+alto em todos os modelos. A consulta escrita pelo modelo e a tabela inteira no prompt só se aproximaram dela nos
+modelos maiores, com raciocínio estendido, mais tokens de saída e mais tempo por pergunta. A busca vetorial e as
+estatísticas resumidas ficaram baixas em todos os modelos.
 \end{abstract}
 
 \noindent\textbf{Palavras-chave:} modelos de linguagem, aprendizado em contexto, recuperação de dados, grafos,
