@@ -363,6 +363,7 @@ def tier_ranges(models: list[dict]) -> dict[str, str]:
             m[f"inRange{tk}{k}"] = rng([c["tokens_in"] / 1000 for c in costs], lambda x: num(round(x)))
             m[f"latRange{tk}{k}"] = rng([c["latency"] for c in costs], lambda x: num(round(x)))
             m[f"abstRange{tk}{k}"] = rng([ps.cost_profile(md["rows"], a)["abstention"] for md in ms], pct)
+            m[f"hallRange{tk}{k}"] = rng([ps.cost_profile(md["rows"], a)["hallucination"] for md in ms], pct)
     return m
 
 
