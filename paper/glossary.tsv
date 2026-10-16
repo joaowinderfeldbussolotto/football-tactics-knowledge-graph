@@ -17,3 +17,5 @@ Consulta escrita pelo modelo	text-to-cypher|texto para cypher|texto-para-consult
 Ferramentas sobre o grafo	graph tools|ferramentas do grafo	nome da abordagem graph_tools; use \armGraphTools; "ferramentas prontas" descreve a consulta já escrita
 pergunta encadeada	pergunta relacional|perguntas relacionais|pergunta composta|perguntas compostas|multi-hop	resposta depende sobretudo de ligar eventos entre si (rede de passes, jogadas, antes e depois de um momento)
 pergunta direta	pergunta simples|perguntas simples|pergunta factual|perguntas factuais	resposta sai de um evento ou de uma soma (grupo busca e contagem)
+geração aumentada por recuperação	recuperação aumentada por geração	RAG (Lewis et al.); a ordem inversa troca o sentido
+aprendizado em contexto	in-context learning|aprendizagem em contexto	dados entregues no contexto, sem treinar o modelo (Brown et al.)

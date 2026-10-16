@@ -84,7 +84,9 @@ def test_the_numbers_the_dossier_states():
     assert (macros["preFixKGraphTools"], macros["preFixNGraphTools"]) == ("39", "52")
     assert macros["accPlaysGraphTools"] == "80\\%" and macros["accPlaysTextToCypher"] == "40\\%"
     assert macros["tokInGraphTools"] == "76.118" and macros["costFinal"] == "1,04"
-    assert set(tables) == {"groups.tex", "mcnemar.tex", "cost.tex", "ladder.tex", "models.tex", "mcnemar_models.tex", "errors_models.tex"}
+    assert set(tables) == {"groups.tex", "mcnemar.tex", "cost.tex", "ladder.tex", "models.tex", "mcnemar_models.tex", "errors_models.tex", "fig_models.tex", "groups_models.tex", "cost_models.tex"}
+    assert (macros["hallRangeGraphTools"], macros["hallRangeTextToCypher"], macros["hallRangeEventsInPrompt"]) == \
+        ("2\\% a 12\\%", "8\\% a 23\\%", "13\\% a 44\\%")  # over the 52 runs, as the abstention ranges
     assert all(re.fullmatch(r"[A-Za-z]+", name) for name in macros)  # LaTeX control sequences: letters only
 
 
@@ -95,7 +97,7 @@ def test_every_model_of_the_registry_has_macros_and_a_column():
     assert macros["accHaikuGraphTools"] == macros["accGraphTools"]  # the first model is the main one
     for md in models:
         assert f"acc{md['key']}GraphTools" in macros and f"fmt{md['key']}TextToCypher" in macros
-        assert md["short"] in tables["models.tex"] and md["name"] in tables["errors_models.tex"]
+        assert md["short"] in tables["models.tex"] and md["name"] in tables["errors_models.tex"] and md["short"] in tables["groups_models.tex"]
         assert md["name"] in tables["mcnemar_models.tex"]
     assert macros["accQwenGraphTools"] == "83\\%" and macros["mcQwenGraphToolsTextToCypherPHolm"] == "0,015"
 
@@ -186,7 +188,7 @@ def test_every_reference_in_the_table_is_in_refs_bib_and_balanced():
     bib = (PAPER / "refs.bib").read_text(encoding="utf-8")
     keys = set(cite.parse_bib(bib))
     rows = list(csv.DictReader((PAPER / "refs" / "references.tsv").open(encoding="utf-8"), delimiter="\t"))
-    assert len(rows) == 35 and all(r["key"] in keys for r in rows)
+    assert len(rows) == 36 and all(r["key"] in keys for r in rows)
     assert {"statsbomb_opendata", "neo4j_gds", "networkx", "pydanticai", "langfuse", "socceraction", "holm1979simple"} <= keys
     assert all(r["status"] == "confirmado" for r in rows)
     for entry in re.split(r"\n\n(?=@)", bib):

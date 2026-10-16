@@ -1,8 +1,8 @@
 key	doi	priority	status	sections	short
 xia2024sportqa	10.18653/v1/2024.naacl-long.283	1	confirmado	relacionados	SportQA
-strand2024soccerrag	10.48550/arXiv.2406.01273	1	confirmado	relacionados	SoccerRAG
+strand2024soccerrag	10.1109/CBMI62980.2024.10859209	1	confirmado	relacionados	SoccerRAG
 martinez2025sportsql	10.18653/v1/2025.ijcnlp-demo.11	1	confirmado	relacionados	SPORTSQL
-rao2025socceragent	10.48550/arXiv.2505.03735	2	confirmado	relacionados	SoccerAgent
+rao2025socceragent	10.1145/3746027.3755144	2	confirmado	relacionados	SoccerAgent
 wang2024tacticai	10.1038/s41467-024-45965-x	1	confirmado	introducao,relacionados	TacticAI
 lewis2020rag	10.48550/arXiv.2005.11401	2	confirmado	relacionados,metodologia	RAG
 liu2024lostinthemiddle	10.1162/tacl_a_00638	1	confirmado	relacionados,discussao	Lost in the Middle
@@ -27,10 +27,11 @@ schroer2021crispdm	10.1016/j.procs.2021.01.199	1	confirmado	metodologia	CRISP-DM
 martinezplumed2021crispdm	10.1109/TKDE.2019.2962680	2	confirmado	metodologia	CRISP-DM 20 anos
 shimaoka2024crispdm	10.5753/reviews.2024.3757	2	confirmado	metodologia	CRISP-DM (SBC Reviews)
 wang2024agentssurvey	10.1007/s11704-024-40231-1	1	confirmado	metodologia	Agentes baseados em LLM
-schick2023toolformer	10.48550/arXiv.2302.04761	1	confirmado	metodologia	Toolformer
+schick2023toolformer	10.52202/075280-2997	1	confirmado	metodologia	Toolformer
 wilson1927probable	10.1080/01621459.1927.10502953	1	confirmado	metodologia	Intervalo de Wilson
 mcnemar1947note	10.1007/BF02295996	1	confirmado	metodologia	Teste de McNemar
 dietterich1998approximate	10.1162/089976698300017197	2	confirmado	metodologia	McNemar em aprendizado
 shorten2025dbfunction	10.48550/arXiv.2502.00032	1	confirmado	metodologia	Consulta a bancos por function calling
 tzikas2025dynamic	10.1016/j.procs.2025.09.309	1	confirmado	relacionados	RAG sobre eventos de futebol (Tzikas)
-lee2024loft	10.48550/arXiv.2406.13121	1	confirmado	relacionados	LOFT (contexto longo, RAG e SQL)
+lee2024loft	10.18653/v1/2025.findings-naacl.374	1	confirmado	relacionados	LOFT (contexto longo, RAG e SQL)
+brown2020language	10.48550/arXiv.2005.14165	1	confirmado	introducao	Aprendizado em contexto (GPT-3)
