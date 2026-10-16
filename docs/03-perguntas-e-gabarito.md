@@ -26,17 +26,21 @@ O que cada campo quer dizer:
 
 | Campo | Para que serve |
 |---|---|
-| `id` | identificador curto. A letra diz o tipo: **f** (fact), **a** (filtered_aggregation), **n** (network), **s** (network_slice), **u** (unanswerable) |
+| `id` | identificador curto. A letra diz o tipo: **f** (fact), **a** (filtered_aggregation), **n** (network), **s** (network_slice), **t** (structure), **c** (counterfactual), **q** (sequence), **p** (play), **b** (substitution), **u** (unanswerable) |
 | `type` | o tipo da pergunta (tabela abaixo) |
-| `stage` | se a pergunta entra na execução (`pilot`, `full`), fica de reserva (`candidate`) ou saiu no teste de robustez (`removed`) |
+| `stage` | se a pergunta entra na execução (`pilot`, `full`, `graph`), fica de reserva (`candidate`) ou saiu no teste de robustez (`removed`) |
 | `check` | **como** a resposta é conferida (tabela abaixo) |
 | `tolerance` | opcional. Margem aceita para números contínuos. Contagens são exatas e não usam |
 | `text` | a pergunta, **exatamente** como vai para o modelo |
 | `note` | um comentário para quem lê o arquivo; numa pergunta removida, o motivo. **Nunca vai para o modelo** |
 
-No topo do arquivo, `active_stages` diz quais estágios entram na execução e
-`per_type` quantas perguntas de cada tipo eles têm de somar. Hoje são
-`[pilot, full]` e 5, ou seja, 25 perguntas.
+No topo do arquivo, `active_stages` diz quais estágios entram na execução.
+Hoje são `[pilot, full, graph]`: **52 perguntas ativas**. O arquivo tem 81
+perguntas escritas: as 52 ativas, 22 removidas no teste de robustez e 7
+reservas (`candidate`). As 25 primeiras (`pilot` e `full`, 5 de cada um dos
+cinco primeiros tipos) foram as das rodadas iniciais; as 27 de `graph` vieram
+depois, com os tipos que exploram jogadas, substituições e a estrutura da
+rede.
 
 Os tipos:
 
@@ -46,7 +50,25 @@ Os tipos:
 | `filtered_aggregation` | filtrar, contar e ordenar, com recorte: "na prorrogação", "depois do 2 a 2", "enquanto vencia por 2 a 0" |
 | `network` | um conceito de rede de passes na partida inteira: dupla, elo, sequência de três |
 | `network_slice` | um conceito de rede num recorte, ou comparando recortes |
+| `structure` | a estrutura da rede de passes: quem, se saísse, deixaria companheiros isolados |
+| `counterfactual` | "se fulano não estivesse em campo": a rede recalculada sem um jogador |
+| `sequence` | o que acontece imediatamente antes de uma ação: o penúltimo passe, o passe antes do chute |
+| `play` | jogadas inteiras (posses de bola): onde começam, aonde chegam, como terminam, quem participa |
+| `substitution` | antes e depois de uma substituição: como a circulação de bola mudou |
 | `unanswerable` | parece respondível com eventos, mas os dados não têm o que é pedido |
+
+Para os resultados, os tipos são reunidos em **cinco grupos**, mais fáceis de
+explicar:
+
+| Grupo | Tipos | Perguntas |
+|---|---|---|
+| Busca e contagem | `fact`, `filtered_aggregation` | 11 |
+| Relações na rede de passes | `network`, `network_slice`, `structure`, `counterfactual` | 20 |
+| Jogadas e sequências | `sequence`, `play` | 10 |
+| Antes e depois de um momento do jogo | `substitution` | 6 |
+| Controle: sem resposta | `unanswerable` | 5 |
+
+Os grupos ficam em `benchmark/questions.py` (`GROUPS`).
 
 Os tipos de conferência (`check`):
 
@@ -108,12 +130,20 @@ acrescentando definição ao texto.
 `unanswerable` pedem algo que nem os dados 360 da StatsBomb têm: tempo em
 cada parte do campo, distância percorrida, velocidade, impedimento passivo.
 
-**8. Cinco por tipo.** O mesmo número em cada tipo permite comparar os tipos
-entre si.
+**8. Empate não desclassifica.** Se, numa leitura, dois jogadores empatam,
+a resposta certa aceita qualquer um deles, ou os dois juntos. A pergunta só
+sai se a resposta **muda** de uma leitura para outra; um empate dentro de uma
+leitura não muda a resposta, só a deixa com mais de uma forma certa (campo
+`accepted` do gabarito, capítulo 5).
 
 ---
 
-## 3.3 As 25 perguntas e as respostas certas
+## 3.3 As 52 perguntas e as respostas certas
+
+Nomes encurtados aqui; o gabarito usa o nome completo de registro. "ou"
+separa respostas igualmente certas (empate dentro de uma leitura).
+
+### Busca e contagem (11)
 
 | id | Pergunta | Resposta certa |
 |---|---|---|
@@ -123,20 +153,67 @@ entre si.
 | f04 | Quem deu o passe para o gol que deixou o placar em 2 a 2 no tempo normal? | Marcus Thuram |
 | f05 | Quem fez a última finalização da França na final, antes da disputa de pênaltis? | Kolo Muani |
 | a01 | Quem deu mais passes certos no terço final do campo pela Argentina? | Messi |
+| a02 | Quem deu mais passes certos no terço final do campo pela França? | Rabiot |
 | a03 | Depois do gol que deixou o placar em 2 a 2 no tempo normal, quantas finalizações a Argentina fez até o fim da prorrogação? | 10 |
 | a05 | Enquanto a Argentina vencia por 2 a 0, qual jogador argentino acertou mais passes, e quantos? | Enzo Fernández, 26 |
 | a06 | Na prorrogação, quem fez mais desarmes certos pela Argentina? | Enzo Fernández |
 | a07 | No segundo tempo, quem cometeu mais faltas? | Julián Álvarez |
+
+### Relações na rede de passes (20)
+
+| id | Pergunta | Resposta certa |
+|---|---|---|
 | n03 | Na troca de passes da Argentina, qual jogador, se não estivesse em campo, deixaria algum companheiro sem trocar passes com ninguém do time? | Otamendi |
 | n04 | Qual dupla da França mais trocou passes entre si na final? | Upamecano e Varane |
-| n05 | Qual dupla da Argentina mais trocou passes entre si na final? | Otamendi e Romero |
+| n05 | Qual dupla da Argentina mais trocou passes entre si na final? | Romero e Otamendi |
 | n06 | Qual jogador da Argentina trocou passes com o maior número de companheiros diferentes na final? | Enzo Fernández |
-| n09 | Qual sequência de três jogadores da França, com a bola passando de um para o outro, mais se repetiu na final? | Upamecano, Varane e Koundé |
+| n09 | Qual sequência de três jogadores da França, com a bola passando de um para o outro, mais se repetiu na final? | Upamecano, Koundé e Varane |
+| n11 | Para cortar a bola que chega a Messi, preciso saber: qual companheiro mais passou a bola para ele na final? | De Paul |
+| n12 | Para marcar Mbappé, preciso saber: qual companheiro mais passou a bola para ele na final? | Theo Hernández |
 | s01 | Na prorrogação, quem foi o principal elo da circulação de bola da França? | Koundé |
 | s03 | Depois do gol que deixou o placar em 2 a 2 no tempo normal, qual dupla da França mais trocou passes entre si? | Koundé e Varane |
 | s04 | A dupla da Argentina que mais trocou passes entre si no primeiro tempo continuou sendo a principal no segundo tempo? Qual foi a dupla que mais trocou passes no segundo tempo? | Enzo Fernández e De Paul |
 | s06 | No segundo tempo, qual companheiro mais recebeu passes de Enzo Fernández? | De Paul |
-| s07 | Na prorrogação, qual sequência de três jogadores da Argentina, com a bola passando de um para o outro, mais se repetiu? | Otamendi, Romero e Enzo Fernández |
+| s07 | Na prorrogação, qual sequência de três jogadores da Argentina, com a bola passando de um para o outro, mais se repetiu? | Romero, Enzo Fernández e Otamendi |
+| s09 | Na prorrogação, qual jogador da Argentina trocou passes com o maior número de companheiros diferentes? | Enzo Fernández |
+| s10 | No campo de ataque, pelo lado direito, quais dois jogadores da Argentina mais trocaram passes entre si? | Messi e De Paul |
+| s11 | No campo de ataque, pelo lado esquerdo, quem foi o jogador da Argentina mais procurado pelos companheiros? | Mac Allister |
+| s12 | Enquanto a França perdia por 2 a 0, quem foi o jogador francês mais procurado pelos companheiros? | Upamecano |
+| s13 | Depois do gol que deixou o placar em 2 a 2 no tempo normal, quem passou a ser o jogador da França mais procurado pelos companheiros? | Koundé |
+| t06 | Na prorrogação, qual jogador da França, se não estivesse em campo, deixaria algum companheiro sem trocar passes com ninguém do time? | Koundé |
+| c01 | Se Enzo Fernández não estivesse em campo, quem passaria a ser o principal elo da circulação de bola da Argentina? | Otamendi |
+| c02 | Sem Otamendi em campo, algum companheiro da Argentina ficaria sem trocar passes com ninguém do time? Quem? | Pezzella |
+
+### Jogadas e sequências (10)
+
+| id | Pergunta | Resposta certa |
+|---|---|---|
+| q01 | Qual jogador argentino mais vezes finalizou logo depois de receber um passe de um companheiro? | Lautaro Martínez |
+| q03 | Quem deu mais vezes o penúltimo passe nas jogadas da Argentina que terminaram em finalização? | Julián Álvarez |
+| p01 | Quais dois jogadores argentinos mais vezes participaram juntos das mesmas jogadas que chegaram ao terço final? | Enzo Fernández e Messi |
+| p02 | Qual jogador participou de mais jogadas da Argentina que começaram no próprio campo de defesa e terminaram em finalização? | Messi |
+| p03 | Qual jogador participou de mais jogadas da Argentina que terminaram em finalização? | Messi |
+| p04 | Qual jogador participou de mais jogadas da França que terminaram em finalização? | Mbappé |
+| p05 | Nas jogadas da Argentina que terminaram em finalização e em que Messi tocou na bola, qual companheiro mais participou junto com ele? | Enzo Fernández |
+| p06 | Nas jogadas da França que terminaram em finalização e em que Mbappé tocou na bola, qual companheiro mais participou junto com ele? | Rabiot |
+| p07 | Quais dois jogadores franceses mais vezes participaram juntos das mesmas jogadas que chegaram ao terço final? | Rabiot e Tchouaméni ou Rabiot e Mbappé |
+| p08 | Quem participou de mais jogadas da França que levaram a bola da defesa até o terço final no segundo tempo? | Kolo Muani |
+
+### Antes e depois de um momento do jogo (6)
+
+| id | Pergunta | Resposta certa |
+|---|---|---|
+| b02 | Depois que Di María foi substituído, qual companheiro mais passou a bola para Messi? | Enzo Fernández |
+| b03 | Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé? | Rabiot |
+| b05 | Depois que Dembélé foi substituído no primeiro tempo, para qual companheiro Mbappé mais passou a bola? | Kolo Muani |
+| b06 | Depois que Dembélé foi substituído no primeiro tempo, qual dupla francesa mais trocou passes entre si? | Koundé e Varane |
+| b07 | Depois que Di María foi substituído, qual companheiro mais recebeu passes de Messi? | Enzo Fernández |
+| b09 | Depois que Di María foi substituído, quem passou a ser o jogador da Argentina mais procurado pelos companheiros? | Enzo Fernández |
+
+### Controle: sem resposta (5)
+
+| id | Pergunta | Resposta certa |
+|---|---|---|
 | u01 | Quantos minutos Messi passou no campo de ataque durante a final? | sem dados |
 | u02 | Qual foi a distância total percorrida por Rodrigo De Paul na final? | sem dados |
 | u03 | Quantos piques em alta velocidade Mbappé deu na prorrogação? | sem dados |
@@ -144,7 +221,10 @@ entre si.
 | u05 | Em quantos lances Mbappé ficou em posição de impedimento sem participar da jogada? | sem dados |
 
 Nas sequências de três jogadores, a conferência é por conjunto: a ordem não
-é conferida. Na s04, só a dupla do segundo tempo é conferida. O arquivo de
+é conferida. Na s04, só a dupla do segundo tempo é conferida. Além do
+`check_ground_truth.py`, `scripts/check_cypher.py` responde as 47 perguntas
+com resposta com uma consulta Cypher escrita à mão para cada uma, e as 47
+batem com o gabarito. O arquivo de
 perguntas tem também as reservas estáveis e as removidas, cada uma com o
 motivo. As respostas calculadas ficam em `data/benchmark/ground_truth.json`.
 
@@ -278,7 +358,7 @@ respondida de novo **pelas ferramentas do `graph_tools`**, com uma sequência
 fixa de chamadas, sem LLM:
 
 ```bash
-python scripts/check_ground_truth.py           # as 25 perguntas ativas
+python scripts/check_ground_truth.py           # as 52 perguntas ativas
 python scripts/check_ground_truth.py --all     # também as reservas
 ```
 
@@ -289,7 +369,7 @@ OK  s01  ground truth: ['Jules Koundé']  |  graph (tools): ['Jules Koundé']
 OK  n09  ground truth: ['Dayotchanculle Upamecano', 'Jules Koundé', 'Raphaël Varane']  |  graph (tools): [...]
 OK  u01  no data expected; the tools expose only on-ball events
 ...
-25/25 agree
+52/52 agree
 ```
 
 Como os dois lados foram calculados por caminhos independentes, **a

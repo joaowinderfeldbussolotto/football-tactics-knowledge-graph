@@ -1,4 +1,4 @@
-# 4. Os cinco braços (e um sexto, opcional), por dentro
+# 4. Os seis braços, por dentro
 
 Este capítulo mostra **exatamente** o que cada braço envia ao modelo, com
 trechos reais. O código está em `src/football_graphrag/benchmark/arms.py`
@@ -15,8 +15,8 @@ recebe**. Todo o resto é igual:
 
 | Item | Valor | Por quê |
 |---|---|---|
-| Modelo | o do `.env` (`LLM_PROVIDER` + `LLM_MODEL`) | o mesmo "cérebro" em todos os braços |
-| Temperatura | 0 | o modelo escolhe sempre a resposta mais provável, sem sortear; reduz a variação entre repetições |
+| Modelo | o do `.env` (`LLM_PROVIDER` + `LLM_MODEL`) | o mesmo "cérebro" em todos os braços de uma rodada; cada modelo avaliado é uma rodada à parte (capítulo 7) |
+| Temperatura | 0 | o modelo escolhe sempre a resposta mais provável, sem sortear; reduz a variação entre repetições. Exceções: com o raciocínio estendido ligado no Bedrock (Sonnet 4.6) a Anthropic exige 1, e o Kimi K3 no Bedrock não aceita o parâmetro e roda na temperatura padrão |
 | Instrução de sistema | a mesma para todos (abaixo) | as mesmas regras do jogo |
 | Formato da resposta | o modelo `Answer` (capítulo 5); resposta vazia é recusada | a mesma correção para todos |
 | Tentativas de formato | até 2 novas tentativas se a resposta vier fora do formato | a mesma tolerância para todos |
@@ -64,11 +64,16 @@ Haiku 5.5; a unidade que os provedores cobram):
 | `no_context` | ~900 | instrução + formato da resposta + pergunta |
 | `vector` | ~2.600 | + 30 linhas de evento com a legenda |
 | `stats_in_prompt` | ~5.000 | + súmula completa com glossário |
-| `graph_tools` | ~37.000 | descrição das 7 ferramentas, repetida a cada chamada, mais os resultados |
+| `graph_tools` | ~76.000 | descrição das 8 ferramentas, repetida a cada chamada, mais os resultados |
 | `events_in_prompt` | ~111.000 | + todos os 2.585 lances; com cache de prompt, só a primeira pergunta paga o preço cheio |
 
 O `events_in_prompt` exige um modelo com janela de contexto de pelo menos 128
 mil tokens.
+
+O número de tokens depende do tokenizador de cada modelo. A mesma tabela de
+eventos medida em outros modelos: ~78 mil (gpt-oss), ~82 mil (Kimi K3),
+~90 mil (Sonnet 4.6), ~91 mil (Qwen3.8-flash) e ~240 mil (DeepSeek V4, que
+por isso precisa de contexto bem maior).
 
 ---
 
@@ -203,7 +208,7 @@ decide qual chamar; o programa executa a ferramenta (uma consulta ao Neo4j) e
 devolve o resultado; o modelo lê e decide se chama outra ou se já responde.
 Isso se chama *tool calling*.
 
-### As sete ferramentas
+### As oito ferramentas
 
 São **primitivas**: nenhuma traz um conceito tático pronto. O modelo tem de
 combiná-las.
@@ -213,6 +218,7 @@ combiná-las.
 | `list_players` | lista os jogadores, com time e posição |
 | `query_actions` | conta ações (ou soma o xT delas) com filtros, agrupando por jogador, recebedor, time, ação, período, terço ou corredor |
 | `list_actions` | lista ações em ordem, com o segundo do jogo, o placar antes da ação e, num gol, o placar depois |
+| `query_possessions` | conta as jogadas (posses de bola) de um time com filtros de onde começam, aonde chegam, como terminam e quem participa; agrupa por jogador ou por dupla |
 | `pass_network` | monta a rede de passes de um time, com filtros; devolve um identificador |
 | `network_metric` | calcula uma métrica sobre a rede: betweenness, grau, PageRank, pontes, pontos de articulação ou comunidades |
 | `network_edges` | lista as ligações da rede (quem passou para quem, quantas vezes) |
@@ -252,6 +258,13 @@ França?" (trace real, resumido):
 - **Erros viram mensagens.** Um time que não existe, um nome ambíguo
   ("Martínez" é Lautaro ou Emiliano?) ou uma rede que ainda não foi criada
   geram uma mensagem explicando o problema, e o modelo pode tentar de novo.
+- **Argumentos tolerantes no formato, não no conteúdo.** Antes da validação,
+  cada argumento passa por uma limpeza: aspas soltas em volta de um texto
+  (`'"France"'`) saem, e um objeto ou lista enviado como texto JSON
+  (`"{\"yellow_card\": true}"`, como fazem Qwen e MiMo) vira o objeto. O
+  resultado ainda passa pela validação do argumento: chave inventada ou valor
+  fora da lista continua sendo recusado. A segunda limpeza veio depois da
+  rodada do Haiku, que nunca enviou argumento nesse formato (capítulo 7).
 - **Uma chamada por vez, até 12 por pergunta.** Da 13ª em diante, a
   ferramenta responde "limite atingido, responda com o que você tem". Se o
   modelo ainda insistir, a execução para depois de 16 pedidos ao provedor e
@@ -267,10 +280,10 @@ momento do jogo.
 
 ---
 
-## 4.7 `text_to_cypher` (opcional): o modelo escreve as consultas
+## 4.7 `text_to_cypher`: o modelo escreve as consultas
 
-Um sexto braço, fora da rodada principal: só roda quando listado em
-`--arms` ou em `config/benchmark.yaml`. É o padrão *text-to-Cypher*: em vez
+O sexto braço. No código ele é opcional (só roda quando listado em `--arms`
+ou em `config/benchmark.yaml`), mas todas as rodadas publicadas o incluem. É o padrão *text-to-Cypher*: em vez
 de ferramentas prontas, o modelo recebe a **planta do grafo** e **uma
 ferramenta só**, `run_cypher`, que executa a consulta que ele escrever. Toda
 contagem, rede ou sequência é consulta dele. Código:

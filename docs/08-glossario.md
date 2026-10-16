@@ -21,7 +21,7 @@ certa. Nas perguntas sem resposta nos dados, qualquer resposta diferente de
 liga o jogador que passou ao que recebeu.
 
 **Benchmark.** Um teste padronizado para comparar alternativas sob as mesmas
-condições. Aqui, comparar cinco formas de entregar dados a um modelo.
+condições. Aqui, comparar seis formas de entregar dados a um modelo.
 
 **Betweenness centrality (centralidade de intermediação).** Para cada par de
 jogadores do time, encontra-se o caminho de passes mais curto entre eles e
@@ -29,10 +29,19 @@ conta-se quem está no meio desse caminho. Quanto mais caminhos passam por um
 jogador, maior a betweenness dele. É uma medida de "quem liga o time". Não é
 o mesmo que dar mais passes (capítulo 3, com exemplo).
 
-**Braço.** Cada uma das cinco formas de entregar dados ao modelo
+**Braço.** Cada uma das seis formas de entregar dados ao modelo
 (`no_context`, `vector`, `events_in_prompt`, `stats_in_prompt`,
-`graph_tools`). O nome vem dos experimentos científicos, em que cada braço é
+`graph_tools` e `text_to_cypher`). O nome vem dos experimentos científicos, em que cada braço é
 um grupo com um tratamento diferente.
+
+**BYOK (bring your own key).** Cadastrar no OpenRouter a chave de um
+provedor (aqui, do Amazon Bedrock): as chamadas fixadas nesse provedor são
+cobradas na conta dele, não no saldo do OpenRouter.
+
+**Cache de prompt.** O provedor guarda o começo de um prompt já enviado e
+cobra a releitura por uma fração do preço. Serve quando muitas perguntas
+começam com o mesmo texto longo, como a tabela de eventos. O modelo lê o
+mesmo texto; só a conta muda.
 
 **Camada.** Cada etapa do processamento dos dados: 0 (tabela de ações), 1
 (grafo factual), 1b (súmula), 2 (padrões de rede). Capítulo 2.
@@ -101,6 +110,15 @@ passes de forma independente do Neo4j, no gabarito.
 **Parquet.** Um formato de arquivo de tabela, compacto e rápido. A camada 0
 grava a tabela de ações em Parquet.
 
+**Perfil de inferência.** No Bedrock, um identificador que encaminha a
+chamada de um modelo para uma ou mais regiões (prefixo `us.` ou `global.`,
+como em `us.anthropic.claude-sonnet-4-6`). Vários modelos só aceitam ser
+chamados por ele.
+
+**Pesos abertos (open-weight).** Modelo cujos parâmetros são publicados:
+qualquer um pode baixá-lo e rodá-lo, e a versão não muda sem aviso. Aqui,
+Qwen3.8-flash e Kimi K3. Não é o mesmo que código aberto.
+
 **Ponte.** Uma ligação da rede de passes que, se removida, separa o time em
 dois grupos sem conexão. A final não teve nenhuma.
 
@@ -115,8 +133,18 @@ falta). **Quanto menor, mais o time pressiona.**
 **Prompt.** O texto enviado ao modelo: instrução de sistema, dados (quando o
 braço os envia) e pergunta.
 
+**Provedor (de modelo).** A empresa que roda o modelo e cobra por ele. Um
+mesmo modelo de pesos abertos pode ser servido por vários provedores, com
+preços e quantizações diferentes; por isso o provedor é fixado em cada
+rodada (`LLM_PROVIDER_ORDER`).
+
 **PydanticAI.** A biblioteca Python que o projeto usa para conversar com os
 modelos, definir ferramentas e exigir o formato de resposta.
+
+**Raciocínio (modelo de raciocínio).** Um modelo que escreve um raciocínio
+interno antes da resposta. O raciocínio conta como saída: custa e ocupa o
+teto de saída. O **esforço** (`LLM_REASONING_EFFORT`: `none`, `low`,
+`medium`, `high`) regula quanto ele raciocina.
 
 **RAG (Retrieval-Augmented Generation).** Buscar trechos relevantes de um
 acervo e entregá-los ao modelo junto com a pergunta. O braço `vector` é um RAG
@@ -144,6 +172,11 @@ palavras. Com 0, escolhe sempre a mais provável.
 
 **Terço do campo.** O campo dividido em três faixas no comprimento: defesa,
 meio e ataque.
+
+**Teto de saída.** O máximo de tokens que o modelo pode escrever numa
+chamada (`LLM_MAX_TOKENS`, 16 mil no benchmark). Num modelo de raciocínio,
+se o raciocínio consome o teto inteiro, nenhuma resposta sai e a execução
+conta como erro de formato.
 
 **Token.** O pedaço de texto que o modelo lê e escreve, em geral uma palavra
 curta ou parte de uma palavra. Os provedores cobram por token.

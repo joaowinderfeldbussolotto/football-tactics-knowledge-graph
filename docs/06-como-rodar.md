@@ -168,7 +168,7 @@ python scripts/check_ground_truth.py
 ```
 
 Compara o gabarito com o grafo, sem LLM (capítulo 3). Tem de terminar com
-`25/25 agree`. Se não terminar, há algo diferente nos dados e o benchmark não
+`52/52 agree`. Se não terminar, há algo diferente nos dados e o benchmark não
 deve ser rodado até entender a diferença.
 
 ```bash
@@ -199,12 +199,13 @@ chamou a ferramenta, ou não respeitou o formato). Troque o `LLM_MODEL`.
 python scripts/run_benchmark.py --sample
 ```
 
-Roda **a primeira pergunta de cada tipo** (f01, a01, s01, c01, u01), nos 5
-braços, uma vez: 25 execuções. Custa centavos e mostra se tudo funciona de
+Roda **a primeira pergunta de cada tipo** (f01, a01, n03, s01, u01, t06,
+c01, q01, p01, b02), nos braços configurados (abaixo), uma vez. Com os dois
+braços padrão são 20 execuções. Custa centavos e mostra se tudo funciona de
 ponta a ponta. Cada execução imprime uma linha neste formato:
 
 ```text
-[7/25] a01 events_in_prompt r1: ok (<tokens de entrada>/<tokens de saída> tok, <segundos>s)
+[7/20] a01 events_in_prompt r1: ok (<tokens de entrada>/<tokens de saída> tok, <segundos>s)
 ```
 
 O desfecho pode ser `ok`, `wrong`, `abstention` ou `format_error`
@@ -220,9 +221,9 @@ outra coisa:
 arms: [events_in_prompt, graph_tools]
 ```
 
-Para a rodada que consolida os resultados, liste os cinco. O sexto braço,
-`text_to_cypher` (capítulo 4, seção 4.7), é opcional e só roda quando é
-listado. Na linha de
+Para a rodada que consolida os resultados, liste os seis: os cinco
+principais e o `text_to_cypher` (capítulo 4, seção 4.7), que é opcional e só
+roda quando é listado. Todas as rodadas publicadas usam os seis. Na linha de
 comando, `--arms` (no `run_benchmark.py`) ou `--arm` (no `ask.py`) sobrepõe o
 arquivo.
 
@@ -232,21 +233,30 @@ arquivo.
 python scripts/run_benchmark.py --fresh
 ```
 
-São 25 perguntas × 5 braços × 3 repetições = **375 execuções**, uma de cada
-vez (`--repeats 1` faz 125). O `--fresh` esvazia o arquivo de resultados antes (sem ele, o script se
+Com os seis braços listados, são 52 perguntas × 6 braços × 3 repetições =
+**936 execuções**, uma de cada vez (`--repeats 1` faz 312). O `--fresh` esvazia o arquivo de resultados antes (sem ele, o script se
 recusa a começar se já houver resultados, para não misturar a amostra com a
 execução completa nem apagar dados pagos sem querer).
 
-**Quanto custa?** Os dois braços mais pesados são o `events_in_prompt` (~111
-mil tokens de entrada por pergunta, quase todos lidos do cache a partir da
-segunda) e o `graph_tools` (~37 mil por pergunta, sem cache). Com o Claude
-Haiku 5.5 pelo OpenRouter, uma repetição das 25 perguntas nos 5 braços custou
-cerca de US$ 0,30. O custo real aparece no `summary.md` (tokens médios) e no
-painel do provedor.
+**Quanto custa?** Os braços mais pesados são o `events_in_prompt` (~115 mil
+tokens de entrada por pergunta no Haiku, quase todos lidos do cache a partir
+da segunda), o `graph_tools` (~76 mil por pergunta) e o `text_to_cypher`
+(~51 mil). O custo de uma repetição (312 execuções) em cada modelo já rodado:
 
-**Quanto demora?** Depende do provedor. Conte alguns segundos por execução,
-mais nas do `events_in_prompt` e do `graph_tools`: algo entre 30 minutos e
-algumas horas para as 375.
+| Modelo | Via | Custo |
+|---|---|---|
+| Claude Haiku 5.5 | OpenRouter | US$ 1,04 |
+| Qwen3.8-flash | OpenRouter, provedor Alibaba | ~US$ 0,49 |
+| Claude Sonnet 4.6 | Bedrock direto, raciocínio ligado | ~US$ 18 a 26 |
+| Kimi K3 | OpenRouter com chave própria do Bedrock | US$ 33,40 |
+
+O custo real aparece na página da execução (`docs/execucoes/`), lido do
+consumo da chave do OpenRouter antes e depois; no Bedrock direto ele é
+calculado pelos tokens e pelos preços de lista.
+
+**Quanto demora?** Depende do modelo e do provedor. Uma repetição levou
+cerca de 1 hora no Haiku e no Qwen, 1h45 no Sonnet 4.6 e 3h no Kimi K3. Os
+modelos que raciocinam passam de 1 minuto por pergunta no `events_in_prompt`.
 
 ### Se cair no meio
 
@@ -269,6 +279,72 @@ estourado mesmo depois das novas tentativas do SDK) **não são gravados**, e o
 | `--arms a,b` | só alguns braços | `--arms stats_in_prompt,graph_tools` |
 | `--questions x,y` | só algumas perguntas | `--questions f01,s02` |
 | `--output arquivo` | grava em outro arquivo (o relatório sai ao lado, com o mesmo nome + `_summary.md`) | `--output data/benchmark/teste.jsonl` |
+
+### Rodar com outro modelo
+
+Cada modelo avaliado é uma rodada à parte, num arquivo próprio
+(`--output data/benchmark/<modelo>_results.jsonl`, com `--title`). O código
+não muda: só as variáveis do `.env` (ou da linha de comando).
+
+**Pelo OpenRouter, com o provedor fixo.** Um mesmo modelo é servido por
+vários provedores, com preço e quantização diferentes. `LLM_PROVIDER_ORDER`
+fixa um deles (o *slug* da página do modelo, ex. `alibaba` ou
+`amazon-bedrock/us-east-2`) e manda `allow_fallbacks: false`: se aquele
+provedor falhar, a chamada falha, em vez de ir para outro mais caro. Os
+provedores de cada modelo, com preço, contexto e se aceitam ferramentas,
+estão em `https://openrouter.ai/api/v1/models/<modelo>/endpoints`.
+
+```bash
+LLM_PROVIDER=openrouter LLM_MODEL=qwen/qwen3.8-flash LLM_PROVIDER_ORDER=alibaba \
+LLM_REASONING_EFFORT=none \
+python scripts/run_benchmark.py --arms no_context,vector,events_in_prompt,stats_in_prompt,graph_tools,text_to_cypher \
+  --repeats 1 --fresh --output data/benchmark/qwen_results.jsonl --title "Qwen3.8-flash, seis braços"
+```
+
+**Com a sua chave do Bedrock no OpenRouter (BYOK).** Cadastrando uma chave
+de API do Amazon Bedrock nas integrações do OpenRouter, as chamadas fixadas
+em `amazon-bedrock/...` são cobradas na AWS, não no saldo do OpenRouter. Na
+configuração da chave, marque **"Never use OpenRouter's Amazon Bedrock
+capacity"**: sem isso, quando a sua chave falha, o OpenRouter refaz a chamada
+com a conta dele e cobra do seu saldo (aconteceu uma vez na rodada do Kimi
+K3). A chave do OpenRouter continua necessária: ela autentica a chamada.
+
+**No Bedrock, direto.** `LLM_PROVIDER=bedrock` usa a API Converse do Bedrock
+(precisa de `pip install -e ".[bedrock]"`). `LLM_API_KEY` é a chave de API
+do Bedrock, `LLM_AWS_REGION` a região e `LLM_MODEL` o ID do modelo ou do
+perfil de inferência:
+
+```bash
+LLM_PROVIDER=bedrock LLM_MODEL=us.anthropic.claude-sonnet-4-6 LLM_AWS_REGION=us-east-2 \
+LLM_API_KEY="$BEDROCK_API_KEY" LLM_REASONING_EFFORT=medium python scripts/smoke_llm.py
+```
+
+Os modelos que a chave enxerga numa região:
+`curl -H "Authorization: Bearer $BEDROCK_API_KEY" https://bedrock.<região>.amazonaws.com/foundation-models`.
+Vários modelos só aceitam o ID do perfil de inferência (prefixo `us.` ou
+`global.`), não o ID simples.
+
+**Raciocínio.** `LLM_REASONING_EFFORT` (`none`, `low`, `medium`, `high`) vai
+ao OpenRouter como `reasoning.effort` e ao Bedrock como o raciocínio
+estendido do PydanticAI, que no Claude exige temperatura 1 (o código põe
+sozinho). Alguns provedores recusam o raciocínio junto com a resposta final
+estruturada (o Alibaba, com o Qwen): aí, `none`.
+
+**Antes da rodada completa, a triagem.** Duas perguntas em dois braços
+custam centavos e mostram se o modelo chama as ferramentas, respeita o
+formato e se o cache funciona (`cache_read_tokens` a partir da 2ª
+pergunta):
+
+```bash
+python scripts/run_benchmark.py --questions f01,n12 --arms events_in_prompt,graph_tools \
+  --repeats 1 --fresh --no-report --output /tmp/triagem.jsonl
+```
+
+**Juntar refações.** Para trocar algumas linhas de uma rodada por outra
+execução (outro teto de saída, outro esforço), grave a refação num arquivo
+separado e junte com `scripts/merge_results.py`, em que vale o último
+arquivo; os arquivos de origem ficam como estão. Foi assim que se montou
+`sonnet46_combined_results.jsonl` (capítulo 7).
 
 ### O resultado
 
@@ -315,7 +391,7 @@ pergunta> Quem tocou mais na bola?
 pergunta> sair
 ```
 
-Sem `--arm`, cada pergunta vai aos cinco braços. Isso é útil para comparar,
+Sem `--arm`, cada pergunta vai aos braços de `config/benchmark.yaml`. Isso é útil para comparar,
 mas é mais caro: o `events_in_prompt` envia ~100 mil tokens por pergunta. Com
 cache de prompt, a primeira pergunta paga a gravação e as seguintes, feitas em
 até 5 minutos, saem bem mais baratas.
@@ -323,14 +399,14 @@ até 5 minutos, saem bem mais baratas.
 **Uma pergunta livre**, num comando só:
 
 ```bash
-python scripts/ask.py "Quem tocou mais na bola?"                  # nos 5 braços
+python scripts/ask.py "Quem tocou mais na bola?"                  # nos braços configurados
 python scripts/ask.py "Quem tocou mais na bola?" --arm stats_in_prompt
 ```
 
 **Uma pergunta do benchmark**, com gabarito e veredito:
 
 ```bash
-python scripts/ask.py --question s03                      # nos 5 braços
+python scripts/ask.py --question s03                      # nos braços configurados
 python scripts/ask.py --question s03 --arm graph_tools    # um braço só
 python scripts/ask.py --question s03 --show-prompt        # mostra também o prompt enviado
 ```
@@ -372,3 +448,11 @@ Neo4j e rode as camadas para que rodem todos.
 | erro de contexto/tamanho no `events_in_prompt` | o modelo aceita menos de ~70 mil tokens | use um modelo com janela maior, ou rode sem esse braço (`--arms`) |
 | `PROVIDER ERROR` em várias execuções | limite de uso do provedor | espere e rode `--resume`; em chave gratuita, suba `LLM_MAX_RETRIES` |
 | `Model token limit (N) exceeded before any response was generated` | o modelo gastou todo o teto pensando (modelos de raciocínio) | suba `LLM_MAX_TOKENS` ou reduza `LLM_REASONING_EFFORT` |
+| `401 User not found` do OpenRouter | a chave do OpenRouter está desativada (mesmo usando BYOK, ela autentica a chamada) | reative a chave; para não gastar saldo, ponha um limite nela e use o provedor fixo |
+| `403 ... explicit deny in a service control policy` do Bedrock | a política da organização AWS nega a chamada naquela região ou modelo | teste outra região (`us-east-2` funcionou na conta do autor); só o administrador da conta muda a política |
+| `... is not available for this account` do Bedrock | o modelo não está liberado na conta | escolha outro modelo; a lista da conta vem do `foundation-models` acima |
+| `Invocation of model ID ... with on-demand throughput isn't supported` | o modelo exige um perfil de inferência | use o ID com prefixo, ex. `us.moonshotai.kimi-k3` |
+| `temperature may only be set to 1 when thinking is enabled` | raciocínio do Claude com temperatura 0 | use `LLM_REASONING_EFFORT` (o código ajusta a temperatura) |
+| `The tool_choice parameter does not support being set to required ... in thinking mode` | o provedor recusa resposta estruturada com raciocínio | `LLM_REASONING_EFFORT=none` |
+| `Tool '...' exceeded max retries` com argumentos em texto JSON | modelo mandou um objeto como texto | já tratado pelo código; se aparecer, veja no trace qual argumento falhou |
+| `502 Upstream error from Amazon Bedrock` | falha passageira do Bedrock | `--resume` refaz só as que faltaram |
