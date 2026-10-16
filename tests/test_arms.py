@@ -109,6 +109,26 @@ def test_stray_quotes_around_arguments_are_dropped():
         {"team": "France", "period": [3], "action": ["passe"]}
 
 
+def test_json_text_arguments_become_objects():
+    assert arms._unquote('{"yellow_card": true}') == {"yellow_card": True}
+    assert arms._unquote('\n{"team": "\'France\'"}\n') == {"team": "France"}
+    assert arms._unquote("[1, 2]") == [1, 2]
+    # not JSON: unchanged
+    assert arms._unquote("{not json}") == "{not json}"
+    assert arms._unquote("Lionel Messi") == "Lionel Messi"
+
+
+def test_filters_sent_as_json_text_still_go_through_the_filters_validation():
+    from pydantic import ValidationError
+    from pydantic_ai import Tool
+
+    validator = Tool(arms.ALL_TOOLS["list_actions"], takes_ctx=True).function_schema.validator
+    args = validator.validate_python({"filters": '{"yellow_card": true, "period": 3}', "limit": 10})
+    assert args["filters"] == tools.ActionFilters(yellow_card=True, period=3)
+    with pytest.raises(ValidationError):
+        validator.validate_python({"filters": '{"period": 9}', "limit": 10})
+
+
 def test_tool_calls_are_logged_as_plain_data():
     class Ctx:
         deps = arms.GraphDeps(toolbox=None)
@@ -151,3 +171,32 @@ def test_configured_arms_come_from_the_config_file(tmp_path):
     cfg.write_text("arms: [graph]\n")
     with pytest.raises(ValueError, match="arms must be"):
         arms.configured_arms(cfg)
+
+
+def test_prompt_cache_point_can_be_switched_off(monkeypatch):
+    from football_graphrag.config import Settings
+
+    prompt = "Match events:\nx\n\nQuestion: q"
+    assert any(not isinstance(p, str) for p in arms.user_content("events_in_prompt", prompt))
+    off = Settings(_env_file=None, llm_prompt_cache=False)
+    monkeypatch.setattr(arms, "get_settings", lambda: off)
+    assert arms.user_content("events_in_prompt", prompt) == prompt
+
+
+def test_bedrock_needs_only_the_model_id(monkeypatch):
+    from football_graphrag.config import Settings
+
+    monkeypatch.setattr(arms, "get_settings", lambda: Settings(_env_file=None, llm_provider="bedrock", llm_model="m"))
+    assert arms.missing_config(["graph_tools"]) == []
+    monkeypatch.setattr(arms, "get_settings", lambda: Settings(_env_file=None, llm_provider="bedrock", llm_model=""))
+    assert "LLM_MODEL" in arms.missing_config(["graph_tools"])[0]
+
+
+def test_temperature_is_zero_unless_the_provider_sets_one(monkeypatch):
+    from football_graphrag.config import Settings
+
+    monkeypatch.setattr(arms, "get_settings", lambda: Settings(_env_file=None, llm_provider="mistral"))
+    assert arms._model_settings()["temperature"] == 0.0
+    monkeypatch.setattr(arms, "get_settings", lambda: Settings(
+        _env_file=None, llm_provider="bedrock", llm_model="m", llm_aws_region="us-east-2", llm_reasoning_effort="medium"))
+    assert arms._model_settings()["temperature"] == 1.0

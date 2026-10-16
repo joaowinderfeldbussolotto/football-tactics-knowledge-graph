@@ -1,0 +1,23 @@
+% F1: o caminho dos dados, com o mesmo passe (Mac Allister para o gol de Di María) em cada etapa.
+% Trechos de docs/02-dos-dados-ao-grafo.md; nomes abreviados. Substitui as antigas fig-dados e fig-lance.
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\small
+\begin{tikzpicture}[
+  st/.style={draw, rounded corners=2pt, inner sep=4pt, text width=0.92\linewidth, align=left},
+  arr/.style={-{Stealth[length=2mm]}},
+  tr/.style={right, font=\scriptsize, text width=0.45\linewidth, align=left, xshift=1mm}]
+\node[st] (a) at (0,0) {\textbf{JSON bruto}: \nEvents{} eventos, campos que variam por tipo\\[1pt]
+  {\scriptsize\ttfamily type: Pass; player: Mac Allister;\\ pass.recipient: Di María; minute: 35}};
+\node[st, below=9mm of a] (b) {\textbf{Tabela de ações}: \nActions{} linhas, mesmas colunas\\[1pt]
+  {\scriptsize\ttfamily 36 | Mac Allister | passe | certo |\\ 74$\to$92 | Di María | fase 132}};
+\node[st, below=9mm of b] (c) {\textbf{Grafo}: nós e arestas (Figura~\ref{fig:esquema})\\[1pt]
+  {\scriptsize\ttfamily (Mac Allister)-[PASSOU\_PARA]->(Di María)}};
+\node[st, below=9mm of c] (d) {\textbf{Súmula}: totais contados no banco\\[1pt]
+  {\scriptsize\ttfamily Mac Allister: passes certos, assistências, ...}};
+\draw[arr] (a) -- node[tr] {SPADL, direção, zona, posse, recebedor, placar} (b);
+\draw[arr] (b) -- node[tr] {cada ação e cada passe viram arestas} (c);
+\draw[arr] (c) -- node[tr] {contagem pelo próprio banco} (d);
+\end{tikzpicture}
+\captionof{figure}{O caminho dos dados, com o mesmo passe (de Mac Allister para o gol de Di María) em cada etapa. Trechos simplificados e nomes abreviados. Na tabela, o recebedor é o jogador do mesmo time que age em seguida.}\label{fig:pipeline}
+\end{minipage}\par\smallskip

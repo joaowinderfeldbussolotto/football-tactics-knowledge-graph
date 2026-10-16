@@ -1,0 +1,25 @@
+% Seção: Introdução  (orçamento: 1 página)
+%
+% Curta e sem detalhe: o como fica na Metodologia e os números nos Resultados. Sem hipóteses formais (ALERTAS,
+% item 2) e sem parágrafo de organização do texto.
+
+\section{Introdução}\label{sec:introdução}
+
+Os dados de eventos de futebol registram cada ação de uma partida, com o jogador, o momento e a posição no
+campo, e há conjuntos desse tipo abertos ao público~\cite{pappalardo2019public}. Muitas perguntas de análise
+sobre esses dados exigem ligar eventos entre si: quem mais passou para quem, em que ordem a bola circulou em uma
+jogada, o que mudou depois de uma substituição.
+
+Um modelo de linguagem de grande porte (LLM, do inglês \textit{large language model}) permite fazer essas perguntas em linguagem natural, mas precisa receber os dados da partida. Há mais de
+uma forma de dar esse conhecimento ao modelo, como ajustá-lo com novos dados ou entregar os dados no momento da
+pergunta. Este trabalho usa a segunda, o aprendizado em contexto~\cite{brown2020language}, em sentido amplo: o modelo não é
+treinado de novo, e o que entra no seu contexto são os dados, e não exemplos da tarefa. Isso pode ser feito de duas maneiras: levar ao
+contexto os próprios dados, brutos ou resumidos, ou consultar uma base externa e levar só o resultado. No
+esporte, os trabalhos encontrados avaliam uma dessas formas de cada vez (Seção~\ref{sec:trabalhos}).
+
+Este trabalho compara \nArms{} abordagens sobre a final da Copa do Mundo de 2022, com \nQuestions{} perguntas
+cujo gabarito foi calculado por código, fora do grafo, em \nModels{} modelos de tamanhos diferentes. As perguntas de
+pesquisa são qual abordagem acerta mais, como o acerto muda de um modelo para outro e quanto cada abordagem
+custa em tokens e tempo. Com ferramentas de consulta pronta sobre um grafo da partida, o acerto foi alto em todos
+os modelos. Quando o modelo escreveu a consulta, o acerto só chegou a esse nível nos modelos maiores; com a tabela
+inteira no contexto, só se aproximou dele nesses modelos, com mais tokens de saída e mais tempo por pergunta.

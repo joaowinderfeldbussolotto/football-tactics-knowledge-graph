@@ -1,0 +1,37 @@
+% F3: respostas estruturadas reais (final_results.jsonl). Trechos longos abreviados com [...] e "...".
+% Usa \ttfamily e \char34 (e não verbatim) porque o babel torna a aspa dupla ativa e o verbatim quebra acentos.
+\providecommand{\jq}{\char34{}}
+\providecommand{\ji}{\hspace*{1.2em}}
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\ttfamily\scriptsize\frenchspacing
+\renewcommand{\arraystretch}{1.0}
+\begin{tabular}{@{}l@{}}
+\textrm{\itshape a02, \armTextToCypher{}} \\
+\{ \\
+\ji\jq rationale\jq: \jq Contei [...] Adrien Rabiot \\
+\ji\ji lidera com 10, seguido de [...]\jq, \\
+\ji\jq players\jq: [\jq Adrien Rabiot\jq], \\
+\ji\jq value\jq: 10.0, \\
+\ji\jq no\_data\jq: false \\
+\} \\[1.5ex]
+\textrm{\itshape a02, \armGraphTools{}} \\
+\{ \\
+\ji\jq rationale\jq: \jq Consultei [...] Adrien Rabiot \\
+\ji\ji liderou com 10 passes [...]\jq, \\
+\ji\jq players\jq: [\jq Adrien Rabiot\jq, \\
+\ji\ji \jq Kylian Mbappé Lottin\jq, ...], \\
+\ji\jq value\jq: 10.0, \\
+\ji\jq no\_data\jq: false \\
+\} \\[1.5ex]
+\textrm{\itshape u02 (controle), \armTextToCypher{}} \\
+\{ \\
+\ji\jq rationale\jq: \jq O grafo não contém \\
+\ji\ji distância percorrida [...]\jq, \\
+\ji\jq players\jq: [], \\
+\ji\jq value\jq: null, \\
+\ji\jq no\_data\jq: true \\
+\}
+\end{tabular}
+\captionof{figure}{Respostas estruturadas reais do \modelHaiku{}. Os trechos abreviados aparecem como [...] e as reticências indicam nomes omitidos.}\label{fig:json}
+\end{minipage}\par\smallskip
