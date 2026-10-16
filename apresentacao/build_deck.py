@@ -220,8 +220,7 @@ textbox(s, 1.1, 1.9, 11, 2.4,
          ("uma comparação de seis abordagens", {"size": 28, "color": RGBColor(0xDD, 0xDD, 0xDD)})], gap=10)
 textbox(s, 1.1, 4.9, 11, 1.4,
         [("Daniel Alfredo Quiteque e João Victor Winderfeld Bussolotto", {"size": 20, "color": RGBColor(255, 255, 255)}),
-         ("Pós-graduação em Inteligência Artificial Aplicada, UniSENAI", {"size": 16, "color": RGBColor(0xBB, 0xBB, 0xBB)}),
-         ("AV2, 2026", {"size": 16, "color": RGBColor(0xBB, 0xBB, 0xBB)})], gap=4)
+         ("Pós-graduação em Inteligência Artificial Aplicada, UniSENAI", {"size": 16, "color": RGBColor(0xBB, 0xBB, 0xBB)})], gap=4)
 s.notes_slide.notes_text_frame.text = (
     "[0:15] Apresentação dos autores e do título. Em uma frase: o trabalho compara seis maneiras de dar a um modelo de "
     "linguagem acesso aos dados de uma partida e mede qual delas acerta mais.")
@@ -235,14 +234,17 @@ s = new_slide(2, "Perguntas de futebol exigem ligar eventos: qual forma de dar o
               "partida, e há mais de uma forma de fazer isso. Perguntas de pesquisa: qual abordagem acerta mais, como o acerto muda de "
               "um modelo para outro e quanto cada uma custa em tokens e tempo. O aprendizado em contexto é usado em sentido amplo: o "
               "modelo não é treinado de novo e o que entra no contexto são os dados. Contribuições: o conjunto de perguntas com "
-              "gabarito por código e a comparação sob as mesmas perguntas, o mesmo prompt e a mesma saída.")
+              "gabarito por código e a comparação sob as mesmas perguntas, o mesmo prompt e a mesma saída. Trabalhos relacionados: no "
+              "esporte, SoccerRAG, SPORTSQL e Tzikas et al. avaliam cada um uma única forma de recuperação; fora do esporte, Li et al. e "
+              "LOFT comparam formas de recuperação sem dados de futebol. Não foram encontrados trabalhos que comparem formas de "
+              "recuperação em perguntas encadeadas sobre eventos de futebol, com conferência por código contra um gabarito por código.")
 textbox(s, 0.7, 1.75, 5.6, 0.5, [("Perguntas de pesquisa", {"bold": True, "size": 20, "color": ACCENT})])
-bullets(s, 0.7, 2.3, 5.6, 2.6,
+bullets(s, 0.7, 2.3, 5.6, 2.3,
         ["Qual abordagem acerta mais?",
          "Como o acerto muda de um modelo para outro?",
-         "Quanto cada abordagem custa em tokens e em tempo?"], size=20, gap=12)
-panel(s, 0.7, 4.9, 5.6, 1.8)
-textbox(s, 0.85, 4.95, 5.3, 1.7,
+         "Quanto cada abordagem custa em tokens e em tempo?"], size=18, gap=8)
+panel(s, 0.7, 4.4, 5.6, 1.9)
+textbox(s, 0.85, 4.43, 5.3, 1.85,
         [("Contribuições", {"bold": True, "size": 16, "color": ACCENT}),
          (f"{m('nQuestions')} perguntas sobre a final, com gabarito calculado por código, fora do grafo.", {"size": 15}),
          (f"Comparação de {m('nArms')} abordagens com as mesmas perguntas, o mesmo prompt e a mesma saída, em {m('nModels')} modelos.", {"size": 15})], gap=5)
@@ -255,9 +257,14 @@ ex = [("Quem passou para quem",
        "Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé?")]
 y = 2.3
 for head, q in ex:
-    panel(s, 6.8, y, 5.8, 1.35, fill=ACCENT_BG)
-    textbox(s, 6.95, y + 0.05, 5.5, 1.3, [(head, {"bold": True, "size": 15, "color": ACCENT}), (q, {"size": 16})], gap=3)
-    y += 1.5
+    panel(s, 6.8, y, 5.8, 1.2, fill=ACCENT_BG)
+    textbox(s, 6.95, y + 0.03, 5.5, 1.15, [(head, {"bold": True, "size": 15, "color": ACCENT}), (q, {"size": 15})], gap=2)
+    y += 1.35
+
+panel(s, 0.7, 6.4, 11.9, 0.55, fill=PANEL)
+textbox(s, 0.85, 6.42, 11.6, 0.5,
+        ["Relacionados: no esporte, cada trabalho avalia uma única forma de recuperação (SoccerRAG, SPORTSQL, Tzikas et al.); fora dele, as formas são comparadas sem dados de futebol (Li et al., LOFT)."],
+        size=12, color=INK, anchor=MSO_ANCHOR.MIDDLE)
 
 # 3 dados: JSON bruto
 s = new_slide(3, "Os dados: eventos da StatsBomb da final de 2022, em JSON",
@@ -403,7 +410,7 @@ textbox(s, 0.7, 6.2, 11.9, 0.7,
 
 # 7 seis abordagens
 s = new_slide(7, "Seis abordagens, da ausência de dados à consulta ao grafo",
-              "[2:00] Ordem de complexidade do que existe entre a pergunta e o modelo. Sem dados: só a pergunta, linha de base. "
+              "[1:30] Ordem de complexidade do que existe entre a pergunta e o modelo. Sem dados: só a pergunta, linha de base. "
               f"Contexto longo: a tabela inteira de {m('nActions')} ações no prompt. Estatísticas resumidas: a súmula, com totais por "
               f"jogador e por time. Busca vetorial: as {m('nTopK')} linhas mais parecidas com a pergunta, como em geração aumentada por "
               "recuperação. Consulta escrita pelo modelo: o modelo recebe o esquema do grafo e escreve a consulta Cypher. "
@@ -423,45 +430,114 @@ t = table(s, 0.7, 1.6, 11.9, 3.6, rows, col_w=[4.2, 7.7], size=17, left=True)
 for r in (5, 6):
     for c in range(2):
         t.cell(r, c).fill.fore_color.rgb = ACCENT_BG
-textbox(s, 0.7, 5.95, 11.9, 1.0,
-        [(f"As duas últimas consultam o mesmo grafo, com o mesmo limite de {m('nMaxCalls')} chamadas: muda quem escreve a consulta.", {"size": 16, "bold": True}),
-         ("A Consulta não tem a biblioteca de algoritmos (GDS) nem os nós de padrões prontos. As Ferramentas foram ajustadas olhando erros; a Consulta é o primeiro contato.", {"size": 14, "color": MUTED})], gap=4)
 
-# 7 setup
-s = new_slide(8, f"{m('nModels')} modelos em duas faixas, {m('nRuns')} execuções por modelo",
-              f"[0:45] Quatro modelos, dois menores e dois maiores, agrupados pela faixa de preço por token, já que nem todo fabricante "
-              f"divulga o número de parâmetros. Em cada grupo há um modelo de código fechado e um de pesos abertos. Os menores rodaram "
-              f"sem raciocínio estendido e com temperatura zero; os maiores, com raciocínio estendido ligado. São {m('nQuestions')} "
-              f"perguntas em {m('nArms')} abordagens: {m('nRuns')} execuções por modelo, com {m('nRepeats')} repetição por pergunta. "
-              "Acerto com intervalo de Wilson de 95%. Ponto de honestidade: como é uma repetição, as diferenças são lidas como indícios.")
-panel(s, 0.7, 1.8, 5.8, 3.6)
-textbox(s, 0.9, 1.9, 5.4, 3.4,
-        [("Modelos menores", {"bold": True, "size": 20, "color": ACCENT}),
-         (f"{m('modelHaiku')} e {m('modelQwen')}", {"size": 18}),
-         ("sem raciocínio estendido, temperatura zero", {"size": 16, "color": MUTED}),
-         ("Modelos maiores", {"bold": True, "size": 20, "color": ACCENT}),
-         (f"{m('modelSonnet')} e {m('modelKimi')}", {"size": 18}),
-         ("com raciocínio estendido", {"size": 16, "color": MUTED})], gap=8)
-bullets(s, 7.0, 1.8, 5.6, 4.5,
-        [f"{m('nQuestions')} perguntas × {m('nArms')} abordagens = {m('nRuns')} execuções por modelo",
-         f"{m('nRepeats')} repetição por pergunta",
-         "Acerto com intervalo de Wilson de 95%",
-         "Diferenças lidas como indícios, não como demonstração"], size=19, gap=14)
+# 8 exemplo a01: duas formas de consultar o grafo
+import json
+import re as _re
+
+
+def a01_calls():
+    out = {}
+    for line in (ROOT / "data" / "benchmark" / "final_results.jsonl").read_text().splitlines():
+        r = json.loads(line)
+        if r["question_id"] == "a01" and "haiku" in r["model"] and r["repeat"] == 1 and r["arm"] in ("text_to_cypher", "graph_tools"):
+            out[r["arm"]] = r
+    return out
+
+
+A01 = a01_calls()
+
+
+def cypher_lines(q):
+    q = _re.sub(r"\{match_id: \d+\}", "[...]", q)
+    q = _re.sub(r" AND r\.match_id = \d+", " [...]", q)
+    q = _re.sub(r"\s+(WHERE|RETURN|ORDER BY|LIMIT)\s", lambda mo: "\n" + mo.group(1) + " ", q)
+    q = _re.sub(r"\)-\[r:REALIZOU\]->\(", ")-[r:REALIZOU]->\n  (", q)
+    q = q.replace(" AND ", "\n  AND ").replace(", count(r)", ",\n  count(r)")
+    return q.split("\n")
+
+
+def args_lines(a):
+    f = a["filters"]
+    jq = lambda v: json.dumps(v, ensure_ascii=False)
+    return ["filters: {team: %s," % jq(f["team"]),
+            "  action: %s, success: %s," % (jq(f["action"]), jq(f["success"]).lower()),
+            "  third: %s}," % jq(f["third"]),
+            "group_by: %s, metric: %s," % (jq(a["group_by"]), jq(a["metric"])),
+            "top: %s" % a["top"]]
+
+
+c_call = A01["text_to_cypher"]["tool_calls"][0]
+g_call = A01["graph_tools"]["tool_calls"][0]
+assert A01["text_to_cypher"]["answer"]["players"] == A01["graph_tools"]["answer"]["players"]
+a01_answer = A01["graph_tools"]["answer"]["players"][0]
+s = new_slide(8, "Mesmo grafo, duas formas de consultar: o modelo escreve a consulta ou escolhe a ferramenta",
+              f"[1:15] Registro real de uma execução em cada abordagem com agente, pergunta a01, {m('modelHaiku')}. Na Consulta escrita "
+              "pelo modelo, ele chama run_cypher com a consulta Cypher que escreveu, inclusive os filtros de time, ação, sucesso e "
+              "terço do campo; a ferramenta executa a consulta no grafo e devolve o resultado. Nas Ferramentas sobre o grafo, o "
+              "modelo escolhe query_actions e preenche os argumentos; a consulta já está no código e a ferramenta a executa com esses "
+              "filtros. As duas consultam o mesmo grafo, com o mesmo limite de "
+              f"{m('nMaxCalls')} chamadas por pergunta; muda quem escreve a consulta. Nesta pergunta, uma chamada bastou nas duas. "
+              f"As {m('nTools')} ferramentas: listar jogadores, contar ações, listar ações, contar posses, rede de passes, métrica da "
+              "rede, ligações da rede e sequências de passes. Diferenças a declarar: a Consulta não tem a biblioteca de algoritmos de "
+              "grafos nem os nós de padrões prontos, e as ferramentas foram ajustadas olhando erros, enquanto a Consulta é o primeiro "
+              "contato. A consulta, os argumentos e a resposta vêm de data/benchmark/final_results.jsonl; os valores devolvidos pela "
+              "ferramenta (24 e 18) estão só no trace e foram copiados da figura do artigo.",
+              kicker=f"Registro real ({m('modelHaiku')}, a01); trechos abreviados com [...]. Uma chamada bastou nas duas; limite de {m('nMaxCalls')} chamadas.")
+panel(s, 0.7, 1.55, 11.9, 0.55, fill=ACCENT_BG)
+textbox(s, 0.85, 1.58, 11.6, 0.5, [("Pergunta a01: Quem deu mais passes certos no terço final do campo pela Argentina?", {"size": 16, "bold": True})],
+        anchor=MSO_ANCHOR.MIDDLE)
+
+
+def code_box(slide, x, y, w, h, lines):
+    panel(slide, x, y, w, h, fill=RGBColor(0x2B, 0x2B, 0x2B))
+    tb = slide.shapes.add_textbox(Inches(x + 0.1), Inches(y + 0.05), Inches(w - 0.2), Inches(h - 0.1))
+    tf = tb.text_frame
+    tf.word_wrap = True
+    for i, ln in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run()
+        r.text = ln
+        r.font.name, r.font.size = "Courier New", Pt(11)
+        r.font.color.rgb = RGBColor(0xE8, 0xE8, 0xE8)
+
+
+tool_out = ["Lionel Andrés Messi Cuccittini: 24", "Alexis Mac Allister: 18 [...]"]
+cols = [(0.7, ARM_NAME["TextToCypher"], False, "Modelo chama run_cypher com a consulta que escreveu:", cypher_lines(c_call["args"]["query"]),
+         "Ferramenta executa essa consulta no grafo e devolve:"),
+        (6.75, ARM_NAME["GraphTools"], True, "Modelo escolhe query_actions e preenche os argumentos:", args_lines(g_call["args"]),
+         "Ferramenta executa a consulta fixa do código e devolve:")]
+for x, name, acc, step1, code1, step2 in cols:
+    panel(s, x, 2.25, 5.85, 4.65, fill=ACCENT_BG if acc else PANEL)
+    textbox(s, x + 0.15, 2.3, 5.5, 0.4, [(name, {"bold": True, "size": 17, "color": ACCENT if acc else INK})])
+    textbox(s, x + 0.15, 2.72, 5.55, 0.35, [step1], size=12)
+    code_box(s, x + 0.15, 3.07, 5.55, 1.95, code1)
+    textbox(s, x + 0.15, 5.07, 5.55, 0.4, [step2], size=12)
+    code_box(s, x + 0.15, 5.47, 5.55, 0.65, tool_out)
+    textbox(s, x + 0.15, 6.25, 5.55, 0.55, [(f"Modelo responde: {a01_answer}", {"size": 13, "bold": True})], anchor=MSO_ANCHOR.MIDDLE)
+
 
 # 8 resultado 1
 s = new_slide(9, f"Ferramentas sobre o grafo: {m('accRangeGraphTools')} de acerto nos {m('nModels')} modelos",
-              f"[2:00] Acerto nas {m('nAnswerable')} perguntas com resposta. A barra azul é Ferramentas sobre o grafo: "
+              f"[2:15] Acerto nas {m('nAnswerable')} perguntas com resposta. A barra azul é Ferramentas sobre o grafo: "
               f"{m('accRangeGraphTools')} em todos os modelos. Consulta escrita pelo modelo: {m('accRangeLowTextToCypher')} nos menores e "
               f"{m('accRangeHighTextToCypher')} nos maiores. Contexto longo: {m('accRangeLowEventsInPrompt')} nos menores e "
               f"{m('accRangeHighEventsInPrompt')} nos maiores. As outras três ficam baixas: Busca vetorial {m('accRangeVector')}, "
               f"Estatísticas resumidas {m('accRangeStatsInPrompt')}, e Sem dados {m('accRangeNoContext')}, porque se abstém. "
-              "Nos maiores, Consulta empata com Ferramentas no Sonnet e fica à frente no Kimi; os intervalos se sobrepõem.",
+              "Nos maiores, Consulta empata com Ferramentas no Sonnet e fica à frente no Kimi; os intervalos se sobrepõem. Setup: quatro "
+              "modelos, dois menores (Haiku e Qwen, sem raciocínio estendido, temperatura zero) e dois maiores (Sonnet e Kimi, com "
+              f"raciocínio estendido), agrupados pela faixa de preço por token; {m('nQuestions')} perguntas em {m('nArms')} abordagens, "
+              f"{m('nRuns')} execuções por modelo, {m('nRepeats')} repetição por pergunta; intervalo de Wilson de 95%; diferenças lidas como indícios.",
               kicker=f"Acerto nas {m('nAnswerable')} perguntas com resposta, uma repetição por pergunta.")
 cd = CategoryChartData()
 cd.categories = [MODEL_LABEL[x] for x in MODELS]
 for a in ARMS:
     cd.add_series(ARM_NAME[a], [mi(f"acc{x}{a}") for x in MODELS])
-gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.5), Inches(1.5), Inches(12.3), Inches(5.4), cd)
+textbox(s, 0.7, 1.45, 11.9, 0.9,
+        [f"{m('nModels')} modelos: {m('modelHaiku')} e {m('modelQwen')} (menores, sem raciocínio estendido, temperatura zero); {m('modelSonnet')} e {m('modelKimi')} (maiores, com raciocínio estendido).",
+         f"{m('nQuestions')} perguntas × {m('nArms')} abordagens = {m('nRuns')} execuções por modelo, {m('nRepeats')} repetição por pergunta. Intervalo de Wilson de 95%; diferenças lidas como indícios."],
+        size=13, color=MUTED, gap=2)
+gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.5), Inches(2.3), Inches(12.3), Inches(4.65), cd)
 style_chart(gf.chart, GRAYS + [ACCENT], size=13)
 
 # 9 resultado 2: encadeadas
