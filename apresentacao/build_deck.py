@@ -602,18 +602,23 @@ s = new_slide(12, "Contexto longo nos modelos maiores custa milhares de tokens d
               f"tokens de saída, quase todos de raciocínio, e leva de {m('latRangeHighEventsInPrompt')} segundos. Cuidado ao comparar: "
               "Ferramentas não usa cache de prompt e Consulta usa, então a latência mistura as duas condições; no Contexto longo, a "
               "maior parte da entrada veio do cache, o que o favorece. Sem preço em dólar, porque os preços mudam.",
-              kicker="Mediana por execução. Os tokens de entrada incluem os lidos do cache do prompt.")
-arms3 = ["Contexto", "Consulta", "Ferramentas"]
-hdr = ["", "Haiku 5.5", "Qwen3.8-flash", "Sonnet 4.6", "Kimi K3"]
-data = [["Abordagem / medida", "Haiku 5.5", "Qwen3.8-flash", "Sonnet 4.6", "Kimi K3"]]
-for blk, lab in [("Tokens de saída (mil)", "saída (mil tokens)"), ("Latência (s)", "latência (s)"), ("Tokens de entrada (mil)", "entrada (mil tokens)")]:
-    for a in arms3:
-        data.append([f"{a}, {lab}"] + COST[(blk, a)])
-t = table(s, 0.7, 1.7, 11.9, 4.9, data, col_w=[4.7, 1.8, 1.9, 1.7, 1.8], size=14)
-for r in range(1, len(data)):
-    if data[r][0].startswith("Ferramentas"):
-        for c in range(5):
-            t.cell(r, c).fill.fore_color.rgb = ACCENT_BG
+              )
+LAT_ROWS = {a: COST[("Latência (s)", a)] for a in ("Contexto", "Consulta", "Ferramentas")}
+OUT_ROWS = COST[("Tokens de saída (mil)", "Contexto")]
+for i, (big, small) in enumerate([(f"{LAT_ROWS['Contexto'][2]} s e {LAT_ROWS['Contexto'][3]} s", "latência por pergunta"),
+                                  (f"{OUT_ROWS[2]} e {OUT_ROWS[3]} mil", "tokens de saída por pergunta")]):
+    panel(s, 0.7, 1.7 + i * 2.5, 4.2, 2.3, fill=ACCENT_BG)
+    textbox(s, 0.85, 1.85 + i * 2.5, 3.9, 2.0,
+            [(big, {"bold": True, "size": 40, "color": ACCENT}), (small, {"size": 18}),
+             (f"{ARM_NAME['EventsInPrompt']}, modelos maiores (Sonnet e Kimi)", {"size": 13, "color": MUTED})], gap=6)
+cd = CategoryChartData()
+cd.categories = ["Sonnet 4.6 (maior)", "Kimi K3 (maior)"]
+for a, nm in [("Contexto", ARM_NAME["EventsInPrompt"]), ("Consulta", ARM_NAME["TextToCypher"]), ("Ferramentas", ARM_NAME["GraphTools"])]:
+    cd.add_series(nm, [float(v.replace(",", ".")) for v in LAT_ROWS[a][2:]])
+gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(5.2), Inches(1.55), Inches(7.7), Inches(5.3), cd)
+style_chart(gf.chart, [GRAYS[2], GRAYS[4], ACCENT], size=14)
+gf.chart.value_axis.axis_title.text_frame.paragraphs[0].runs[0].text = "Latência mediana (s)"
+gf.chart.plots[0].gap_width = 80
 
 # 13 limitações e conclusão
 s = new_slide(13, "Ferramentas mantiveram o acerto alto, com limites claros",
