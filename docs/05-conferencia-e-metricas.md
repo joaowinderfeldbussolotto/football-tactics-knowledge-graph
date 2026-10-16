@@ -119,6 +119,16 @@ prorrogação?". Gabarito: `no_data`.
 
 ---
 
+### Empates: mais de uma resposta certa
+
+Às vezes dois jogadores empatam na resposta certa (na p07, Rabiot e
+Tchouaméni participaram juntos de tantas jogadas quanto Rabiot e Mbappé). O
+gabarito guarda as formas igualmente certas no campo `accepted`, e a
+correção aceita **qualquer uma delas**, ou **todas as empatadas juntas** (o
+modelo que responde "os dois empatam" também acerta). Um empate não tira a
+pergunta do benchmark; só sai a pergunta cuja resposta muda de uma leitura
+para outra (capítulo 3).
+
 ## 5.3 Nomes: como "Messi" vira "Lionel Andrés Messi Cuccittini"
 
 Os dados usam o nome completo de registro. O modelo pode escrever "Messi",
@@ -151,7 +161,7 @@ Toda execução termina em exatamente um destes:
 | **Acerto** | a resposta bate com o gabarito | certo |
 | **Alucinação** | respondeu, com cara de certeza, e errou | erro |
 | **Abstenção** | disse `no_data` numa pergunta que **tem** resposta | erro, mas registrado à parte |
-| **Erro de formato** | não produziu um `Answer` válido, mesmo depois das 2 novas tentativas (ou estourou o limite de chamadas) | erro, registrado à parte |
+| **Erro de formato** | não produziu um `Answer` válido, mesmo depois das 2 novas tentativas, estourou o limite de chamadas ou gastou o teto de tokens de saída (`LLM_MAX_TOKENS`) raciocinando antes de responder | erro, registrado à parte |
 
 Por que separar os erros? Porque eles têm **custos diferentes** para quem usa
 o sistema:
@@ -160,7 +170,10 @@ o sistema:
 - uma **alucinação** é perigosa: o usuário recebe uma resposta errada com
   confiança e não tem como saber;
 - um **erro de formato** é um problema de engenharia (o modelo ou o provedor
-  não lidou bem com o formato), não de conhecimento.
+  não lidou bem com o formato), não de conhecimento. Com modelos que
+  raciocinam, ele inclui o caso em que o raciocínio consome todo o teto de
+  saída e nenhuma resposta sai: no Sonnet 4.6, isso aconteceu no
+  `events_in_prompt`, que exige contar a tabela inteira (capítulo 7).
 
 Um braço com 70% de acerto e 30% de abstenção é muito mais confiável que um
 com 70% de acerto e 30% de alucinação.
@@ -180,7 +193,7 @@ JSON Lines: um objeto JSON por linha. Os campos:
 |---|---|---|
 | `question_id`, `type`, `arm`, `repeat` | `"a05"`, `"filtered_aggregation"`, `"graph_tools"`, `1` | o que foi executado |
 | `answer` | `{"rationale": "...", "players": [...], "value": 26, "no_data": false}` | a resposta completa (`null` se houve erro de formato) |
-| `expected` | `{"players": ["Enzo Fernandez"], "value": 26, "no_data": false}` | o gabarito |
+| `expected` | `{"players": ["Enzo Fernandez"], "accepted": [["Enzo Fernandez"]], "value": 26, "no_data": false}` | o gabarito, com as respostas igualmente certas em `accepted` |
 | `correct`, `abstention`, `format_error` | `true`, `false`, `false` | o desfecho (5.4) |
 | `error` | `null` | o motivo, quando não houve resposta válida |
 | `input_tokens`, `output_tokens` | `2817`, `95` | tokens consumidos, informados pelo provedor |
@@ -188,7 +201,7 @@ JSON Lines: um objeto JSON por linha. Os campos:
 | `latency_s` | `3.2` | tempo da execução, em segundos |
 | `cache_read_tokens`, `cache_write_tokens` | `100945`, `0` | tokens lidos e gravados no cache de prompt (capítulo 7) |
 | `trace_url` | `"https://us.cloud.langfuse.com/project/.../traces/..."` | link do trace no Langfuse (`null` sem Langfuse) |
-| `model`, `timestamp` | `"openrouter:..."`, `"2026-10-07T14:43:00+00:00"` | modelo usado e quando |
+| `model`, `timestamp` | `"openrouter:..."` ou `"bedrock:..."`, `"2026-10-07T14:43:00+00:00"` | provedor e modelo usados, e quando |
 
 Esse arquivo é a **fonte única dos números**. Tudo no relatório sai dele.
 

@@ -251,13 +251,14 @@ Neo4j e devolvem dados.
 | `goal`, `yellow_card` | marcas da ação |
 | `assist` | o passe que deu a assistência: o último passe recebido pelo autor do gol na mesma fase de posse |
 
-**As sete ferramentas:**
+**As oito ferramentas:**
 
 | Ferramenta | O que calcula |
 |---|---|
 | `list_players` | jogadores com pelo menos uma ação, com time e posição |
 | `query_actions` | conta as ações filtradas (ou soma o xT delas), agrupadas por jogador, recebedor, time, ação, período, terço ou corredor; da maior para a menor |
 | `list_actions` | as ações filtradas, em ordem: período, minuto, segundo contínuo, time, jogador, ação, sucesso, recebedor, terço, corredor, `score` (placar antes da ação, "Argentina 2-1 France") e `outcome` (num gol, com o placar depois: "goal (score after: Argentina 2-2 France)"). Até 100 linhas, mais o total encontrado |
+| `query_possessions` | as fases de posse (jogadas) de um time que passam nos filtros: período, janela de tempo pelo início da posse, terço onde começa, terço que alcança, ação com que termina, jogadores que participaram todos; conta as jogadas, ou as ordena por jogador ou por dupla de companheiros pelo número de jogadas de que participaram |
 | `pass_network` | a rede de passes de um time: os passes certos entre companheiros que passam nos filtros, somados por par passador → recebedor (número de passes e xT). Devolve um identificador, o time e os filtros usados |
 | `network_metric` | uma métrica sobre a rede, calculada pelo Neo4j GDS |
 | `network_edges` | as ligações da rede (passador, recebedor, passes, xT), da mais forte para a mais fraca; com um jogador, só as dele |
