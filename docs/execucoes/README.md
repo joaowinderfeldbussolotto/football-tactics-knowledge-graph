@@ -24,6 +24,17 @@ vêm sempre do arquivo de resultados da execução, nunca do Langfuse.
 | [16](2026-10-12_16_kimi-k3.md) | 2026-10-12 | Kimi K3 (Bedrock), seis braços | kimi-k3 | 312 | 47/52 | US$ 33.40 |
 | [17](2026-10-13_17_sonnet46.md) | 2026-10-13 | Sonnet 4.6 (Bedrock, raciocínio médio), seis braços | us.anthropic.claude-sonnet-4-6 | 312 | 47/52 | US$ 17,76 (calculado) |
 
+> **Rodadas de outros modelos (15 a 17).** Cada uma está descrita no
+> capítulo 7 ("Quatro modelos"). A página 17 é a rodada do Sonnet 4.6 com
+> raciocínio `medium`; o `events_in_prompt` dele foi refeito depois com
+> raciocínio `low` (`sonnet46_events_low_results.jsonl`) e, nas 6 que ainda
+> estouraram o teto, com 32 mil tokens (`sonnet46_events_low32k_results.jsonl`),
+> sem página própria. O resultado usado é `sonnet46_combined_results.jsonl`,
+> com o `events_in_prompt` em 34/47 (a página mostra o `medium`, 25/47). As
+> triagens de 2 a 5 perguntas dos modelos que ficaram de fora não têm
+> página; a amostra do DeepSeek V4 Pro está em
+> `second_models_pro_sample_results.jsonl`.
+
 > **As execuções 01 a 03 usaram dados com um erro na camada 0**, corrigido
 > depois: em 44% das ações o lado do ataque estava invertido, o que deixava
 > errados terço, corredor, xT e VAEP dessas ações (capítulo 7, seção 7.2).
