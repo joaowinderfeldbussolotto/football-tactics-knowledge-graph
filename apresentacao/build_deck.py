@@ -13,6 +13,8 @@ from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION, XL_LABEL_POSITION
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
+from pptx.oxml.ns import qn
+from lxml import etree
 
 ROOT = Path(__file__).resolve().parent.parent
 GEN = ROOT / "paper" / "generated"
@@ -210,6 +212,22 @@ def style_chart(chart, colors, legend=True, size=12, labels=True, maxv=100):
 MODEL_LABEL = {"Haiku": "Haiku 5.5 (menor)", "Qwen": "Qwen3.8-flash (menor)",
                "Sonnet": "Sonnet 4.6 (maior)", "Kimi": "Kimi K3 (maior)"}
 
+def errbars(series, plus, minus, color="222222"):
+    """Barras de erro personalizadas (intervalo de Wilson) em uma série de colunas."""
+    ns = "http://schemas.openxmlformats.org/drawingml/2006/chart"
+
+    def lit(tag, vals):
+        pts = "".join(f'<c:pt idx="{i}"><c:v>{v}</c:v></c:pt>' for i, v in enumerate(vals))
+        return f'<c:{tag}><c:numLit><c:formatCode>General</c:formatCode><c:ptCount val="{len(vals)}"/>{pts}</c:numLit></c:{tag}>'
+
+    xml = (f'<c:errBars xmlns:c="{ns}" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+           '<c:errDir val="y"/><c:errBarType val="both"/><c:errValType val="cust"/><c:noEndCap val="0"/>'
+           + lit("plus", plus) + lit("minus", minus)
+           + f'<c:spPr><a:ln w="15875"><a:solidFill><a:srgbClr val="{color}"/></a:solidFill></a:ln></c:spPr></c:errBars>')
+    el = etree.fromstring(xml)
+    series._element.find(qn("c:cat")).addprevious(el)
+
+
 # ============ slides ============
 # 1 capa
 s = prs.slides.add_slide(prs.slide_layouts[6])
@@ -227,7 +245,7 @@ s.notes_slide.notes_text_frame.text = (
 
 
 # 2 problema e pergunta de pesquisa
-s = new_slide(2, "Perguntas de futebol exigem ligar eventos: qual forma de dar os dados ao modelo funciona melhor?",
+s = new_slide(2, "Qual forma de dar os dados de uma partida ao modelo funciona melhor?",
               "[1:15] Contexto de futebol: a final da Copa de 2022, Argentina contra França, decidida nos pênaltis. Os dados de "
               "eventos registram cada ação, com jogador, momento e posição no campo. As três perguntas do slide são do conjunto do "
               "trabalho e nenhuma tem a resposta em um único evento: é preciso juntar vários. O modelo precisa receber os dados da "
@@ -239,15 +257,15 @@ s = new_slide(2, "Perguntas de futebol exigem ligar eventos: qual forma de dar o
               "LOFT comparam formas de recuperação sem dados de futebol. Não foram encontrados trabalhos que comparem formas de "
               "recuperação em perguntas encadeadas sobre eventos de futebol, com conferência por código contra um gabarito por código.")
 textbox(s, 0.7, 1.75, 5.6, 0.5, [("Perguntas de pesquisa", {"bold": True, "size": 20, "color": ACCENT})])
-bullets(s, 0.7, 2.3, 5.6, 2.3,
+bullets(s, 0.7, 2.3, 5.6, 2.1,
         ["Qual abordagem acerta mais?",
          "Como o acerto muda de um modelo para outro?",
          "Quanto cada abordagem custa em tokens e em tempo?"], size=18, gap=8)
-panel(s, 0.7, 4.4, 5.6, 1.9)
-textbox(s, 0.85, 4.43, 5.3, 1.85,
+panel(s, 0.7, 4.5, 5.6, 1.75)
+textbox(s, 0.85, 4.53, 5.3, 1.7,
         [("Contribuições", {"bold": True, "size": 16, "color": ACCENT}),
-         (f"{m('nQuestions')} perguntas sobre a final, com gabarito calculado por código, fora do grafo.", {"size": 15}),
-         (f"Comparação de {m('nArms')} abordagens com as mesmas perguntas, o mesmo prompt e a mesma saída, em {m('nModels')} modelos.", {"size": 15})], gap=5)
+         (f"{m('nQuestions')} perguntas com gabarito calculado por código.", {"size": 15}),
+         (f"{m('nArms')} abordagens em {m('nModels')} modelos, com as mesmas perguntas, prompt e saída.", {"size": 15})], gap=5)
 textbox(s, 6.8, 1.75, 5.8, 0.5, [("Exemplos de pergunta do conjunto", {"bold": True, "size": 20})])
 ex = [("Quem passou para quem",
        "Qual dupla da França mais trocou passes entre si na final?"),
@@ -257,14 +275,13 @@ ex = [("Quem passou para quem",
        "Depois que Dembélé foi substituído no primeiro tempo, qual companheiro mais passou a bola para Mbappé?")]
 y = 2.3
 for head, q in ex:
-    panel(s, 6.8, y, 5.8, 1.2, fill=ACCENT_BG)
-    textbox(s, 6.95, y + 0.03, 5.5, 1.15, [(head, {"bold": True, "size": 15, "color": ACCENT}), (q, {"size": 15})], gap=2)
+    panel(s, 6.8, y, 5.8, 1.3, fill=ACCENT_BG)
+    textbox(s, 6.95, y + 0.03, 5.5, 1.25, [(head, {"bold": True, "size": 15, "color": ACCENT}), (q, {"size": 15})], gap=2)
     y += 1.35
-
-panel(s, 0.7, 6.4, 11.9, 0.55, fill=PANEL)
-textbox(s, 0.85, 6.42, 11.6, 0.5,
+panel(s, 0.7, 6.35, 11.9, 0.62, fill=PANEL)
+textbox(s, 0.85, 6.37, 11.6, 0.58,
         ["Relacionados: no esporte, cada trabalho avalia uma única forma de recuperação (SoccerRAG, SPORTSQL, Tzikas et al.); fora dele, as formas são comparadas sem dados de futebol (Li et al., LOFT)."],
-        size=12, color=INK, anchor=MSO_ANCHOR.MIDDLE)
+        size=14, color=INK, anchor=MSO_ANCHOR.MIDDLE)
 
 # 3 dados: JSON bruto
 s = new_slide(3, "Os dados: eventos da StatsBomb da final de 2022, em JSON",
@@ -276,7 +293,7 @@ s = new_slide(3, "Os dados: eventos da StatsBomb da final de 2022, em JSON",
               "dentro da falta ou, sem falta, em um evento de comportamento; e o nome é o de registro, não o apelido, e o minuto é "
               "decorrido, então o gol aos 35 aparece como 36 na transmissão.",
               kicker="Exemplo resumido: o passe de Mac Allister e o gol de Di María (docs/02 e Figura 1 do artigo).")
-panel(s, 0.7, 1.7, 7.1, 2.9, fill=RGBColor(0x2B, 0x2B, 0x2B))
+panel(s, 0.7, 1.7, 7.1, 3.3, fill=RGBColor(0x2B, 0x2B, 0x2B))
 code = ['{ "type": "Pass", "minute": 35, "second": 20,',
         '  "player": "Alexis Mac Allister",',
         '  "pass": { "recipient": "Ángel Fabián Di María",',
@@ -287,30 +304,33 @@ code = ['{ "type": "Pass", "minute": 35, "second": 20,',
         '  "player": "Ángel Fabián Di María",',
         '  "shot": { "outcome": "Goal",',
         '            "body_part": "Left Foot" } }']
-tb = s.shapes.add_textbox(Inches(0.9), Inches(1.85), Inches(6.8), Inches(3.4))
+tb = s.shapes.add_textbox(Inches(0.9), Inches(1.85), Inches(6.8), Inches(3.5))
 tf = tb.text_frame
 tf.word_wrap = True
 for i, ln in enumerate(code):
     p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
     r = p.add_run()
     r.text = ln if ln else " "
-    r.font.name, r.font.size = "Courier New", Pt(12)
+    r.font.name, r.font.size = "Courier New", Pt(14)
     r.font.color.rgb = RGBColor(0xE8, 0xE8, 0xE8)
 bullets(s, 8.1, 1.7, 4.6, 5.0,
         [("Fonte: ", "StatsBomb Open Data, lista de eventos e escalações da partida."),
          (f"{m('nEvents')} eventos, ", "cada um com tipo, tempo, time, jogador e posição."),
          ("Campos próprios por tipo: ", "o passe traz o recebedor; a finalização, o resultado."),
          ("Mesma informação em lugares diferentes: ", "o cartão amarelo vem na falta ou em outro evento."),
-         ("Nome de registro e minuto decorrido: ", "o gol aos 35 aparece como 36 na transmissão.")], size=16, gap=9)
+         ("Nome de registro e minuto decorrido: ", "o gol aos 35 aparece como 36 na transmissão.")], size=16, gap=10)
 
 # 4 JSON -> tabela de ações
+ZONE_FROM, ZONE_TO = 74, 92  # zonas do passe de Mac Allister para Di María, como na Figura 1 do artigo
 s = new_slide(4, "Do JSON à tabela de ações: um vocabulário fechado, com contexto acrescentado",
               f"[1:30] Os eventos da partida, sem a disputa de pênaltis, foram convertidos com a biblioteca socceraction para o formato "
               f"SPADL, que guarda só as ações com bola, em um vocabulário fechado e com os mesmos campos em todas. Os {m('nEvents')} eventos "
               f"viram {m('nActions')} ações. Sobre essa tabela foram acrescentadas colunas de contexto: direção de ataque, zona em uma "
-              f"grade de {m('nZones')} zonas, fase de posse ({m('nPhases')} fases na final), recebedor do passe, placar e minuto. É essa "
-              "tabela que o Contexto longo entrega ao modelo. O SPADL perde o desfecho da finalização e o cartão sem falta, que foram "
-              "recuperados do JSON. Nenhuma etapa usa modelo de linguagem.",
+              f"grade de {m('nZones')} zonas, fase de posse ({m('nPhases')} fases na final), recebedor do passe, placar e minuto. A figura "
+              f"mostra a grade de 12 por 8 zonas e o passe de Mac Allister para Di María, da zona {ZONE_FROM} para a {ZONE_TO}, como na "
+              "Figura 1 do artigo (zonas copiadas dela, não recalculadas). É essa tabela que o Contexto longo entrega ao modelo. O SPADL "
+              "perde o desfecho da finalização e o cartão sem falta, que foram recuperados do JSON; os rótulos das ações foram "
+              "traduzidos para o português. Nenhuma etapa usa modelo de linguagem.",
               kicker="Pênaltis fora da tabela. Fonte: Tabela 1 do artigo e docs/09.")
 panel(s, 0.7, 1.55, 3.3, 0.85, fill=PANEL)
 textbox(s, 0.8, 1.58, 3.1, 0.8, [("JSON bruto", {"bold": True, "size": 14, "color": MUTED}), (f"{m('nEvents')} eventos", {"bold": True, "size": 20})], gap=0)
@@ -318,15 +338,43 @@ textbox(s, 4.0, 1.65, 0.8, 0.7, ["→"], size=30, color=MUTED, align=PP_ALIGN.CE
 panel(s, 4.8, 1.55, 3.9, 0.85, fill=ACCENT_BG)
 textbox(s, 4.9, 1.58, 3.7, 0.8, [("Tabela de ações (SPADL)", {"bold": True, "size": 14, "color": ACCENT}), (f"{m('nActions')} ações", {"bold": True, "size": 20})], gap=0)
 textbox(s, 9.0, 1.6, 3.7, 0.8, [f"{m('nZones')} zonas, {m('nPhases')} fases de posse, {m('nPlayers')} jogadores"], size=15, color=MUTED, anchor=MSO_ANCHOR.MIDDLE)
-rows = [["Transformação", "O que faz", "Motivo"],
-        ["Direção de ataque", "toda ação ataca da esquerda para a direita", "mesmo sentido do campo para os dois times"],
-        ["Zona, terço e corredor", "situa o início e o fim de cada ação", "localizar a ação no campo"],
-        ["Recebedor do passe", "jogador do mesmo time que age em seguida", "saber quem passou para quem"],
-        ["Fase de posse", "agrupa as ações seguidas do mesmo time", "identificar as jogadas"],
-        ["Placar, minuto e período", "placar antes de cada ação; minuto da transmissão", "situar a ação antes ou depois de um momento"],
-        ["Dados recuperados do JSON", "desfecho da finalização e cartão sem falta", "o SPADL perde essas informações"],
-        ["Rótulos em português", "passe, condução, drible", "o SPADL chama a condução de dribble"]]
-table(s, 0.7, 2.6, 11.9, 4.2, rows, col_w=[3.1, 4.7, 4.1], size=14, left=True)
+rows = [["Transformação", "O que faz"],
+        ["Direção de ataque", "toda ação ataca da esquerda para a direita"],
+        ["Zona do campo", "situa o início e o fim de cada ação"],
+        ["Recebedor do passe", "jogador do mesmo time que age em seguida"],
+        ["Fase de posse", "agrupa as ações seguidas do mesmo time"],
+        ["Placar e minuto", "placar antes de cada ação; minuto da transmissão"]]
+table(s, 0.7, 2.7, 7.3, 3.6, rows, col_w=[2.6, 4.7], size=16, left=True)
+# campo com a grade de 12 x 8 zonas
+PX, PY, PW, PH = 8.45, 3.15, 4.2, 2.72
+textbox(s, PX - 0.1, 2.65, PW + 0.2, 0.4, ["Ataque: da esquerda para a direita →"], size=14, color=MUTED, align=PP_ALIGN.CENTER)
+field = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(PX), Inches(PY), Inches(PW), Inches(PH))
+field.fill.solid()
+field.fill.fore_color.rgb = RGBColor(255, 255, 255)
+field.line.color.rgb = MUTED
+field.line.width = Pt(2)
+field.shadow.inherit = False
+cw, ch_ = PW / 12, PH / 8
+for c_ in range(1, 12):
+    ln = s.shapes.add_connector(1, Inches(PX + c_ * cw), Inches(PY), Inches(PX + c_ * cw), Inches(PY + PH))
+    ln.line.color.rgb, ln.line.width = LINE, Pt(0.75)
+for r_ in range(1, 8):
+    ln = s.shapes.add_connector(1, Inches(PX), Inches(PY + r_ * ch_), Inches(PX + PW), Inches(PY + r_ * ch_))
+    ln.line.color.rgb, ln.line.width = LINE, Pt(0.75)
+centers = []
+for z in (ZONE_FROM, ZONE_TO):
+    col, row = divmod(z, 8)
+    cell = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(PX + col * cw), Inches(PY + row * ch_), Inches(cw), Inches(ch_))
+    cell.fill.solid()
+    cell.fill.fore_color.rgb = ACCENT_BG
+    cell.line.color.rgb, cell.line.width = ACCENT, Pt(1.5)
+    cell.shadow.inherit = False
+    centers.append((PX + (col + 0.5) * cw, PY + (row + 0.5) * ch_))
+arrow = s.shapes.add_connector(1, Inches(centers[0][0]), Inches(centers[0][1]), Inches(centers[1][0]), Inches(centers[1][1]))
+arrow.line.color.rgb, arrow.line.width = ACCENT, Pt(3)
+etree.SubElement(arrow.line._get_or_add_ln(), qn("a:tailEnd")).set("type", "triangle")
+textbox(s, PX - 0.1, PY + PH + 0.05, PW + 0.2, 0.7,
+        [f"Grade de {m('nZones')} zonas; passe da zona {ZONE_FROM} para a {ZONE_TO}"], size=14, color=INK, align=PP_ALIGN.CENTER)
 
 # 5 grafo e súmula
 s = new_slide(5, "Da tabela ao grafo: cada ação vira uma aresta, e a súmula é contada pelo banco",
@@ -350,7 +398,7 @@ def node(slide, x, y, w, title, sub=None, accent=False):
     if sub:
         p2 = tf.add_paragraph()
         p2.alignment = PP_ALIGN.CENTER
-        run(p2, sub, 12, False, MUTED)
+        run(p2, sub, 14, False, MUTED)
     return (x + w / 2, y + 0.45)
 
 
@@ -358,7 +406,7 @@ def edge(slide, a, b, label, lx, ly, lw=1.7):
     c = slide.shapes.add_connector(1, Inches(a[0]), Inches(a[1]), Inches(b[0]), Inches(b[1]))
     c.line.color.rgb = MUTED
     c.line.width = Pt(1.5)
-    tb = textbox(slide, lx, ly, lw, 0.3, [label], size=10, color=MUTED, align=PP_ALIGN.CENTER)
+    tb = textbox(slide, lx, ly, lw, 0.3, [label], size=14, color=MUTED, align=PP_ALIGN.CENTER)
     tb.fill.solid()
     tb.fill.fore_color.rgb = RGBColor(255, 255, 255)
 
@@ -369,19 +417,19 @@ part_c = (6.7, 3.75)
 fase_c = (1.1, 5.75)
 sum_c = (3.9, 5.75)
 zona_c = (6.7, 5.75)
-edge(s, J, time_c, "MEMBRO_DE", 1.75, 3.4, 1.2)
-edge(s, J, part_c, "REALIZOU", 4.85, 3.4, 1.2)
-edge(s, J, fase_c, "PARTICIPOU_DE", 1.4, 4.7, 1.6)
-edge(s, J, sum_c, "TEM_ESTATISTICA", 3.2, 4.6, 1.6)
-edge(s, J, zona_c, "ATUOU_EM", 5.0, 4.7, 1.2)
+edge(s, J, time_c, "membro de", 1.75, 3.38, 1.2)
+edge(s, J, part_c, "realizou", 5.0, 3.38, 1.05)
+edge(s, J, fase_c, "participou de", 1.2, 4.6, 1.5)
+edge(s, J, sum_c, "tem estatística", 3.2, 4.45, 1.65)
+edge(s, J, zona_c, "atuou em", 5.1, 4.6, 1.05)
 node(s, 0.5, 3.3, 1.2, "Time")
 node(s, 3.0, 3.3, 1.8, "Jogador", f"{m('nPlayers')} na final", accent=True)
 node(s, 6.1, 3.3, 1.2, "Partida")
 node(s, 0.5, 5.3, 1.2, "Fase", f"{m('nPhases')}")
-node(s, 3.0, 5.3, 1.8, "Súmula", "por jogador e time")
+node(s, 3.0, 5.3, 1.8, "Súmula", "jogador e time")
 node(s, 6.1, 5.3, 1.2, "Zona", f"{m('nZones')}")
-textbox(s, 1.3, 2.1, 5.2, 0.9, [("Entre jogadores: PASSOU_PARA, DEU_ASSISTENCIA, PRESSIONOU", {"size": 12, "color": MUTED}),
-                                ("Entre zonas: PROGREDIU_PARA", {"size": 12, "color": MUTED})], align=PP_ALIGN.CENTER, gap=2)
+textbox(s, 1.3, 2.1, 5.2, 0.9, [("Entre jogadores: passou para, deu assistência, pressionou", {"size": 14, "color": MUTED}),
+                                ("Entre zonas: progrediu para", {"size": 14, "color": MUTED})], align=PP_ALIGN.CENTER, gap=2)
 bullets(s, 7.8, 1.7, 4.9, 5.0,
         [("Cada ação ", "vira uma aresta do jogador para a partida, com as colunas da linha como propriedades."),
          ("Cada passe certo com recebedor ", "vira uma aresta entre dois jogadores."),
@@ -471,7 +519,7 @@ c_call = A01["text_to_cypher"]["tool_calls"][0]
 g_call = A01["graph_tools"]["tool_calls"][0]
 assert A01["text_to_cypher"]["answer"]["players"] == A01["graph_tools"]["answer"]["players"]
 a01_answer = A01["graph_tools"]["answer"]["players"][0]
-s = new_slide(8, "Mesmo grafo, duas formas de consultar: o modelo escreve a consulta ou escolhe a ferramenta",
+s = new_slide(8, "Mesmo grafo, duas formas de consultar",
               f"[1:15] Registro real de uma execução em cada abordagem com agente, pergunta a01, {m('modelHaiku')}. Na Consulta escrita "
               "pelo modelo, ele chama run_cypher com a consulta Cypher que escreveu, inclusive os filtros de time, ação, sucesso e "
               "terço do campo; a ferramenta executa a consulta no grafo e devolve o resultado. Nas Ferramentas sobre o grafo, o "
@@ -498,47 +546,58 @@ def code_box(slide, x, y, w, h, lines):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         r = p.add_run()
         r.text = ln
-        r.font.name, r.font.size = "Courier New", Pt(11)
+        r.font.name, r.font.size = "Courier New", Pt(13)
         r.font.color.rgb = RGBColor(0xE8, 0xE8, 0xE8)
 
 
 tool_out = ["Lionel Andrés Messi Cuccittini: 24", "Alexis Mac Allister: 18 [...]"]
 cols = [(0.7, ARM_NAME["TextToCypher"], False, "Modelo chama run_cypher com a consulta que escreveu:", cypher_lines(c_call["args"]["query"]),
-         "Ferramenta executa essa consulta no grafo e devolve:"),
+         "Ferramenta executa no grafo e devolve:"),
         (6.75, ARM_NAME["GraphTools"], True, "Modelo escolhe query_actions e preenche os argumentos:", args_lines(g_call["args"]),
-         "Ferramenta executa a consulta fixa do código e devolve:")]
+         "Ferramenta executa a consulta fixa e devolve:")]
 for x, name, acc, step1, code1, step2 in cols:
     panel(s, x, 2.25, 5.85, 4.65, fill=ACCENT_BG if acc else PANEL)
     textbox(s, x + 0.15, 2.3, 5.5, 0.4, [(name, {"bold": True, "size": 17, "color": ACCENT if acc else INK})])
-    textbox(s, x + 0.15, 2.72, 5.55, 0.35, [step1], size=12)
-    code_box(s, x + 0.15, 3.07, 5.55, 1.95, code1)
-    textbox(s, x + 0.15, 5.07, 5.55, 0.4, [step2], size=12)
-    code_box(s, x + 0.15, 5.47, 5.55, 0.65, tool_out)
-    textbox(s, x + 0.15, 6.25, 5.55, 0.55, [(f"Modelo responde: {a01_answer}", {"size": 13, "bold": True})], anchor=MSO_ANCHOR.MIDDLE)
+    textbox(s, x + 0.15, 2.7, 5.55, 0.35, [step1], size=14)
+    code_box(s, x + 0.15, 3.07, 5.55, 2.35, code1)
+    textbox(s, x + 0.15, 5.45, 5.55, 0.4, [step2], size=14)
+    code_box(s, x + 0.15, 5.85, 5.55, 0.6, tool_out)
+    textbox(s, x + 0.15, 6.47, 5.55, 0.4, [(f"Modelo responde: {a01_answer}", {"size": 14, "bold": True})], anchor=MSO_ANCHOR.MIDDLE)
 
 
 # 8 resultado 1
 s = new_slide(9, f"Ferramentas sobre o grafo: {m('accRangeGraphTools')} de acerto nos {m('nModels')} modelos",
-              f"[2:15] Acerto nas {m('nAnswerable')} perguntas com resposta. A barra azul é Ferramentas sobre o grafo: "
-              f"{m('accRangeGraphTools')} em todos os modelos. Consulta escrita pelo modelo: {m('accRangeLowTextToCypher')} nos menores e "
-              f"{m('accRangeHighTextToCypher')} nos maiores. Contexto longo: {m('accRangeLowEventsInPrompt')} nos menores e "
-              f"{m('accRangeHighEventsInPrompt')} nos maiores. As outras três ficam baixas: Busca vetorial {m('accRangeVector')}, "
-              f"Estatísticas resumidas {m('accRangeStatsInPrompt')}, e Sem dados {m('accRangeNoContext')}, porque se abstém. "
-              "Nos maiores, Consulta empata com Ferramentas no Sonnet e fica à frente no Kimi; os intervalos se sobrepõem. Setup: quatro "
-              "modelos, dois menores (Haiku e Qwen, sem raciocínio estendido, temperatura zero) e dois maiores (Sonnet e Kimi, com "
-              f"raciocínio estendido), agrupados pela faixa de preço por token; {m('nQuestions')} perguntas em {m('nArms')} abordagens, "
-              f"{m('nRuns')} execuções por modelo, {m('nRepeats')} repetição por pergunta; intervalo de Wilson de 95%; diferenças lidas como indícios.",
-              kicker=f"Acerto nas {m('nAnswerable')} perguntas com resposta, uma repetição por pergunta.")
+              f"[2:15] Acerto nas {m('nAnswerable')} perguntas com resposta, das três abordagens que leem os dados, com o intervalo de "
+              f"Wilson de 95%. A barra azul é Ferramentas sobre o grafo: {m('accRangeGraphTools')} em todos os modelos. Consulta escrita "
+              f"pelo modelo: {m('accRangeLowTextToCypher')} nos menores e {m('accRangeHighTextToCypher')} nos maiores. Contexto longo: "
+              f"{m('accRangeLowEventsInPrompt')} nos menores e {m('accRangeHighEventsInPrompt')} nos maiores. As outras três ficam baixas e "
+              f"estão no slide 11: Busca vetorial {m('accRangeVector')}, Estatísticas resumidas {m('accRangeStatsInPrompt')} e Sem dados "
+              f"{m('accRangeNoContext')}, porque se abstém. Nos maiores, Consulta empata com Ferramentas no Sonnet e fica à frente no "
+              "Kimi; os intervalos se sobrepõem. Setup: quatro modelos, dois menores (Haiku e Qwen, sem raciocínio estendido, "
+              "temperatura zero) e dois maiores (Sonnet e Kimi, com raciocínio estendido), agrupados pela faixa de preço por token; "
+              f"{m('nQuestions')} perguntas em {m('nArms')} abordagens, {m('nRuns')} execuções por modelo, {m('nRepeats')} repetição por "
+              "pergunta; diferenças lidas como indícios.",
+              kicker="Barras de erro: intervalo de Wilson de 95%. Uma repetição por pergunta.")
+textbox(s, 0.7, 1.45, 11.9, 1.1,
+        [f"{m('nModels')} modelos: {m('modelHaiku')} e {m('modelQwen')} (menores, sem raciocínio estendido, temperatura zero); {m('modelSonnet')} e {m('modelKimi')} (maiores, com raciocínio estendido).",
+         f"{m('nQuestions')} perguntas × {m('nArms')} abordagens = {m('nRuns')} execuções por modelo, {m('nRepeats')} repetição por pergunta. Diferenças lidas como indícios."],
+        size=14, color=MUTED, gap=2)
+THREE = ["EventsInPrompt", "TextToCypher", "GraphTools"]
 cd = CategoryChartData()
 cd.categories = [MODEL_LABEL[x] for x in MODELS]
-for a in ARMS:
+for a in THREE:
     cd.add_series(ARM_NAME[a], [mi(f"acc{x}{a}") for x in MODELS])
-textbox(s, 0.7, 1.45, 11.9, 0.9,
-        [f"{m('nModels')} modelos: {m('modelHaiku')} e {m('modelQwen')} (menores, sem raciocínio estendido, temperatura zero); {m('modelSonnet')} e {m('modelKimi')} (maiores, com raciocínio estendido).",
-         f"{m('nQuestions')} perguntas × {m('nArms')} abordagens = {m('nRuns')} execuções por modelo, {m('nRepeats')} repetição por pergunta. Intervalo de Wilson de 95%; diferenças lidas como indícios."],
-        size=13, color=MUTED, gap=2)
-gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.5), Inches(2.3), Inches(12.3), Inches(4.65), cd)
-style_chart(gf.chart, GRAYS + [ACCENT], size=13)
+gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.5), Inches(2.5), Inches(12.3), Inches(4.05), cd)
+style_chart(gf.chart, [GRAYS[2], GRAYS[4], ACCENT], size=14)
+gf.chart.plots[0].gap_width = 70
+for ser, a, col in zip(gf.chart.plots[0].series, THREE, [INK, RGBColor(255, 255, 255), RGBColor(255, 255, 255)]):
+    accs = [mi(f"acc{x}{a}") for x in MODELS]
+    errbars(ser, [mi(f"ciHigh{x}{a}") - v for x, v in zip(MODELS, accs)], [v - mi(f"ciLow{x}{a}") for x, v in zip(MODELS, accs)])
+    ser.data_labels.position = XL_LABEL_POSITION.INSIDE_BASE
+    ser.data_labels.font.size = Pt(14)
+    ser.data_labels.font.bold = True
+    ser.data_labels.font.color.rgb = col
+textbox(s, 0.7, 6.55, 11.9, 0.4, [f"As outras três abordagens não passam de {m('accMaxOthers')} em nenhum modelo (slide 11)."], size=14, color=INK)
 
 # 9 resultado 2: encadeadas
 chain = ["Relações", "Jogadas", "Momento"]
@@ -610,7 +669,7 @@ for i, (big, small) in enumerate([(f"{LAT_ROWS['Contexto'][2]} s e {LAT_ROWS['Co
     panel(s, 0.7, 1.7 + i * 2.5, 4.2, 2.3, fill=ACCENT_BG)
     textbox(s, 0.85, 1.85 + i * 2.5, 3.9, 2.0,
             [(big, {"bold": True, "size": 40, "color": ACCENT}), (small, {"size": 18}),
-             (f"{ARM_NAME['EventsInPrompt']}, modelos maiores (Sonnet e Kimi)", {"size": 13, "color": MUTED})], gap=6)
+             (f"{ARM_NAME['EventsInPrompt']}, modelos maiores (Sonnet e Kimi)", {"size": 14, "color": MUTED})], gap=6)
 cd = CategoryChartData()
 cd.categories = ["Sonnet 4.6 (maior)", "Kimi K3 (maior)"]
 for a, nm in [("Contexto", ARM_NAME["EventsInPrompt"]), ("Consulta", ARM_NAME["TextToCypher"]), ("Ferramentas", ARM_NAME["GraphTools"])]:
