@@ -645,30 +645,31 @@ bullets(s, 7.0, 2.2, 5.6, 4.6,
          ("Ferramentas, grafo ou algoritmos de grafo? ", "Separar é trabalho futuro."),
          ("Agentes ", "supõem chamada de ferramenta confiável.")], size=18, gap=12)
 
-# 14 indústria
-s = new_slide(14, "Próximo passo: testar as mesmas abordagens em dados industriais",
-              "[1:15] Fecho. Parte dos dados industriais tem a forma dos dados de futebol: registros de eventos com agente, momento "
-              "e local, ligados entre si, como as paradas, os alertas e as movimentações de uma linha de produção ou de uma frota. "
-              "Como o resultado do futebol mostra que a forma de levar os dados ao contexto pesa tanto quanto o modelo, testar as seis "
-              "abordagens nesses dados é o passo natural para uma pós em IA aplicada à indústria. O que não transfere de graça: a "
-              "preparação dos dados, o grafo e as ferramentas dependem das perguntas que se quer responder, então exige implementação "
-              "própria para o domínio. A tabela de correspondência é uma proposta de analogia, não um resultado.")
-rows = [["No futebol", "Em dados industriais (proposta)"],
-        ["Jogador", "máquina, operador ou veículo"],
-        ["Minuto da partida", "carimbo de tempo do registro"],
-        ["Zona do campo", "posto, linha ou rota"],
-        ["Passe entre dois jogadores", "evento que liga dois agentes (parada, alerta, movimentação)"],
-        ["Jogada: sequência de ações", "sequência de eventos até uma parada ou falha"]]
-table(s, 0.7, 1.7, 7.4, 4.2, rows, col_w=[3.0, 4.4], size=17, left=True)
-panel(s, 8.4, 1.7, 4.2, 4.2, fill=ACCENT_BG)
-textbox(s, 8.55, 1.8, 3.9, 4.0,
-        [("O que testar", {"bold": True, "size": 20, "color": ACCENT}),
-         (f"As {m('nArms')} abordagens, nos mesmos moldes.", {"size": 17}),
-         ("Exige preparação dos dados, grafo e ferramentas próprios do domínio.", {"size": 17}),
-         ("A forma de levar os dados ao modelo pode pesar tanto quanto pesou no futebol.", {"size": 17})], gap=10)
-textbox(s, 0.7, 6.1, 11.9, 0.7,
-        ["Também: várias partidas, repetições, modelos maiores sem raciocínio estendido, ferramentas sobre tabela e busca vetorial com eventos vizinhos."],
-        size=14, color=MUTED)
+# 14 próximos passos
+s = new_slide(14, "Próximos passos: mais evidência, efeitos separados e outros domínios",
+              "[1:15] Fecho. Três frentes, todas ligadas às limitações. Primeira, mais evidência: repetir as execuções mede a variação "
+              "entre rodadas e permite testar as diferenças entre abordagens, e estender as perguntas a várias partidas tira a "
+              "dependência de uma só. Segunda, separar efeitos: avaliar modelos maiores sem raciocínio estendido separa o efeito do "
+              "tamanho do efeito do raciocínio; aplicar as mesmas ferramentas a uma tabela, sem o grafo, separa o efeito das "
+              "ferramentas do efeito do grafo; e testar uma busca vetorial em que cada trecho traga também os eventos vizinhos, como "
+              "em Tzikas et al., responde à lacuna da Busca vetorial. Terceira, outros domínios, entre eles os dados industriais: parte "
+              "deles tem a forma dos dados de futebol, registros de eventos com agente, momento e local, ligados entre si, como as "
+              "paradas, os alertas e as movimentações de uma linha de produção ou de uma frota. Testar as mesmas abordagens ali é um "
+              "próximo passo natural para uma pós em IA aplicada à indústria, mas exige implementação própria: a preparação dos dados, "
+              "o grafo e as ferramentas dependem das perguntas que se quer responder.")
+cols = [("Mais evidência", ["Repetir as execuções: medir a variação entre rodadas e testar as diferenças entre abordagens.",
+                            "Estender as perguntas a várias partidas."], False),
+        ("Separar os efeitos", ["Modelos maiores sem raciocínio estendido: tamanho ou raciocínio?",
+                               "As mesmas ferramentas sobre uma tabela, sem o grafo: ferramentas ou grafo?",
+                               "Busca vetorial com os eventos vizinhos em cada trecho."], False),
+        ("Outros domínios", ["Dados industriais: registros de eventos com agente, momento e local, como paradas, alertas e movimentações.",
+                             "Exige preparação dos dados, grafo e ferramentas próprios do domínio."], True)]
+x = 0.7
+for head, items, acc in cols:
+    panel(s, x, 1.7, 3.8, 4.6, fill=ACCENT_BG if acc else PANEL)
+    textbox(s, x + 0.15, 1.8, 3.5, 0.5, [(head, {"bold": True, "size": 20, "color": ACCENT})])
+    bullets(s, x + 0.15, 2.45, 3.5, 3.8, items, size=18, gap=14)
+    x += 4.05
 
 # 15 perguntas
 s = prs.slides.add_slide(prs.slide_layouts[6])

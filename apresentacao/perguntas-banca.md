@@ -83,12 +83,12 @@ nível de raciocínio menor no Contexto longo (o ajuste favoreceu o Contexto lon
 **16. "Alucinação" inclui erro honesto de leitura?**
 A classificação é por código: resposta errada dada como resposta, não por intenção (`docs/05-conferencia-e-metricas.md`).
 
-## 5. Dados industriais (fecho)
+## 5. Próximos passos e dados industriais (fecho)
 
 **17. Por que isso vale para indústria?**
 Parte dos dados industriais tem a mesma forma: registros de eventos com agente, momento e local, ligados entre si (paradas,
 alertas, movimentações). O resultado do futebol indica que a forma de levar os dados ao contexto pesa tanto quanto o
-modelo. A tabela de correspondência do slide 14 é uma proposta de analogia, não um resultado.
+modelo. O slide 14 trata isso como um dos próximos passos, ao lado de mais repetições, várias partidas e a separação dos efeitos; não é um resultado.
 
 **18. O que muda para aplicar em outro domínio?**
 A preparação dos dados, o grafo e as ferramentas dependem das perguntas que se quer responder: exige implementação
