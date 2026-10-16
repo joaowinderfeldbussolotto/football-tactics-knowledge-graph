@@ -226,22 +226,27 @@ s.notes_slide.notes_text_frame.text = (
     "[0:15] Apresentação dos autores e do título. Em uma frase: o trabalho compara seis maneiras de dar a um modelo de "
     "linguagem acesso aos dados de uma partida e mede qual delas acerta mais.")
 
-# 2 problema
-s = new_slide(2, "Perguntas de análise de futebol exigem ligar eventos entre si",
-              "[1:00] Contexto de futebol: a final da Copa de 2022, Argentina contra França, decidida nos pênaltis. Os dados "
-              "de eventos registram cada ação, com jogador, momento e posição no campo. As três perguntas do slide são do conjunto "
-              "do trabalho. Nenhuma tem a resposta em um único evento: é preciso juntar vários. O modelo precisa receber os dados "
-              "da partida, e há mais de uma forma de fazer isso. É isso que o trabalho compara.")
-textbox(s, 0.7, 1.7, 5.6, 1.2,
-        ["Dados de eventos: cada ação da partida com jogador, momento e posição no campo."], size=20)
-panel(s, 0.7, 3.1, 5.6, 2.4)
-textbox(s, 0.9, 3.2, 5.2, 3.3,
-        [("Final da Copa do Mundo de 2022", {"bold": True, "size": 20}),
-         ("Argentina e França, decidida nos pênaltis", {"size": 18}),
-         (f"{m('nEvents')} eventos no JSON bruto", {"size": 18}),
-         (f"{m('nActions')} ações depois da preparação", {"size": 18})], gap=10)
 
-textbox(s, 6.8, 1.6, 5.8, 0.5, [("Exemplos de pergunta do conjunto", {"bold": True, "size": 20})])
+# 2 problema e pergunta de pesquisa
+s = new_slide(2, "Perguntas de futebol exigem ligar eventos: qual forma de dar os dados ao modelo funciona melhor?",
+              "[1:15] Contexto de futebol: a final da Copa de 2022, Argentina contra França, decidida nos pênaltis. Os dados de "
+              "eventos registram cada ação, com jogador, momento e posição no campo. As três perguntas do slide são do conjunto do "
+              "trabalho e nenhuma tem a resposta em um único evento: é preciso juntar vários. O modelo precisa receber os dados da "
+              "partida, e há mais de uma forma de fazer isso. Perguntas de pesquisa: qual abordagem acerta mais, como o acerto muda de "
+              "um modelo para outro e quanto cada uma custa em tokens e tempo. O aprendizado em contexto é usado em sentido amplo: o "
+              "modelo não é treinado de novo e o que entra no contexto são os dados. Contribuições: o conjunto de perguntas com "
+              "gabarito por código e a comparação sob as mesmas perguntas, o mesmo prompt e a mesma saída.")
+textbox(s, 0.7, 1.75, 5.6, 0.5, [("Perguntas de pesquisa", {"bold": True, "size": 20, "color": ACCENT})])
+bullets(s, 0.7, 2.3, 5.6, 2.6,
+        ["Qual abordagem acerta mais?",
+         "Como o acerto muda de um modelo para outro?",
+         "Quanto cada abordagem custa em tokens e em tempo?"], size=20, gap=12)
+panel(s, 0.7, 4.9, 5.6, 1.8)
+textbox(s, 0.85, 4.95, 5.3, 1.7,
+        [("Contribuições", {"bold": True, "size": 16, "color": ACCENT}),
+         (f"{m('nQuestions')} perguntas sobre a final, com gabarito calculado por código, fora do grafo.", {"size": 15}),
+         (f"Comparação de {m('nArms')} abordagens com as mesmas perguntas, o mesmo prompt e a mesma saída, em {m('nModels')} modelos.", {"size": 15})], gap=5)
+textbox(s, 6.8, 1.75, 5.8, 0.5, [("Exemplos de pergunta do conjunto", {"bold": True, "size": 20})])
 ex = [("Quem passou para quem",
        "Qual dupla da França mais trocou passes entre si na final?"),
       ("Ordem das ações em uma jogada",
@@ -254,30 +259,137 @@ for head, q in ex:
     textbox(s, 6.95, y + 0.05, 5.5, 1.3, [(head, {"bold": True, "size": 15, "color": ACCENT}), (q, {"size": 16})], gap=3)
     y += 1.5
 
-# 3 pergunta e contribuições
-s = new_slide(3, "Qual forma de levar os dados ao modelo funciona melhor?",
-              "[0:45] Três perguntas de pesquisa: qual abordagem acerta mais, como o acerto muda de um modelo para outro e quanto "
-              "cada uma custa em tokens e tempo. O aprendizado em contexto é usado em sentido amplo: o modelo não é treinado "
-              "de novo e o que entra no contexto são os dados. Duas contribuições: o conjunto de perguntas com gabarito "
-              "calculado por código fora do grafo e a comparação sob as mesmas perguntas, o mesmo prompt e a mesma saída.")
-textbox(s, 0.7, 1.7, 5.9, 0.5, [("Perguntas de pesquisa", {"bold": True, "size": 22, "color": ACCENT})])
-bullets(s, 0.7, 2.3, 5.9, 4.2,
-        ["Qual abordagem acerta mais?",
-         "Como o acerto muda de um modelo para outro?",
-         "Quanto cada abordagem custa em tokens e em tempo?"], size=22, gap=16)
-textbox(s, 7.0, 1.7, 5.6, 0.5, [("Contribuições", {"bold": True, "size": 22, "color": ACCENT})])
-bullets(s, 7.0, 2.3, 5.6, 4.2,
-        [f"Conjunto de {m('nQuestions')} perguntas sobre a final, com gabarito calculado por código, fora do grafo.",
-         f"Comparação de {m('nArms')} abordagens de aprendizado em contexto, com as mesmas perguntas, o mesmo prompt e a mesma saída, em {m('nModels')} modelos.",
-         "Código, perguntas e gabarito públicos."], size=20, gap=14)
+# 3 dados: JSON bruto
+s = new_slide(3, "Os dados: eventos da StatsBomb da final de 2022, em JSON",
+              f"[1:30] Os dados são os eventos abertos da StatsBomb: dois arquivos, a lista de eventos da partida, em ordem, e as "
+              f"escalações, com nome completo e apelido de cada jogador. São {m('nEvents')} eventos no JSON bruto. O exemplo é o gol de "
+              "Di María e o passe de Mac Allister que o precede, resumidos aos campos principais (valores de docs/02 e da Figura 1 do "
+              "artigo, não recalculados nesta sessão). Três coisas que importam depois: cada tipo de evento tem campos próprios, "
+              "então o JSON é rico e irregular; a mesma informação pode estar em lugares diferentes, como o cartão amarelo, que vem "
+              "dentro da falta ou, sem falta, em um evento de comportamento; e o nome é o de registro, não o apelido, e o minuto é "
+              "decorrido, então o gol aos 35 aparece como 36 na transmissão.",
+              kicker="Exemplo resumido: o passe de Mac Allister e o gol de Di María (docs/02 e Figura 1 do artigo).")
+panel(s, 0.7, 1.7, 7.1, 2.9, fill=RGBColor(0x2B, 0x2B, 0x2B))
+code = ['{ "type": "Pass", "minute": 35, "second": 20,',
+        '  "player": "Alexis Mac Allister",',
+        '  "pass": { "recipient": "Ángel Fabián Di María",',
+        '            "goal_assist": true } }',
+        '',
+        '{ "type": "Shot", "minute": 35, "second": 22,',
+        '  "team": "Argentina",',
+        '  "player": "Ángel Fabián Di María",',
+        '  "shot": { "outcome": "Goal",',
+        '            "body_part": "Left Foot" } }']
+tb = s.shapes.add_textbox(Inches(0.9), Inches(1.85), Inches(6.8), Inches(3.4))
+tf = tb.text_frame
+tf.word_wrap = True
+for i, ln in enumerate(code):
+    p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+    r = p.add_run()
+    r.text = ln if ln else " "
+    r.font.name, r.font.size = "Courier New", Pt(12)
+    r.font.color.rgb = RGBColor(0xE8, 0xE8, 0xE8)
+bullets(s, 8.1, 1.7, 4.6, 5.0,
+        [("Fonte: ", "StatsBomb Open Data, lista de eventos e escalações da partida."),
+         (f"{m('nEvents')} eventos, ", "cada um com tipo, tempo, time, jogador e posição."),
+         ("Campos próprios por tipo: ", "o passe traz o recebedor; a finalização, o resultado."),
+         ("Mesma informação em lugares diferentes: ", "o cartão amarelo vem na falta ou em outro evento."),
+         ("Nome de registro e minuto decorrido: ", "o gol aos 35 aparece como 36 na transmissão.")], size=16, gap=9)
 
-# 4 dados e perguntas
-s = new_slide(4, f"{m('nQuestions')} perguntas em cinco grupos, com gabarito calculado por código",
-              f"[1:15] Os dados são os eventos abertos da StatsBomb, convertidos para o formato SPADL e enriquecidos com colunas "
-              f"de contexto (zona, fase de posse, placar). A disputa de pênaltis fica fora. Das {m('nQuestions')} perguntas, "
-              f"{m('nAnswerable')} têm resposta nos dados e {m('nControl')} são de controle: a resposta certa é a ausência de dados, "
-              "como a distância percorrida por um jogador. As perguntas de busca e contagem são diretas. Os outros três grupos "
-              "são encadeados: dependem de ligar eventos entre si. O gabarito é calculado por código sem passar pelo grafo.")
+# 4 JSON -> tabela de ações
+s = new_slide(4, "Do JSON à tabela de ações: um vocabulário fechado, com contexto acrescentado",
+              f"[1:30] Os eventos da partida, sem a disputa de pênaltis, foram convertidos com a biblioteca socceraction para o formato "
+              f"SPADL, que guarda só as ações com bola, em um vocabulário fechado e com os mesmos campos em todas. Os {m('nEvents')} eventos "
+              f"viram {m('nActions')} ações. Sobre essa tabela foram acrescentadas colunas de contexto: direção de ataque, zona em uma "
+              f"grade de {m('nZones')} zonas, fase de posse ({m('nPhases')} fases na final), recebedor do passe, placar e minuto. É essa "
+              "tabela que o Contexto longo entrega ao modelo. O SPADL perde o desfecho da finalização e o cartão sem falta, que foram "
+              "recuperados do JSON. Nenhuma etapa usa modelo de linguagem.",
+              kicker="Pênaltis fora da tabela. Fonte: Tabela 1 do artigo e docs/09.")
+panel(s, 0.7, 1.55, 3.3, 0.85, fill=PANEL)
+textbox(s, 0.8, 1.58, 3.1, 0.8, [("JSON bruto", {"bold": True, "size": 14, "color": MUTED}), (f"{m('nEvents')} eventos", {"bold": True, "size": 20})], gap=0)
+textbox(s, 4.0, 1.65, 0.8, 0.7, ["→"], size=30, color=MUTED, align=PP_ALIGN.CENTER)
+panel(s, 4.8, 1.55, 3.9, 0.85, fill=ACCENT_BG)
+textbox(s, 4.9, 1.58, 3.7, 0.8, [("Tabela de ações (SPADL)", {"bold": True, "size": 14, "color": ACCENT}), (f"{m('nActions')} ações", {"bold": True, "size": 20})], gap=0)
+textbox(s, 9.0, 1.6, 3.7, 0.8, [f"{m('nZones')} zonas, {m('nPhases')} fases de posse, {m('nPlayers')} jogadores"], size=15, color=MUTED, anchor=MSO_ANCHOR.MIDDLE)
+rows = [["Transformação", "O que faz", "Motivo"],
+        ["Direção de ataque", "toda ação ataca da esquerda para a direita", "mesmo sentido do campo para os dois times"],
+        ["Zona, terço e corredor", "situa o início e o fim de cada ação", "localizar a ação no campo"],
+        ["Recebedor do passe", "jogador do mesmo time que age em seguida", "saber quem passou para quem"],
+        ["Fase de posse", "agrupa as ações seguidas do mesmo time", "identificar as jogadas"],
+        ["Placar, minuto e período", "placar antes de cada ação; minuto da transmissão", "situar a ação antes ou depois de um momento"],
+        ["Dados recuperados do JSON", "desfecho da finalização e cartão sem falta", "o SPADL perde essas informações"],
+        ["Rótulos em português", "passe, condução, drible", "o SPADL chama a condução de dribble"]]
+table(s, 0.7, 2.6, 11.9, 4.2, rows, col_w=[3.1, 4.7, 4.1], size=14, left=True)
+
+# 5 grafo e súmula
+s = new_slide(5, "Da tabela ao grafo: cada ação vira uma aresta, e a súmula é contada pelo banco",
+              f"[1:15] A tabela de ações foi carregada em um grafo Neo4j. Cada ação vira uma aresta do jogador para a partida, com as "
+              f"colunas da linha como propriedades; cada passe certo com recebedor vira uma aresta entre dois jogadores. O grafo tem "
+              f"{m('nPlayers')} jogadores, {m('nPhases')} fases de posse e {m('nZones')} zonas. As arestas não acrescentam informação à "
+              "tabela, só a reorganizam em ligações; já a súmula, com totais por jogador e por time, é calculada: o próprio banco conta "
+              "os totais a partir das arestas. A abordagem Estatísticas resumidas lê só a súmula; Consulta e Ferramentas leem o grafo. "
+              "Nenhuma etapa usa modelo de linguagem.",
+              kicker="Esquema simplificado: Figura 2 do artigo. A camada de padrões táticos não é lida por nenhuma abordagem.")
+
+
+def node(slide, x, y, w, title, sub=None, accent=False):
+    b = panel(slide, x, y, w, 0.9, fill=ACCENT_BG if accent else PANEL, line=ACCENT if accent else LINE)
+    tf = b.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.CENTER
+    run(p, title, 15, True)
+    if sub:
+        p2 = tf.add_paragraph()
+        p2.alignment = PP_ALIGN.CENTER
+        run(p2, sub, 12, False, MUTED)
+    return (x + w / 2, y + 0.45)
+
+
+def edge(slide, a, b, label, lx, ly, lw=1.7):
+    c = slide.shapes.add_connector(1, Inches(a[0]), Inches(a[1]), Inches(b[0]), Inches(b[1]))
+    c.line.color.rgb = MUTED
+    c.line.width = Pt(1.5)
+    tb = textbox(slide, lx, ly, lw, 0.3, [label], size=10, color=MUTED, align=PP_ALIGN.CENTER)
+    tb.fill.solid()
+    tb.fill.fore_color.rgb = RGBColor(255, 255, 255)
+
+
+J = (3.9, 3.75)
+time_c = (1.1, 3.75)
+part_c = (6.7, 3.75)
+fase_c = (1.1, 5.75)
+sum_c = (3.9, 5.75)
+zona_c = (6.7, 5.75)
+edge(s, J, time_c, "MEMBRO_DE", 1.75, 3.4, 1.2)
+edge(s, J, part_c, "REALIZOU", 4.85, 3.4, 1.2)
+edge(s, J, fase_c, "PARTICIPOU_DE", 1.4, 4.7, 1.6)
+edge(s, J, sum_c, "TEM_ESTATISTICA", 3.2, 4.6, 1.6)
+edge(s, J, zona_c, "ATUOU_EM", 5.0, 4.7, 1.2)
+node(s, 0.5, 3.3, 1.2, "Time")
+node(s, 3.0, 3.3, 1.8, "Jogador", f"{m('nPlayers')} na final", accent=True)
+node(s, 6.1, 3.3, 1.2, "Partida")
+node(s, 0.5, 5.3, 1.2, "Fase", f"{m('nPhases')}")
+node(s, 3.0, 5.3, 1.8, "Súmula", "por jogador e time")
+node(s, 6.1, 5.3, 1.2, "Zona", f"{m('nZones')}")
+textbox(s, 1.3, 2.1, 5.2, 0.9, [("Entre jogadores: PASSOU_PARA, DEU_ASSISTENCIA, PRESSIONOU", {"size": 12, "color": MUTED}),
+                                ("Entre zonas: PROGREDIU_PARA", {"size": 12, "color": MUTED})], align=PP_ALIGN.CENTER, gap=2)
+bullets(s, 7.8, 1.7, 4.9, 5.0,
+        [("Cada ação ", "vira uma aresta do jogador para a partida, com as colunas da linha como propriedades."),
+         ("Cada passe certo com recebedor ", "vira uma aresta entre dois jogadores."),
+         ("As arestas reorganizam a tabela, ", "não acrescentam informação."),
+         ("A súmula é calculada: ", "o próprio banco conta os totais por jogador e por time."),
+         ("Nenhuma etapa usa modelo de linguagem; ", "só o benchmark chama modelos.")], size=16, gap=9)
+
+# 6 perguntas e gabarito
+s = new_slide(6, f"{m('nQuestions')} perguntas em cinco grupos, com gabarito calculado por código",
+              f"[1:15] Das {m('nQuestions')} perguntas, {m('nAnswerable')} têm resposta nos dados e {m('nControl')} são de controle: a "
+              "resposta certa é a ausência de dados, como a distância percorrida por um jogador. As perguntas de busca e contagem "
+              "são diretas: a resposta sai de um evento ou de uma soma. Os outros três grupos são encadeados: dependem de ligar "
+              "eventos entre si. As perguntas foram escritas manualmente e o gabarito de cada uma foi calculado por código, sem "
+              "passar pelo grafo, a partir do JSON bruto e da tabela de ações. A conferência com o gabarito é determinística: a "
+              "mesma resposta recebe sempre o mesmo veredito.")
 rows = [["Grupo", "n", "Exemplo (resposta esperada)"],
         ["Busca e contagem", m("nGroupSearch"), "Quem recebeu o primeiro cartão amarelo da final? (jogador)"],
         ["Relações na rede de passes", m("nGroupRelations"), "Qual dupla da França mais trocou passes entre si? (conjunto de jogadores)"],
@@ -286,17 +398,20 @@ rows = [["Grupo", "n", "Exemplo (resposta esperada)"],
         ["Controle", m("nGroupControl"), "Qual foi a distância total percorrida por Rodrigo De Paul? (ausência de dados)"]]
 table(s, 0.7, 1.7, 11.9, 4.3, rows, col_w=[3.4, 0.7, 7.8], size=16, left=True)
 textbox(s, 0.7, 6.2, 11.9, 0.7,
-        [f"Dados: eventos abertos da StatsBomb, convertidos para SPADL. {m('nEvents')} eventos viram {m('nActions')} ações. "
-         f"{m('nAnswerable')} perguntas com resposta e {m('nControl')} de controle."], size=15, color=MUTED)
+        [f"{m('nAnswerable')} perguntas com resposta e {m('nControl')} de controle. Gabarito calculado por código, fora do grafo, a partir do JSON bruto e da tabela de ações."],
+        size=15, color=MUTED)
 
-# 5 seis abordagens
-s = new_slide(5, "Seis abordagens, da ausência de dados à consulta ao grafo",
-              "[1:45] Ordem de complexidade do que existe entre a pergunta e o modelo. Sem dados: só a pergunta, linha de base. "
+# 7 seis abordagens
+s = new_slide(7, "Seis abordagens, da ausência de dados à consulta ao grafo",
+              "[2:00] Ordem de complexidade do que existe entre a pergunta e o modelo. Sem dados: só a pergunta, linha de base. "
               f"Contexto longo: a tabela inteira de {m('nActions')} ações no prompt. Estatísticas resumidas: a súmula, com totais por "
               f"jogador e por time. Busca vetorial: as {m('nTopK')} linhas mais parecidas com a pergunta, como em geração aumentada por "
               "recuperação. Consulta escrita pelo modelo: o modelo recebe o esquema do grafo e escreve a consulta Cypher. "
               f"Ferramentas sobre o grafo: {m('nTools')} ferramentas com a consulta já escrita; o modelo só escolhe qual chamar e "
-              "com quais argumentos. Todas usam o mesmo prompt de sistema e a mesma saída estruturada.")
+              f"com quais argumentos. As duas últimas consultam o mesmo grafo e têm o mesmo limite de {m('nMaxCalls')} chamadas por "
+              "pergunta: muda quem escreve a consulta. Duas diferenças a declarar: a Consulta não tem a biblioteca de algoritmos "
+              "de grafos nem os nós de padrões prontos, e as ferramentas foram ajustadas olhando erros, enquanto a Consulta é o "
+              "primeiro contato. Todas usam o mesmo prompt de sistema e a mesma saída estruturada.")
 rows = [["Abordagem", "O que o modelo recebe"],
         [ARM_NAME["NoContext"], "só a pergunta (linha de base)"],
         [ARM_NAME["EventsInPrompt"], f"a tabela com as {m('nActions')} ações, inteira, no prompt"],
@@ -304,45 +419,17 @@ rows = [["Abordagem", "O que o modelo recebe"],
         [ARM_NAME["Vector"], f"as {m('nTopK')} linhas mais parecidas com a pergunta (embeddings)"],
         [ARM_NAME["TextToCypher"], "o esquema do grafo e o resultado da consulta que o modelo escreveu"],
         [ARM_NAME["GraphTools"], f"o resultado de {m('nTools')} ferramentas com consulta fixa, que o modelo chama"]]
-t = table(s, 0.7, 1.7, 11.9, 4.6, rows, col_w=[4.2, 7.7], size=19, left=True)
-for c in range(2):
-    t.cell(6, c).fill.fore_color.rgb = ACCENT_BG
-
-# 6 consulta x ferramentas
-s = new_slide(6, "Mesmo grafo, mesmo limite de chamadas: muda quem escreve a consulta",
-              f"[1:15] As duas abordagens com agente consultam o mesmo grafo e têm o mesmo limite de {m('nMaxCalls')} chamadas por "
-              "pergunta. Na Consulta escrita pelo modelo, ele escreve a consulta Cypher, com os filtros de time, tipo de ação e "
-              "terço do campo. Nas Ferramentas, a consulta já está no código e o modelo só preenche argumentos. Duas diferenças a "
-              "declarar: a Consulta não tem a biblioteca de algoritmos de grafos nem os nós de padrões prontos; e as ferramentas "
-              "foram ajustadas olhando erros, enquanto a Consulta é o primeiro contato.")
-
-
-def flow(slide, y, label, middle, accent=False):
-    boxes = [("Pergunta", PANEL), ("Modelo (agente)", PANEL), (middle, ACCENT_BG if accent else PANEL), ("Grafo Neo4j", PANEL)]
-    x = 0.7
-    textbox(slide, x, y - 0.55, 8, 0.45, [(label, {"bold": True, "size": 18, "color": ACCENT if accent else INK})])
-    for i, (txt, fill) in enumerate(boxes):
-        b = panel(slide, x, y, 2.55, 1.0, fill=fill, line=ACCENT if (accent and i == 2) else None)
-        tf = b.text_frame
-        tf.word_wrap = True
-        tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        p = tf.paragraphs[0]
-        p.alignment = PP_ALIGN.CENTER
-        run(p, txt, 15, i == 2)
-        if i < 3:
-            textbox(slide, x + 2.55, y + 0.25, 0.5, 0.5, ["→"], size=24, color=MUTED, align=PP_ALIGN.CENTER)
-        x += 3.1
-
-
-flow(s, 2.3, ARM_NAME["TextToCypher"], "O modelo escreve a consulta Cypher")
-flow(s, 4.3, ARM_NAME["GraphTools"], "Ferramenta com consulta fixa", accent=True)
-textbox(s, 0.7, 5.7, 11.9, 1.2,
-        [f"Limite de {m('nMaxCalls')} chamadas por pergunta nas duas. A Consulta não tem a biblioteca de algoritmos (GDS) nem os nós de padrões prontos.",
-         "As Ferramentas foram ajustadas olhando erros; a Consulta é o primeiro contato."], size=16, color=MUTED)
+t = table(s, 0.7, 1.6, 11.9, 3.6, rows, col_w=[4.2, 7.7], size=17, left=True)
+for r in (5, 6):
+    for c in range(2):
+        t.cell(r, c).fill.fore_color.rgb = ACCENT_BG
+textbox(s, 0.7, 5.95, 11.9, 1.0,
+        [(f"As duas últimas consultam o mesmo grafo, com o mesmo limite de {m('nMaxCalls')} chamadas: muda quem escreve a consulta.", {"size": 16, "bold": True}),
+         ("A Consulta não tem a biblioteca de algoritmos (GDS) nem os nós de padrões prontos. As Ferramentas foram ajustadas olhando erros; a Consulta é o primeiro contato.", {"size": 14, "color": MUTED})], gap=4)
 
 # 7 setup
-s = new_slide(7, f"{m('nModels')} modelos em duas faixas, {m('nRuns')} execuções por modelo",
-              f"[1:00] Quatro modelos, dois menores e dois maiores, agrupados pela faixa de preço por token, já que nem todo fabricante "
+s = new_slide(8, f"{m('nModels')} modelos em duas faixas, {m('nRuns')} execuções por modelo",
+              f"[0:45] Quatro modelos, dois menores e dois maiores, agrupados pela faixa de preço por token, já que nem todo fabricante "
               f"divulga o número de parâmetros. Em cada grupo há um modelo de código fechado e um de pesos abertos. Os menores rodaram "
               f"sem raciocínio estendido e com temperatura zero; os maiores, com raciocínio estendido ligado. São {m('nQuestions')} "
               f"perguntas em {m('nArms')} abordagens: {m('nRuns')} execuções por modelo, com {m('nRepeats')} repetição por pergunta. "
@@ -362,8 +449,8 @@ bullets(s, 7.0, 1.8, 5.6, 4.5,
          "Diferenças lidas como indícios, não como demonstração"], size=19, gap=14)
 
 # 8 resultado 1
-s = new_slide(8, f"Ferramentas sobre o grafo: {m('accRangeGraphTools')} de acerto nos {m('nModels')} modelos",
-              f"[2:15] Acerto nas {m('nAnswerable')} perguntas com resposta. A barra azul é Ferramentas sobre o grafo: "
+s = new_slide(9, f"Ferramentas sobre o grafo: {m('accRangeGraphTools')} de acerto nos {m('nModels')} modelos",
+              f"[2:00] Acerto nas {m('nAnswerable')} perguntas com resposta. A barra azul é Ferramentas sobre o grafo: "
               f"{m('accRangeGraphTools')} em todos os modelos. Consulta escrita pelo modelo: {m('accRangeLowTextToCypher')} nos menores e "
               f"{m('accRangeHighTextToCypher')} nos maiores. Contexto longo: {m('accRangeLowEventsInPrompt')} nos menores e "
               f"{m('accRangeHighEventsInPrompt')} nos maiores. As outras três ficam baixas: Busca vetorial {m('accRangeVector')}, "
@@ -388,8 +475,8 @@ def chain_acc(model, arm):
     return round(100 * sum(GROUPS[g][1][mi_][ARM_COL[arm]] for g in chain) / n_chain)
 
 
-s = new_slide(9, "Nas perguntas encadeadas, Consulta e Contexto longo dependem do modelo",
-              f"[1:45] Recorte das {n_chain} perguntas encadeadas (relações na rede de passes, jogadas e antes e depois de uma "
+s = new_slide(10, "Nas perguntas encadeadas, Consulta e Contexto longo dependem do modelo",
+              f"[1:30] Recorte das {n_chain} perguntas encadeadas (relações na rede de passes, jogadas e antes e depois de uma "
               "substituição). Nos modelos menores, Contexto longo e Consulta caem justamente aqui, e Ferramentas se mantêm: a "
               "consulta já escrita e o cálculo no código tiram do modelo o trabalho de juntar eventos espalhados. Nos maiores, com "
               "raciocínio estendido, as três se aproximam. Ressalva: tamanho e raciocínio vieram juntos, então não dá para separar o "
@@ -410,8 +497,8 @@ textbox(s, 9.15, 1.8, 3.4, 4.6,
          ("Contexto longo: o modelo acha e combina as linhas certas na tabela inteira.", {"size": 15})], gap=10)
 
 # 10 por que as outras ficam baixas
-s = new_slide(10, "Busca vetorial, Estatísticas resumidas e Sem dados ficam baixas por motivos diferentes",
-              f"[1:15] Busca vetorial ({m('accRangeVector')}): traz as {m('nTopK')} linhas mais parecidas com a pergunta, de "
+s = new_slide(11, "Busca vetorial, Estatísticas resumidas e Sem dados ficam baixas por motivos diferentes",
+              f"[1:00] Busca vetorial ({m('accRangeVector')}): traz as {m('nTopK')} linhas mais parecidas com a pergunta, de "
               f"{m('nActions')}. Parecer com a pergunta não é servir para respondê-la; contar exige todas as linhas de um tipo e "
               "ligar eventos exige as linhas vizinhas. Erra por abstenção e por resposta errada, conforme o modelo. Estatísticas "
               f"resumidas ({m('accRangeStatsInPrompt')}): a súmula tem só totais da partida inteira, sem recorte de tempo ou de campo "
@@ -433,8 +520,8 @@ for head, val, txt in cards:
     x += 4.05
 
 # 11 custo
-s = new_slide(11, "Contexto longo nos modelos maiores custa milhares de tokens de saída e dezenas de segundos",
-              f"[1:30] Mediana por execução das três abordagens que leem os dados. O Contexto longo leva a tabela inteira em cada "
+s = new_slide(12, "Contexto longo nos modelos maiores custa milhares de tokens de saída e dezenas de segundos",
+              f"[1:15] Mediana por execução das três abordagens que leem os dados. O Contexto longo leva a tabela inteira em cada "
               f"pergunta, de {m('inRangeEventsInPrompt')} mil tokens de entrada. Nos maiores, produz de {m('outRangeHighEventsInPrompt')} "
               f"tokens de saída, quase todos de raciocínio, e leva de {m('latRangeHighEventsInPrompt')} segundos. Cuidado ao comparar: "
               "Ferramentas não usa cache de prompt e Consulta usa, então a latência mistura as duas condições; no Contexto longo, a "
@@ -452,45 +539,34 @@ for r in range(1, len(data)):
         for c in range(5):
             t.cell(r, c).fill.fore_color.rgb = ACCENT_BG
 
-# 12 limitações
-s = new_slide(12, "Os resultados valem para uma partida, uma repetição e perguntas dentro da cobertura das ferramentas",
-              f"[1:15] Cinco limitações, ditas pelo próprio artigo. Uma partida e {m('nRepeats')} repetição por pergunta, com "
-              f"{m('nAnswerable')} perguntas com resposta: os intervalos são largos. Tamanho e raciocínio estendido vieram juntos "
-              "nos maiores. As ferramentas e as perguntas foram escritas pelos mesmos autores, e as ferramentas foram ajustadas "
-              "olhando erros do Haiku: o acerto de Ferramentas vale para perguntas dentro da cobertura delas. A comparação com a "
-              "Consulta é, portanto, o teto do ganho de engenharia. As abordagens com agente supõem modelo que chame ferramentas de "
-              "forma confiável. E o ganho pode vir das ferramentas, do grafo ou dos algoritmos de grafo; separar isso é trabalho futuro.")
-bullets(s, 0.7, 1.7, 11.9, 5.0,
-        [("Uma partida e uma repetição ", f"por pergunta; {m('nAnswerable')} perguntas com resposta e intervalos largos."),
-         ("Tamanho e raciocínio vieram juntos ", "nos modelos maiores; não dá para separar os dois efeitos."),
-         ("Ferramentas e perguntas dos mesmos autores. ", "O acerto de Ferramentas vale dentro da cobertura delas, e elas foram ajustadas olhando erros."),
-         ("Ferramentas, grafo ou algoritmos de grafo? ", "Separar os três é trabalho futuro."),
-         ("Agentes supõem chamada de ferramenta confiável, ", "e esse suporte varia entre modelos e provedores.")], size=23, gap=18)
-
-# 13 conclusão
-s = new_slide(13, "Só as Ferramentas sobre o grafo mantiveram o acerto alto em todos os modelos",
-              f"[1:00] Três mensagens. Primeira: Ferramentas sobre o grafo foi a única que manteve o acerto alto nos {m('nModels')} "
-              f"modelos, {m('accRangeGraphTools')}. Segunda: Consulta e Contexto longo dependem do modelo; nos maiores, com raciocínio "
-              "estendido, a Consulta chegou ao mesmo nível e o Contexto longo se aproximou, este com mais tokens de saída e tempo. "
-              "Terceira: Busca vetorial e Estatísticas resumidas ficaram baixas em todos. Em uma frase: a forma de levar os dados ao "
-              "modelo pesa tanto quanto o modelo.")
-rows = [("Ferramentas sobre o grafo", f"{m('accRangeGraphTools')} em todos os modelos"),
-        ("Consulta escrita pelo modelo", f"{m('accRangeLowTextToCypher')} nos menores; {m('accRangeHighTextToCypher')} nos maiores"),
-        ("Contexto longo", f"{m('accRangeLowEventsInPrompt')} nos menores; {m('accRangeHighEventsInPrompt')} nos maiores, com mais tokens de saída e tempo"),
-        ("Busca vetorial", m("accRangeVector")),
-        ("Estatísticas resumidas", m("accRangeStatsInPrompt")),
-        ("Sem dados", f"0 de {m('nAnswerable')}: se abstém")]
-y = 1.7
-for i, (a, b) in enumerate(rows):
-    hl = i == 0
-    panel(s, 0.7, y, 11.9, 0.75, fill=ACCENT_BG if hl else PANEL)
-    textbox(s, 0.9, y + 0.1, 4.6, 0.6, [(a, {"bold": True, "size": 18})], anchor=MSO_ANCHOR.MIDDLE)
-    textbox(s, 5.5, y + 0.1, 7.0, 0.6, [(b, {"size": 18, "bold": hl, "color": ACCENT if hl else INK})], anchor=MSO_ANCHOR.MIDDLE)
-    y += 0.85
+# 13 limitações e conclusão
+s = new_slide(13, "Ferramentas mantiveram o acerto alto, com limites claros",
+              f"[1:15] Conclusão: Ferramentas sobre o grafo foi a única abordagem que manteve o acerto alto nos {m('nModels')} modelos, "
+              f"{m('accRangeGraphTools')}. Consulta e Contexto longo dependem do modelo; nos maiores, com raciocínio estendido, a "
+              "Consulta chegou ao mesmo nível e o Contexto longo se aproximou, este com mais tokens de saída e tempo. Busca vetorial e "
+              "Estatísticas resumidas ficaram baixas em todos. Limitações, ditas pelo próprio artigo: uma partida e "
+              f"{m('nRepeats')} repetição por pergunta, com {m('nAnswerable')} perguntas com resposta, então os intervalos são largos; "
+              "tamanho e raciocínio estendido vieram juntos nos maiores; as ferramentas e as perguntas foram escritas pelos mesmos "
+              "autores e as ferramentas foram ajustadas olhando erros, então o acerto vale dentro da cobertura delas; o ganho pode vir "
+              "das ferramentas, do grafo ou dos algoritmos de grafo, e separar isso é trabalho futuro; e as abordagens com agente "
+              "supõem chamada de ferramenta confiável.")
+textbox(s, 0.7, 1.6, 5.9, 0.5, [("Conclusão", {"bold": True, "size": 22, "color": ACCENT})])
+bullets(s, 0.7, 2.2, 5.9, 4.6,
+        [("Ferramentas sobre o grafo: ", f"{m('accRangeGraphTools')} em todos os modelos."),
+         ("Consulta: ", f"{m('accRangeLowTextToCypher')} nos menores; {m('accRangeHighTextToCypher')} nos maiores."),
+         ("Contexto longo: ", f"{m('accRangeLowEventsInPrompt')} nos menores; {m('accRangeHighEventsInPrompt')} nos maiores, com mais tokens de saída e tempo."),
+         ("Busca vetorial e Estatísticas resumidas: ", f"{m('accRangeVector')} e {m('accRangeStatsInPrompt')}.")], size=18, gap=12)
+textbox(s, 7.0, 1.6, 5.6, 0.5, [("Limitações", {"bold": True, "size": 22, "color": ACCENT})])
+bullets(s, 7.0, 2.2, 5.6, 4.6,
+        [(f"Uma partida e {m('nRepeats')} repetição ", f"por pergunta; {m('nAnswerable')} perguntas com resposta e intervalos largos."),
+         ("Tamanho e raciocínio ", "vieram juntos nos modelos maiores."),
+         ("Ferramentas e perguntas dos mesmos autores: ", "o acerto vale dentro da cobertura das ferramentas."),
+         ("Ferramentas, grafo ou algoritmos de grafo? ", "Separar é trabalho futuro."),
+         ("Agentes ", "supõem chamada de ferramenta confiável.")], size=18, gap=12)
 
 # 14 indústria
 s = new_slide(14, "Próximo passo: testar as mesmas abordagens em dados industriais",
-              "[1:30] Fecho. Parte dos dados industriais tem a forma dos dados de futebol: registros de eventos com agente, momento "
+              "[1:15] Fecho. Parte dos dados industriais tem a forma dos dados de futebol: registros de eventos com agente, momento "
               "e local, ligados entre si, como as paradas, os alertas e as movimentações de uma linha de produção ou de uma frota. "
               "Como o resultado do futebol mostra que a forma de levar os dados ao contexto pesa tanto quanto o modelo, testar as seis "
               "abordagens nesses dados é o passo natural para uma pós em IA aplicada à indústria. O que não transfere de graça: a "
