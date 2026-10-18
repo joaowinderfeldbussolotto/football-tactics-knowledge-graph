@@ -30,7 +30,7 @@ bola, em um vocabulário fechado, e dá a todas os mesmos campos: período, temp
 resultado, parte do corpo e as coordenadas de início e de fim. Sobre essa tabela de ações foram acrescentadas
 colunas de contexto (Tabela~\ref{tab:transformacoes}). Cada linha da tabela final traz período, minuto, time,
 jogador, ação, sucesso, recebedor, zonas de início e de fim (em uma grade de \nZones{} zonas), fase de posse,
-desfecho e placar; é essa a tabela que \armEventsInPrompt{} entrega ao modelo.
+desfecho e placar.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -45,7 +45,6 @@ Recebedor do passe & é o jogador do mesmo time que age em seguida & saber quem 
 Fase de posse & agrupa as ações seguidas do mesmo time & identificar as jogadas \\
 Placar, minuto e período & placar antes de cada ação e minuto da transmissão & situar a ação antes ou depois de um momento \\
 Dados recuperados do JSON & desfecho da finalização e cartão sem falta & o SPADL perde essas informações \\
-Rótulos em português & nomes das ações (passe, condução, drible) & o SPADL chama a condução de \textit{dribble} \\
 \bottomrule
 \end{tabular}
 \captionof{table}{Transformações sobre a tabela de ações e o motivo de cada uma.}\label{tab:transformacoes}
@@ -76,11 +75,11 @@ ausência de dados).
 Abordagem & Forma de recuperação & O que o modelo recebe \\
 \midrule
 \armNoContext{} & nenhuma & só a pergunta (linha de base) \\
-\armEventsInPrompt{} & tabela inteira no prompt & as \nActions{} ações \\
+\armEventsInPrompt{} & tabela inteira no prompt & as \nActions{} ações da tabela final \\
 \armStatsInPrompt{} & totais já calculados, no prompt & a súmula: totais por jogador e por time \\
 \armVector{} & similaridade de embeddings & as \nTopK{} linhas mais parecidas com a pergunta \\
 \armTextToCypher{} & consulta escrita pelo modelo e executada no grafo & o esquema do grafo e o resultado das consultas \\
-\armGraphTools{} & \nTools{} ferramentas com consulta fixa & o resultado das ferramentas que chama \\
+\armGraphTools{} & \nTools{} ferramentas com consulta parametrizada & o resultado das ferramentas que chama \\
 \bottomrule
 \end{tabular}
 \captionof{table}{As \nArms{} abordagens, da menos à mais complexa, e a forma de recuperação de cada uma.}\label{tab:bracos}
@@ -103,10 +102,11 @@ As duas abordagens com agente consultam o mesmo grafo e diferem em como a consul
 a consulta Cypher escrita por ele mesmo~\cite{ozsoy2025text2cypher}. A ferramenta só aceita leitura e devolve até
 \nMaxRows{} linhas.
 
-Em \armGraphTools{}, as consultas já estão escritas no código, uma por ferramenta, e o modelo só escolhe qual
-chamar e preenche os argumentos. Na pergunta da Figura~\ref{fig:trace}, os filtros de time, tipo de ação, sucesso
-e terço do campo, que em \armTextToCypher{} o modelo escreveu dentro da consulta, em \armGraphTools{} foram
-argumentos de uma ferramenta de contagem. A Tabela~\ref{tab:ferramentas} lista as \nTools{} ferramentas. Shorten et al.~\cite{shorten2025dbfunction} propõem uma única ferramenta genérica de
+Em \armGraphTools{}, cada ferramenta tem no código uma consulta Cypher parametrizada: a estrutura da consulta é
+fixa, e o modelo escolhe a ferramenta e os valores dos argumentos, que preenchem os filtros e o agrupamento. Na
+pergunta da Figura~\ref{fig:trace}, em \armTextToCypher{} o modelo escreveu a consulta inteira, com os filtros de
+time, tipo de ação, sucesso e terço do campo. Em \armGraphTools{}, ele chamou a ferramenta que conta ações e passou
+esses mesmos filtros como argumentos. A Tabela~\ref{tab:ferramentas} lista as \nTools{} ferramentas. Shorten et al.~\cite{shorten2025dbfunction} propõem uma única ferramenta genérica de
 consulta ao banco, cujos argumentos são filtros e agregações; aqui, cada ferramenta corresponde a um tipo de
 consulta do futebol.
 
