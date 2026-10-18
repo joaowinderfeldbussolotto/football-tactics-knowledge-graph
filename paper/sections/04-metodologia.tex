@@ -56,6 +56,12 @@ pelo próprio banco. As arestas não acrescentam informação à tabela, só a r
 calculada, com o banco contando os totais a partir das arestas. A Figura~\ref{fig:pipeline} acompanha um passe
 real por essas etapas, e a Figura~\ref{fig:esquema} mostra o esquema do grafo.
 
+A escolha do grafo segue a análise de futebol, que trata os passes de um time como uma rede, com os jogadores como
+nós e os passes como arestas~\cite{buldu2018using,duch2010quantifying}. Perguntas sobre essa rede, como qual dupla % nós do grafo, não primeira pessoa % lint: ignore
+mais trocou passes ou por qual jogador mais passa a circulação da bola, viram caminhos e métricas sobre o grafo. Em
+uma tabela relacional, a mesma informação exige uma junção da tabela consigo mesma a cada passe da cadeia, e as
+métricas de rede precisam ser calculadas fora do banco.
+
 \input{fig-pipeline}
 
 \input{fig-esquema}

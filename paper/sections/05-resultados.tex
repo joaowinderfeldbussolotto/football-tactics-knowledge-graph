@@ -130,10 +130,13 @@ dados quando eles não trazem o que a pergunta pede, e por isso os modelos se ab
 perguntas, em vez de responder com o total da partida. A \armNoContext{} se absteve em todas as perguntas com
 resposta, em todos os modelos. Sem os dados, os modelos seguiram a instrução de não responder de memória.
 
-O estudo usa uma única partida, \nAnswerable{} perguntas com resposta e \nRepeats{} repetição por pergunta, o que
-deixa os intervalos de confiança largos. Nos modelos maiores, o tamanho e o raciocínio estendido vieram juntos, e
-não é possível separar o efeito de um do outro. O raciocínio também esbarrou no limite de saída. Em
-\armEventsInPrompt{}, o \modelSonnet{} só respondeu dentro do limite com um nível de raciocínio menor, e algumas
+O estudo não separa o efeito do grafo do efeito de estruturar os dados em ferramentas. Uma hipótese, não testada
+aqui, é que um banco relacional com as mesmas ferramentas responderia bem às perguntas de busca e contagem, que são
+filtros e agregações, e que a diferença apareceria nas perguntas de relações, que dependem de caminhos e métricas
+de rede. O estudo usa uma única partida, \nAnswerable{} perguntas com resposta e \nRepeats{} repetição por
+pergunta, o que deixa os intervalos de confiança largos. Nos modelos maiores, o tamanho e o raciocínio estendido
+vieram juntos, e não é possível separar o efeito de um do outro. O raciocínio também esbarrou no limite de saída.
+Em \armEventsInPrompt{}, o \modelSonnet{} só respondeu dentro do limite com um nível de raciocínio menor, e algumas
 perguntas precisaram de um limite maior. As ferramentas e as perguntas foram escritas pelos mesmos autores, o que
 favorece a cobertura das ferramentas. Por isso, o acerto de \armGraphTools{} vale para perguntas dentro dessa
 cobertura. As abordagens com agente supõem também um modelo que chame ferramentas de forma confiável, e esse
