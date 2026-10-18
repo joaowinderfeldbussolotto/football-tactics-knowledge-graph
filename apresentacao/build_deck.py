@@ -529,7 +529,8 @@ s = new_slide(8, "Mesmo grafo, duas formas de consultar",
               f"As {m('nTools')} ferramentas: listar jogadores, contar ações, listar ações, contar posses, rede de passes, métrica da "
               "rede, ligações da rede e sequências de passes. Diferenças a declarar: a Consulta não tem a biblioteca de algoritmos de "
               "grafos nem os nós de padrões prontos, e as ferramentas foram ajustadas olhando erros, enquanto a Consulta é o primeiro "
-              "contato. A consulta, os argumentos e a resposta vêm de data/benchmark/final_results.jsonl; os valores devolvidos pela "
+              "contato. A consulta, os argumentos e a resposta vêm do registro de execuções do Haiku (data/benchmark/claude-haiku-5.5_results.jsonl "
+              "no repositório novo); os valores devolvidos pela "
               "ferramenta (24 e 18) estão só no trace e foram copiados da figura do artigo.",
               kicker=f"Registro real ({m('modelHaiku')}, a01); trechos abreviados com [...]. Uma chamada bastou nas duas; limite de {m('nMaxCalls')} chamadas.")
 panel(s, 0.7, 1.55, 11.9, 0.55, fill=ACCENT_BG)
@@ -737,7 +738,7 @@ panel(s, 0.7, 2.4, 0.12, 1.6, fill=ACCENT)
 textbox(s, 1.1, 2.3, 11, 1.8, [("Perguntas", {"size": 54, "bold": True, "color": RGBColor(255, 255, 255)})])
 textbox(s, 1.1, 4.4, 11, 1.8,
         [("Código, perguntas e gabarito:", {"size": 18, "color": RGBColor(0xBB, 0xBB, 0xBB)}),
-         ("github.com/joaowinderfeldbussolotto/football-tactics-knowledge-graph", {"size": 20, "color": RGBColor(255, 255, 255)})], gap=6)
+         ("github.com/joaowinderfeldbussolotto/match-events-qa-benchmark", {"size": 20, "color": RGBColor(255, 255, 255)})], gap=6)
 s.notes_slide.notes_text_frame.text = (
     "Slides de apoio não foram incluídos para respeitar o limite de 15. As respostas às perguntas prováveis estão em "
     "apresentacao/perguntas-banca.md.")

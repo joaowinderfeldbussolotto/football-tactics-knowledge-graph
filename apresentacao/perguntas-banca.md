@@ -1,6 +1,6 @@
 # Perguntas prováveis da banca (20 min de perguntas)
 
-Respostas curtas, para falar. Fontes: `paper/review/threats.md`, `paper/review/revisao-2026-10-15.md`,
+Respostas curtas, para falar. Código, perguntas, gabarito e resultados por modelo: repositório novo, `match-events-qa-benchmark` (os acertos dos 4 modelos nele batem com os de `numbers.tex`). Fontes dos argumentos: `paper/review/threats.md`, `paper/review/revisao-2026-10-15.md`,
 `paper/ALERTAS.md` e `paper/generated/numbers.tex`. Ordem dos modelos nas listas de quatro números: Haiku 5.5,
 Qwen3.8-flash, Sonnet 4.6, Kimi K3. Nenhum número aqui foi recalculado à mão: todos vêm dessas fontes.
 
@@ -18,9 +18,9 @@ consulta. Só 5 perguntas dependem do GDS. Sem elas, as Ferramentas acertaram 36
 26, 39 e 40. Aplicar as mesmas ferramentas a uma tabela, sem o grafo, é trabalho futuro (Conclusão).
 
 **3. O ajuste das Ferramentas melhorou de fato o acerto?**
-Seis perguntas refeitas levaram o Haiku de 39 para 45 de 52 (`all52_before_fixes_results.jsonl`). A trajetória do ajuste
+Seis perguntas refeitas levaram o Haiku de 39 para 45 de 52 (`all52_before_fixes_results.jsonl`, que está só no repositório antigo, `football-tactics-knowledge-graph`). A trajetória do ajuste
 com as mesmas perguntas em cada versão oscila (10 a 25 pontos em n pequeno) e os intervalos se sobrepõem; por isso o
-artigo não afirma que o ajuste levou as Ferramentas "de 50% a 95%" (`paper/ALERTAS.md`, item 1).
+artigo não afirma que o ajuste levou as Ferramentas "de 50% a 95%" (`paper/ALERTAS.md`, item 1, no repositório antigo).
 
 **4. Por que a Busca vetorial acerta tão pouco? Não é só um RAG mal feito?**
 Cada linha recuperada é uma ação isolada; contar exige todas as linhas de um tipo e ligar eventos exige as vizinhas.
