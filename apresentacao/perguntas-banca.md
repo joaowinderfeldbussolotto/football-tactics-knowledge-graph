@@ -15,7 +15,22 @@ medida de justiça. Sinais a favor: nas 12 perguntas que não serviram ao ajuste
 **2. O ganho vem das ferramentas, do grafo ou dos algoritmos de grafo (GDS)?**
 Não está separado. O par Consulta × Ferramentas usa o mesmo grafo e o mesmo limite de chamadas e isola quem escreve a
 consulta. Só 5 perguntas dependem do GDS. Sem elas, as Ferramentas acertaram 36, 34, 37 e 37 de 42, e a Consulta, 30,
-26, 39 e 40. Aplicar as mesmas ferramentas a uma tabela, sem o grafo, é trabalho futuro (Conclusão).
+26, 39 e 40. A Discussão traz uma hipótese não testada: um banco relacional (SQL) com as mesmas ferramentas iria bem
+nas perguntas de busca e contagem, que são filtros e agregações, e a diferença apareceria nas de relações, que dependem
+de caminhos e métricas de rede. Testar isso é trabalho futuro (Conclusão).
+
+**2b. Por que um grafo, e não um banco relacional?**
+A análise de futebol trata os passes de um time como uma rede, com os jogadores como nós e os passes como arestas
+(Buldú et al.; Duch et al.). Perguntas sobre essa rede, como qual dupla mais trocou passes ou por qual jogador mais passa
+a circulação da bola, viram caminhos e métricas sobre o grafo. Uma tabela relacional também guarda a informação, mas,
+conforme a organização, seguir uma cadeia de passes pode exigir uma junção a cada passe, e métricas como a
+intermediação dependeriam de implementação própria. A comparação direta com SQL não foi feita (pergunta 2).
+
+**2c. O acerto das Ferramentas não é só cobertura?**
+Em parte, e o artigo diz isso: as Ferramentas só respondem a perguntas para as quais existe uma ferramenta. No Contexto
+longo e na Consulta escrita pelo modelo, o limite é a capacidade do modelo, não um conjunto fixo de operações. A
+liberdade de escrever a consulta só virou acerto nos modelos maiores; nos menores, as consultas parametrizadas
+supriram essa limitação.
 
 **3. O ajuste das Ferramentas melhorou de fato o acerto?**
 Seis perguntas refeitas levaram o Haiku de 39 para 45 de 52 (`all52_before_fixes_results.jsonl`, que está só no repositório antigo, `football-tactics-knowledge-graph`). A trajetória do ajuste
@@ -57,7 +72,7 @@ Foram 81 escritas e 52 ativas; 22 removidas pelo teste de robustez ou por ambigu
 lista com o motivo está em `config/questions.yaml` (`stage: removed`). Nenhuma ferramenta mudou por causa de uma pergunta.
 
 **11. O gabarito é do mesmo autor e a regra de empate mudou no meio.**
-O gabarito é calculado por código, fora do grafo (pandas e networkx), a partir do JSON bruto e da tabela de ações. A
+O gabarito é calculado por código (pandas e networkx), a partir do JSON bruto e da tabela de ações. A
 recorreção de 312 execuções mudou 0 veredito. Em empate, todos os empatados valem.
 
 **12. A final de 2022 é famosa. Não é memorização?**
