@@ -35,19 +35,19 @@ desfecho e placar.
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
 \centering\small\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}
-\begin{tabular}{>{\raggedright\arraybackslash}p{0.285\columnwidth}>{\raggedright\arraybackslash}p{0.30\columnwidth}>{\raggedright\arraybackslash}p{0.305\columnwidth}} % lint: ignore
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.30\columnwidth}>{\raggedright\arraybackslash}p{0.62\columnwidth}} % lint: ignore
 \toprule
-Transformação & O que faz & Motivo \\
+Transformação & O que faz \\
 \midrule
-Direção de ataque & toda ação passa a atacar da esquerda para a direita & dar o mesmo sentido ao campo dos dois times \\
-Zona, terço e corredor & situa o início e o fim de cada ação no campo & localizar a ação no campo \\
-Recebedor do passe & é o jogador do mesmo time que age em seguida & saber quem passou para quem \\
-Fase de posse & agrupa as ações seguidas do mesmo time & identificar as jogadas \\
-Placar, minuto e período & placar antes de cada ação e minuto da transmissão & situar a ação antes ou depois de um momento \\
-Dados recuperados do JSON & desfecho da finalização e cartão sem falta & o SPADL perde essas informações \\
+Direção de ataque & toda ação passa a atacar da esquerda para a direita, nos dois times \\
+Zona, terço e corredor & situa o início e o fim de cada ação no campo \\
+Recebedor do passe & o jogador do mesmo time que age em seguida, para saber quem passou para quem \\
+Fase de posse & agrupa em jogadas as ações seguidas do mesmo time \\
+Placar, minuto e período & placar antes de cada ação e minuto da transmissão \\
+Dados recuperados do JSON & desfecho da finalização e cartão sem falta, que o SPADL perde \\
 \bottomrule
 \end{tabular}
-\captionof{table}{Transformações sobre a tabela de ações e o motivo de cada uma.}\label{tab:transformacoes}
+\captionof{table}{Transformações sobre a tabela de ações.}\label{tab:transformacoes}
 \end{minipage}\par\smallskip
 
 A tabela de ações foi carregada em um grafo Neo4j: cada ação vira uma aresta do jogador para a partida, com as
@@ -181,7 +181,7 @@ continuar inválida, a execução conta como erro de formato.
 
 A conferência com o gabarito é determinística: é feita por código, e a mesma resposta recebe sempre o mesmo
 veredito. Ela depende do tipo da pergunta (Tabela~\ref{tab:conferencia}). O formato pede que as classificações sejam
-listados do melhor ao pior; por isso, nas perguntas que esperam um jogador, vale o primeiro jogador da lista e os
+listadas do melhor ao pior; por isso, nas perguntas que esperam um jogador, vale o primeiro jogador da lista e os
 demais não são conferidos. Os nomes são normalizados (caixa e acentos) e aceitos pelo nome da escalação, pelo
 apelido ou pelo sobrenome, este só quando é único entre os jogadores da partida.
 
@@ -201,11 +201,11 @@ Ausência de dados (\nCheckNoData{}) & o modelo indica que não há dados \\
 \captionof{table}{Os tipos de conferência, com o número de perguntas de cada um.}\label{tab:conferencia}
 \end{minipage}\par\smallskip
 
-A Figura~\ref{fig:json} mostra respostas reais à pergunta a02 (``Quem deu mais passes certos no terço final do
-campo pela França?''), cujo gabarito é Adrien Rabiot, e a uma pergunta do controle. A abordagem \armTextToCypher{}
-devolveu um único jogador. A abordagem \armGraphTools{} listou cinco jogadores, em ordem, com Rabiot primeiro; como
-vale o primeiro da lista, as duas respostas são acertos. No controle, o acerto é a lista vazia com o indicador de
-ausência de dados ligado.
+A Figura~\ref{fig:json} mostra uma resposta real à pergunta a02 (``Quem deu mais passes certos no terço final
+do campo pela França?''), cujo gabarito é Adrien Rabiot. A abordagem \armGraphTools{} listou cinco jogadores, em
+ordem, com Rabiot primeiro; como vale o primeiro da lista, a resposta é um acerto. Quando os dados não trazem a
+resposta, o modelo devolve a lista vazia, sem valor, e o indicador de ausência de dados ligado; isso conta como
+acerto no controle e como abstenção nas demais perguntas.
 
 \input{fig-json}
 

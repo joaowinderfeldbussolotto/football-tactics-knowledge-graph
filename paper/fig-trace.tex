@@ -10,8 +10,6 @@
 \newcommand{\tracehead}[1]{\par\noindent\textbf{#1}\par\vspace{2pt}}
 \newcommand{\tracestep}[2]{\par\noindent\hangindent=\traceind\hangafter=1\makebox[\traceind][l]{\itshape #1}#2\par}
 \newcommand{\tracecode}[1]{{\raggedright\leftskip=\traceind\ttfamily\scriptsize\frenchspacing\vspace{2pt}#1\par}\vspace{3pt}}
-\newcommand{\traceloop}{{\leftskip=\traceind\scriptsize\itshape $\uparrow$ volta ao modelo; pode chamar de novo
-  (até \nMaxCalls{})\par}\vspace{2pt}}
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
 \footnotesize\raggedright\setlength{\parindent}{0pt}
@@ -31,7 +29,6 @@ ORDER BY passes\_certos\_terco\_final DESC\\
 LIMIT 10}
 \tracestep{Ferramenta}{executa essa consulta no grafo e devolve:}
 \tracecode{Lionel Andrés Messi Cuccittini: 24\\ Alexis Mac Allister: 18 [...]}
-\traceloop
 \tracestep{Modelo}{responde: Lionel Andrés Messi Cuccittini}
 \tracerule{0.5pt}
 \tracehead{\armGraphTools{}}
@@ -42,11 +39,8 @@ LIMIT 10}
 group\_by: [\jq player\jq], top: 5}
 \tracestep{Ferramenta}{executa a consulta parametrizada do seu código, com esses filtros, e devolve:}
 \tracecode{Lionel Andrés Messi Cuccittini: 24\\ Alexis Mac Allister: 18 [...]}
-\traceloop
 \tracestep{Modelo}{responde: Lionel Andrés Messi Cuccittini}
 \tracerule{0.8pt}
-\captionof{figure}{Registro real de uma execução em cada abordagem com agente (\modelHaiku{}, pergunta a01),
-lido na ferramenta de observabilidade. Em \armTextToCypher{}, o modelo escreve a consulta; em \armGraphTools{},
-ele escolhe a ferramenta e preenche os argumentos, e a consulta já está no código. Nesta pergunta, uma chamada
-bastou nas duas abordagens; em outras, o modelo fez várias. Saídas abreviadas com [...].}\label{fig:trace}
+\captionof{figure}{Registro real de uma execução em cada abordagem com agente (\modelHaiku{}, pergunta a01).
+Nesta pergunta, uma chamada bastou nas duas abordagens; em outras, o modelo fez várias. Saídas abreviadas com [...].}\label{fig:trace}
 \end{minipage}\par\smallskip
