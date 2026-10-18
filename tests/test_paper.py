@@ -195,6 +195,16 @@ def test_every_reference_in_the_table_is_in_refs_bib_and_balanced():
         assert entry.count("{") == entry.count("}"), entry[:60]
 
 
+def test_entries_with_a_doi_carry_no_url_so_the_style_prints_the_doi_once():
+    bib = (PAPER / "refs.bib").read_text(encoding="utf-8")
+    entries = re.split(r"\n\n(?=@)", bib)[1:]
+    with_doi = [e for e in entries if re.search(r"^\s*doi\s*=", e, re.I | re.M)]
+    assert len(with_doi) >= 30
+    assert not [e[:40] for e in with_doi if re.search(r"^\s*url\s*=", e, re.I | re.M)]
+    assert "\\bibliographystyle{plaindoi}" in (PAPER / "main.tex").read_text(encoding="utf-8")
+    assert (PAPER / "plaindoi.bst").exists()
+
+
 def test_every_cited_key_exists_and_every_input_file_exists():
     keys = set(cite.parse_bib((PAPER / "refs.bib").read_text(encoding="utf-8")))
     main = (PAPER / "main.tex").read_text(encoding="utf-8")
