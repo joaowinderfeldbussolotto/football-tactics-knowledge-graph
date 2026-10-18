@@ -17,9 +17,12 @@ treinado de novo, e o que entra no seu contexto são os dados, e não exemplos d
 contexto os próprios dados, brutos ou resumidos, ou consultar uma base externa e levar só o resultado. No
 esporte, os trabalhos encontrados avaliam uma dessas formas de cada vez (Seção~\ref{sec:trabalhos}).
 
-Este trabalho compara \nArms{} abordagens sobre a final da Copa do Mundo de 2022, com \nQuestions{} perguntas
-cujo gabarito foi calculado por código, fora do grafo, em \nModels{} modelos de tamanhos diferentes. As perguntas de
-pesquisa são qual abordagem acerta mais, como o acerto muda de um modelo para outro e quanto cada abordagem
-custa em tokens e tempo. Com ferramentas de consulta pronta sobre um grafo da partida, o acerto foi alto em todos
-os modelos. Quando o modelo escreveu a consulta, o acerto só chegou a esse nível nos modelos maiores; com a tabela
-inteira no contexto, só se aproximou dele nesses modelos, com mais tokens de saída e mais tempo por pergunta.
+Este trabalho compara \nArms{} abordagens sobre a final da Copa do Mundo de 2022. Para isso, os eventos da partida
+foram transformados em uma tabela de ações e carregados em um grafo, em que jogadores e partida são nós, cada ação % nós do grafo, não primeira pessoa % lint: ignore
+é uma aresta do jogador para a partida e cada passe certo é uma aresta entre dois jogadores. A comparação usou
+\nQuestions{} perguntas, com gabarito calculado por código, em \nModels{} modelos de tamanhos diferentes. As
+perguntas de pesquisa são qual abordagem acerta mais, como o acerto muda de um modelo para outro e quanto cada
+abordagem custa em tokens e tempo. Com ferramentas de consultas parametrizadas sobre o grafo, o acerto foi alto em
+todos os modelos. Quando o modelo escreveu a consulta, o acerto só chegou a esse nível nos modelos maiores; com a
+tabela inteira no contexto, só se aproximou dele nesses modelos, com mais tokens de saída e mais tempo por
+pergunta.
