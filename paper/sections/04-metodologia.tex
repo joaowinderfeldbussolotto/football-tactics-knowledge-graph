@@ -19,10 +19,10 @@ também o registro de cada execução, parte da implantação.
 
 Os dados são os eventos abertos da StatsBomb~\cite{statsbomb_opendata} da final da Copa do Mundo de 2022, em dois
 arquivos JSON: a lista de eventos da partida, em ordem, e as escalações, com o nome completo e o apelido de cada
-jogador. Cada evento tem período, minuto e segundo, time e tipo e, quando se aplica, jogador e posição no
-campo; cada tipo traz ainda um objeto com campos próprios: o passe traz o recebedor e o desfecho, e a
-finalização, o resultado e a parte do corpo. A mesma informação pode estar em lugares diferentes: um cartão amarelo vem dentro da falta que o
-provocou ou, quando não há falta, em um evento de comportamento.
+jogador. Cada evento tem período, minuto e segundo, time e tipo e, quando se aplica, jogador e posição no campo;
+cada tipo traz ainda um objeto com campos próprios: o passe traz o recebedor e o desfecho, e a finalização, o
+resultado e a parte do corpo. A mesma informação pode estar em lugares diferentes: um cartão amarelo vem dentro da
+falta que o provocou ou, quando não há falta, em um evento de comportamento.
 
 Os eventos da partida, sem a disputa de pênaltis, foram convertidos com a biblioteca
 socceraction~\cite{socceraction} em ações no formato SPADL~\cite{decroos2019actions}, que mantém só as ações com
@@ -51,16 +51,16 @@ Dados recuperados do JSON & desfecho da finalização e cartão sem falta, que o
 \end{minipage}\par\smallskip
 
 A tabela de ações foi carregada em um grafo Neo4j: cada ação vira uma aresta do jogador para a partida, com as
-colunas da linha como propriedades, cada passe certo com recebedor vira uma aresta entre dois jogadores, e uma súmula com totais por jogador e por time é contada
-pelo próprio banco. As arestas não acrescentam informação à tabela, só a reorganizam em ligações; já a súmula é
-calculada, com o banco contando os totais a partir das arestas. A Figura~\ref{fig:pipeline} acompanha um passe
-real por essas etapas, e a Figura~\ref{fig:esquema} mostra o esquema do grafo.
+colunas da linha como propriedades, e cada passe certo com recebedor vira uma aresta entre dois jogadores. Essas
+arestas não acrescentam informação à tabela, só a reorganizam em ligações. Por fim, uma consulta no próprio banco
+percorre as arestas de cada jogador e conta as ações de cada tipo, separando tentativas e acertos, como desarmes
+tentados e desarmes certos. Os totais por jogador e por time ficam gravados no grafo como uma súmula. A
+Figura~\ref{fig:pipeline} acompanha um passe real por essas etapas, e a Figura~\ref{fig:esquema} mostra o esquema
+do grafo.
 
 A escolha do grafo segue a análise de futebol, que trata os passes de um time como uma rede, com os jogadores como
 nós e os passes como arestas~\cite{buldu2018using,duch2010quantifying}. Perguntas sobre essa rede, como qual dupla % nós do grafo, não primeira pessoa % lint: ignore
-mais trocou passes ou por qual jogador mais passa a circulação da bola, viram caminhos e métricas sobre o grafo. Em
-uma tabela relacional, a mesma informação exige uma junção da tabela consigo mesma a cada passe da cadeia, e as
-métricas de rede precisam ser calculadas fora do banco.
+mais trocou passes ou por qual jogador mais passa a circulação da bola, viram caminhos e métricas sobre o grafo. Uma tabela relacional também guarda essa informação. Conforme a sua organização, porém, seguir uma cadeia de passes pode exigir uma junção a cada passe, e métricas de rede, como a intermediação, dependeriam de uma implementação própria do algoritmo, como a da biblioteca networkx~\cite{networkx}.
 
 \input{fig-pipeline}
 
@@ -68,8 +68,7 @@ métricas de rede precisam ser calculadas fora do banco.
 
 \subsection{Abordagens comparadas}\label{sec:arquiteturas}
 
-Foram comparadas \nArms{} abordagens, ordenadas pela complexidade do que há entre a pergunta e o
-modelo, da ausência de dados à consulta ao grafo com ferramentas (Tabela~\ref{tab:bracos}). Em cada modelo,
+Foram comparadas \nArms{} abordagens (Tabela~\ref{tab:bracos}). Em cada modelo,
 todas usam o mesmo prompt de sistema e a mesma saída estruturada (justificativa, jogadores, valor e indicador de
 ausência de dados).
 
@@ -88,7 +87,7 @@ Abordagem & Forma de recuperação & O que o modelo recebe \\
 \armGraphTools{} & \nTools{} ferramentas com consulta parametrizada & o resultado das ferramentas que chama \\
 \bottomrule
 \end{tabular}
-\captionof{table}{As \nArms{} abordagens, da menos à mais complexa, e a forma de recuperação de cada uma.}\label{tab:bracos}
+\captionof{table}{As \nArms{} abordagens e a forma de recuperação de cada uma.}\label{tab:bracos}
 \end{minipage}\par\smallskip
 
 Na \armVector{}, cada linha da tabela e a pergunta são representadas por embeddings, e as \nTopK{} linhas mais
@@ -112,9 +111,9 @@ Em \armGraphTools{}, cada ferramenta tem no código uma consulta Cypher parametr
 fixa, e o modelo escolhe a ferramenta e os valores dos argumentos, que preenchem os filtros e o agrupamento. Na
 pergunta da Figura~\ref{fig:trace}, em \armTextToCypher{} o modelo escreveu a consulta inteira, com os filtros de
 time, tipo de ação, sucesso e terço do campo. Em \armGraphTools{}, ele chamou a ferramenta que conta ações e passou
-esses mesmos filtros como argumentos. A Tabela~\ref{tab:ferramentas} lista as \nTools{} ferramentas. Shorten et al.~\cite{shorten2025dbfunction} propõem uma única ferramenta genérica de
-consulta ao banco, cujos argumentos são filtros e agregações; aqui, cada ferramenta corresponde a um tipo de
-consulta do futebol.
+esses mesmos filtros como argumentos. A Tabela~\ref{tab:ferramentas} lista as \nTools{} ferramentas. Shorten et
+al.~\cite{shorten2025dbfunction} propõem uma única ferramenta genérica de consulta ao banco, cujos argumentos são
+filtros e agregações; aqui, cada ferramenta corresponde a um tipo de consulta do futebol.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
@@ -168,9 +167,9 @@ Controle (\nGroupControl{}) & Qual foi a distância total percorrida por Rodrigo
 O grupo de controle reúne perguntas cuja resposta não existe nos dados, como as que pedem velocidade ou distância
 percorrida; a resposta certa é a ausência de dados.
 
-As perguntas foram escritas manualmente, e o gabarito de cada uma foi calculado por código, sem passar pelo
-grafo, a partir do JSON bruto e da tabela de ações;
-foram eliminadas as perguntas que, na avaliação dos autores, admitiam mais de uma interpretação.
+As perguntas foram escritas manualmente, e o gabarito de cada uma foi calculado por código a partir do JSON bruto e
+da tabela de ações; foram eliminadas as perguntas que, na avaliação dos autores, admitiam mais de uma
+interpretação.
 
 \subsection{Resposta e conferência}\label{sec:conferencia}
 
@@ -201,11 +200,11 @@ Ausência de dados (\nCheckNoData{}) & o modelo indica que não há dados \\
 \captionof{table}{Os tipos de conferência, com o número de perguntas de cada um.}\label{tab:conferencia}
 \end{minipage}\par\smallskip
 
-A Figura~\ref{fig:json} mostra uma resposta real à pergunta a02 (``Quem deu mais passes certos no terço final
-do campo pela França?''), cujo gabarito é Adrien Rabiot. A abordagem \armGraphTools{} listou cinco jogadores, em
+A Figura~\ref{fig:json} mostra uma resposta real à pergunta a02 (``Quem deu mais passes certos no terço final do
+campo pela França?''), cujo gabarito é Adrien Rabiot. A abordagem \armGraphTools{} listou cinco jogadores, em
 ordem, com Rabiot primeiro; como vale o primeiro da lista, a resposta é um acerto. Quando os dados não trazem a
 resposta, o modelo devolve a lista vazia, sem valor, e o indicador de ausência de dados ligado; isso conta como
-acerto no controle e como abstenção nas demais perguntas.
+acerto nas perguntas do grupo de controle e como abstenção nas demais.
 
 \input{fig-json}
 
@@ -237,9 +236,10 @@ Erro de formato & não há resposta estruturada válida ao fim das tentativas \\
 
 \subsection{Escopo}
 
-Foi usada uma única partida por dois motivos: a tabela de ações inteira ocupa \tokTableApprox{} (o valor varia
-com o tokenizador do modelo) e cabe no contexto do modelo, e um escopo menor permite conferir o gabarito de cada
-pergunta contra os dados. Ficam fora do escopo, além de várias partidas: dados de rastreamento ou fisiológicos, inferência sobre lesão, fadiga ou
-saúde, valor de mercado, escalação, predição de resultado, qualidade da explicação tática
-e agentes com ambiente de execução próprio, que rodam programas em Python ou comandos de terminal. Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível;
-o trabalho não infere condição de saúde de atleta.
+Foi usada uma única partida por dois motivos: a tabela de ações inteira ocupa \tokTableApprox{} (o valor varia com
+o tokenizador do modelo) e cabe no contexto do modelo, e um escopo menor permite conferir o gabarito de cada
+pergunta contra os dados. Ficam fora do escopo, além de várias partidas: dados de rastreamento ou fisiológicos,
+inferência sobre lesão, fadiga ou saúde, valor de mercado, escalação, predição de resultado, qualidade da
+explicação tática e agentes com ambiente de execução próprio, que rodam programas em Python ou comandos de
+terminal. Os dados são abertos, de uma partida pública, e não incluem dado pessoal sensível; o trabalho não infere
+condição de saúde de atleta.

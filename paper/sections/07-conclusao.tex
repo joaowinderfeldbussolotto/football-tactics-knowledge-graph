@@ -12,15 +12,11 @@ abordagem \armGraphTools{} foi a única que manteve o acerto alto em todos, de \
 estendido, a \armTextToCypher{} chegou ao mesmo nível, e o \armEventsInPrompt{} se aproximou, este ao custo de mais
 tokens de saída e mais tempo por pergunta. A \armVector{} e as \armStatsInPrompt{} acertaram pouco em todos os modelos.
 
-Parte dos dados industriais tem forma parecida: registros de eventos com agente, momento e local, ligados entre si,
-como as paradas, os alertas e as movimentações de uma linha de produção ou de uma frota. Testar as mesmas
-abordagens nesses dados é um próximo passo, já que a forma de levá-los ao contexto do modelo pode pesar tanto
-quanto pesou no futebol. Isso exige uma implementação própria para o domínio: a preparação dos dados, o grafo e as
-ferramentas dependem das perguntas que se quer responder.
-
 Os resultados vêm de uma partida e de uma repetição por pergunta. Repetir as execuções permitiria medir a variação
-entre rodadas e testar as diferenças entre abordagens. Outros caminhos são estender as perguntas a várias
-partidas; avaliar modelos maiores sem raciocínio estendido, para separar o efeito do tamanho do efeito do
-raciocínio; aplicar as mesmas ferramentas a um banco relacional (SQL), sem o grafo, para separar o efeito das ferramentas do
-efeito do grafo; e testar uma busca vetorial em que cada trecho traga também os eventos vizinhos, como
-em Tzikas et al.~\cite{tzikas2025dynamic}.
+entre rodadas e testar as diferenças entre abordagens. Outros caminhos são estender as perguntas a várias partidas;
+avaliar modelos maiores sem raciocínio estendido, para separar o efeito do tamanho do efeito do raciocínio; aplicar
+as mesmas ferramentas a um banco relacional (SQL), sem o grafo, para separar o efeito das ferramentas do efeito do
+grafo; e testar uma busca vetorial em que cada trecho traga também os eventos vizinhos, como em Tzikas et
+al.~\cite{tzikas2025dynamic}. Por fim, as mesmas abordagens podem ser testadas em outros registros de eventos, como
+os de processos industriais, com a preparação dos dados, o grafo e as ferramentas feitos para as perguntas desse
+domínio.

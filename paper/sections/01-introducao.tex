@@ -10,19 +10,17 @@ campo, e há conjuntos desse tipo abertos ao público~\cite{pappalardo2019public
 sobre esses dados exigem ligar eventos entre si: quem mais passou para quem, em que ordem a bola circulou em uma
 jogada, o que mudou depois de uma substituição.
 
-Um modelo de linguagem de grande porte (LLM, do inglês \textit{large language model}) permite fazer essas perguntas em linguagem natural, mas precisa receber os dados da partida. Há mais de
-uma forma de dar esse conhecimento ao modelo, como ajustá-lo com novos dados ou entregar os dados no momento da
-pergunta. Este trabalho usa a segunda, o aprendizado em contexto~\cite{brown2020language}, em sentido amplo: o modelo não é
-treinado de novo, e o que entra no seu contexto são os dados, e não exemplos da tarefa. Isso pode ser feito de duas maneiras: levar ao
-contexto os próprios dados, brutos ou resumidos, ou consultar uma base externa e levar só o resultado. No
-esporte, os trabalhos encontrados avaliam uma dessas formas de cada vez (Seção~\ref{sec:trabalhos}).
+Um modelo de linguagem de grande porte (LLM, do inglês \textit{large language model}) permite fazer essas perguntas
+em linguagem natural, mas precisa receber os dados da partida. Há mais de uma forma de dar esse conhecimento ao
+modelo, como ajustá-lo com novos dados ou entregar os dados no momento da pergunta. Este trabalho usa a segunda, o
+aprendizado em contexto~\cite{brown2020language}, em sentido amplo: o modelo não é treinado de novo, e o que entra
+no seu contexto são os dados, e não exemplos da tarefa. Isso pode ser feito de duas maneiras: levar ao contexto os
+próprios dados, brutos ou resumidos, ou consultar uma base externa e levar só o resultado. No esporte, os trabalhos
+encontrados avaliam uma dessas formas de cada vez (Seção~\ref{sec:trabalhos}).
 
 Este trabalho compara \nArms{} abordagens sobre a final da Copa do Mundo de 2022. Para isso, os eventos da partida
 foram transformados em uma tabela de ações e carregados em um grafo, em que jogadores e partida são nós, cada ação % nós do grafo, não primeira pessoa % lint: ignore
-é uma aresta do jogador para a partida e cada passe certo é uma aresta entre dois jogadores. A comparação usou
-\nQuestions{} perguntas, com gabarito calculado por código, em \nModels{} modelos de tamanhos diferentes. As
+é uma aresta do jogador para a partida e cada passe certo é uma aresta entre dois jogadores. A comparação usou \nQuestions{} perguntas com gabarito, em \nModels{} modelos de tamanhos diferentes. As
 perguntas de pesquisa são qual abordagem acerta mais, como o acerto muda de um modelo para outro e quanto cada
 abordagem custa em tokens e tempo. Com ferramentas de consultas parametrizadas sobre o grafo, o acerto foi alto em
-todos os modelos. Quando o modelo escreveu a consulta, o acerto só chegou a esse nível nos modelos maiores; com a
-tabela inteira no contexto, só se aproximou dele nesses modelos, com mais tokens de saída e mais tempo por
-pergunta.
+todos os modelos. Quando o modelo escreveu a consulta, o acerto só chegou a esse nível nos modelos maiores. Com a tabela inteira no contexto, o acerto também só chegou perto dele nos modelos maiores, e com mais tokens de saída e mais tempo por pergunta.
