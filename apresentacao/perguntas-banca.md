@@ -10,7 +10,7 @@ Qwen3.8-flash, Sonnet 4.6, Kimi K3. Nenhum número aqui foi recalculado à mão:
 Não é simétrica, e o artigo declara isso: as Ferramentas foram ajustadas olhando erros (sete congelamentos); a Consulta
 escrita pelo modelo é primeiro contato. Por isso a diferença entre as duas é o teto do ganho de engenharia, não uma
 medida de justiça. Sinais a favor: nas 12 perguntas que não serviram ao ajuste, as Ferramentas acertaram 12, 10, 12 e
-11, e a Consulta, 10, 9, 11 e 12. As Ferramentas acertam dentro da cobertura delas (limitação do slide 13).
+11, e a Consulta, 10, 9, 11 e 12. As Ferramentas acertam dentro da cobertura delas (limitação do slide 14).
 
 **2. O ganho vem das ferramentas, do grafo ou dos algoritmos de grafo (GDS)?**
 Não está separado. O par Consulta × Ferramentas usa o mesmo grafo e o mesmo limite de chamadas e isola quem escreve a
@@ -59,7 +59,7 @@ Consulta no Haiku fica em p=0,057 (valores de `numbers.tex`).
 
 **8. Os intervalos de confiança e o n.**
 Wilson de 95%, que fica sempre entre 0 e 100. Com 47 perguntas e uma repetição, os intervalos são largos; o gráfico do
-slide 9 mostra o acerto, e a figura do artigo traz os intervalos.
+slide 10 mostra o acerto, e a figura do artigo traz os intervalos.
 
 **9. Temperatura zero não é determinismo.**
 As rodadas 10 e 11 mudaram três perguntas sem mudança de ferramenta. Só as repetições medem essa variação. Os modelos
@@ -103,7 +103,7 @@ A classificação é por código: resposta errada dada como resposta, não por i
 **17. Por que isso vale para indústria?**
 Parte dos dados industriais tem a mesma forma: registros de eventos com agente, momento e local, ligados entre si (paradas,
 alertas, movimentações). O resultado do futebol indica que a forma de levar os dados ao contexto pesa tanto quanto o
-modelo. O slide 14 trata isso como um dos próximos passos, ao lado de mais repetições, várias partidas e a separação dos efeitos; não é um resultado.
+modelo. O slide 15 trata isso como um dos próximos passos, ao lado de mais repetições, várias partidas e a separação dos efeitos; não é um resultado.
 
 **18. O que muda para aplicar em outro domínio?**
 A preparação dos dados, o grafo e as ferramentas dependem das perguntas que se quer responder: exige implementação

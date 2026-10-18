@@ -246,7 +246,7 @@ s.notes_slide.notes_text_frame.text = (
 
 # 2 problema e pergunta de pesquisa
 s = new_slide(2, "Qual forma de dar os dados de uma partida ao modelo funciona melhor?",
-              "[1:15] Contexto de futebol: a final da Copa de 2022, Argentina contra França, decidida nos pênaltis. Os dados de "
+              "[1:00] Contexto de futebol: a final da Copa de 2022, Argentina contra França, decidida nos pênaltis. Os dados de "
               "eventos registram cada ação, com jogador, momento e posição no campo. As três perguntas do slide são do conjunto do "
               "trabalho e nenhuma tem a resposta em um único evento: é preciso juntar vários. O modelo precisa receber os dados da "
               "partida, e há mais de uma forma de fazer isso. Perguntas de pesquisa: qual abordagem acerta mais, como o acerto muda de "
@@ -261,12 +261,12 @@ bullets(s, 0.7, 2.3, 5.6, 2.1,
         ["Qual abordagem acerta mais?",
          "Como o acerto muda de um modelo para outro?",
          "Quanto cada abordagem custa em tokens e em tempo?"], size=18, gap=8)
-panel(s, 0.7, 4.3, 5.6, 1.98)
-textbox(s, 0.85, 4.32, 5.3, 1.95,
+panel(s, 0.7, 4.4, 5.6, 2.3)
+textbox(s, 0.85, 4.45, 5.3, 2.2,
         [("Contribuições", {"bold": True, "size": 16, "color": ACCENT}),
-         ("Eventos transformados em tabela de ações, com contexto, e em grafo.", {"size": 14}),
-         (f"{m('nQuestions')} perguntas com gabarito.", {"size": 14}),
-         (f"{m('nArms')} abordagens em {m('nModels')} modelos, com as mesmas perguntas, prompt e saída.", {"size": 14})], gap=3)
+         ("Eventos transformados em tabela de ações, com contexto, e em grafo.", {"size": 15}),
+         (f"{m('nQuestions')} perguntas com gabarito.", {"size": 15}),
+         (f"{m('nArms')} abordagens em {m('nModels')} modelos, com as mesmas perguntas, prompt e saída.", {"size": 15})], gap=5)
 textbox(s, 6.8, 1.75, 5.8, 0.5, [("Exemplos de pergunta do conjunto", {"bold": True, "size": 20})])
 ex = [("Quem passou para quem",
        "Qual dupla da França mais trocou passes entre si na final?"),
@@ -279,13 +279,31 @@ for head, q in ex:
     panel(s, 6.8, y, 5.8, 1.3, fill=ACCENT_BG)
     textbox(s, 6.95, y + 0.03, 5.5, 1.25, [(head, {"bold": True, "size": 15, "color": ACCENT}), (q, {"size": 15})], gap=2)
     y += 1.35
-panel(s, 0.7, 6.35, 11.9, 0.62, fill=PANEL)
-textbox(s, 0.85, 6.37, 11.6, 0.58,
-        ["Relacionados: no esporte, cada trabalho avalia uma única forma de recuperação (SoccerRAG, SPORTSQL, Tzikas et al.); fora dele, as formas são comparadas sem dados de futebol (Li et al., LOFT)."],
-        size=14, color=INK, anchor=MSO_ANCHOR.MIDDLE)
+# 3 trabalhos relacionados
+s = new_slide(3, "Trabalhos relacionados: cada um avalia uma forma de recuperação por vez",
+              "[1:00] Tabela de posicionamento do artigo. No esporte, os primeiros conjuntos (SportQA) medem o que o modelo sabe, "
+              "sem dados de uma partida, com múltipla escolha. SoccerAgent usa um agente com ferramentas sobre uma base de "
+              "conhecimento. SoccerRAG e SPORTSQL escrevem SQL, sobre anotações de partidas e sobre estatísticas de jogadores; "
+              "Tzikas et al. usam recuperação vetorial sobre eventos, com um LLM como juiz. Cada um avalia uma única forma de "
+              "recuperação. Fora do esporte, Li et al. e LOFT comparam recuperação e contexto longo, mas sem dados esportivos. "
+              "A última linha não está na tabela do artigo: resume a lacuna que o artigo aponta no fim da seção, a de que não "
+              "foram encontrados trabalhos que comparem formas de recuperação em perguntas encadeadas sobre eventos de futebol, "
+              "com conferência por código contra um gabarito calculado por código.")
+rows = [["Trabalho", "Dados", "Formas de recuperação", "Conferência"],
+        ["SportQA", "nenhum (memória do modelo)", "nenhuma", "múltipla escolha"],
+        ["SoccerAgent", "base de conhecimento, imagens e vídeos", "uma (agente com ferramentas)", "múltipla escolha"],
+        ["SoccerRAG", "anotações e comentários de partidas", "uma (SQL), em seis configurações", "manual, contra SQL escrito à mão"],
+        ["SPORTSQL", "estatísticas de jogadores e times", "uma (SQL)", "resposta de referência e LLM como juiz"],
+        ["Tzikas et al.", "eventos de partidas", "uma (recuperação vetorial)", "LLM como juiz"],
+        ["Li et al.", "textos gerais", "duas (recuperação e contexto longo)", "métricas dos conjuntos"],
+        ["LOFT", "textos, tabelas, imagens e áudio", "contexto longo contra sistemas especializados", "métricas dos conjuntos"],
+        ["Este trabalho", "eventos de uma partida", f"{m('nArms')} abordagens, com as mesmas perguntas", "por código, contra gabarito calculado por código"]]
+t = table(s, 0.7, 1.6, 11.9, 5.2, rows, col_w=[2.3, 3.3, 3.2, 3.1], size=14, left=True)
+for c in range(4):
+    t.cell(len(rows) - 1, c).fill.fore_color.rgb = ACCENT_BG
 
 # 3 dados: JSON bruto
-s = new_slide(3, "Os dados: eventos da StatsBomb da final de 2022, em JSON",
+s = new_slide(4, "Os dados: eventos da StatsBomb da final de 2022, em JSON",
               f"[1:30] Os dados são os eventos abertos da StatsBomb: dois arquivos, a lista de eventos da partida, em ordem, e as "
               f"escalações, com nome completo e apelido de cada jogador. São {m('nEvents')} eventos no JSON bruto. O exemplo é o gol de "
               "Di María e o passe de Mac Allister que o precede, resumidos aos campos principais (valores de docs/02 e da Figura 1 do "
@@ -323,7 +341,7 @@ bullets(s, 8.1, 1.7, 4.6, 5.0,
 
 # 4 JSON -> tabela de ações
 ZONE_FROM, ZONE_TO = 74, 92  # zonas do passe de Mac Allister para Di María, como na Figura 1 do artigo
-s = new_slide(4, "Do JSON à tabela de ações: um vocabulário fechado, com contexto acrescentado",
+s = new_slide(5, "Do JSON à tabela de ações: um vocabulário fechado, com contexto acrescentado",
               f"[1:30] Os eventos da partida, sem a disputa de pênaltis, foram convertidos com a biblioteca socceraction para o formato "
               f"SPADL, que guarda só as ações com bola, em um vocabulário fechado e com os mesmos campos em todas. Os {m('nEvents')} eventos "
               f"viram {m('nActions')} ações. Sobre essa tabela foram acrescentadas colunas de contexto: direção de ataque, zona em uma "
@@ -379,7 +397,7 @@ textbox(s, PX - 0.1, PY + PH + 0.05, PW + 0.2, 0.7,
         [f"Grade de {m('nZones')} zonas; passe da zona {ZONE_FROM} para a {ZONE_TO}"], size=14, color=INK, align=PP_ALIGN.CENTER)
 
 # 5 grafo e súmula
-s = new_slide(5, "Da tabela ao grafo: cada ação vira uma aresta, e a súmula é contada pelo banco",
+s = new_slide(6, "Da tabela ao grafo: cada ação vira uma aresta, e a súmula é contada pelo banco",
               f"[1:15] A tabela de ações foi carregada em um grafo Neo4j. Cada ação vira uma aresta do jogador para a partida, com as "
               f"colunas da linha como propriedades; cada passe certo com recebedor vira uma aresta entre dois jogadores. O grafo tem "
               f"{m('nPlayers')} jogadores, {m('nPhases')} fases de posse e {m('nZones')} zonas. As arestas não acrescentam informação à "
@@ -444,7 +462,7 @@ bullets(s, 7.8, 1.7, 4.9, 5.0,
          ("Por que grafo: ", "a análise de futebol trata os passes como rede; caminhos e métricas de rede viram consultas no grafo.")], size=16, gap=9)
 
 # 6 perguntas e gabarito
-s = new_slide(6, f"{m('nQuestions')} perguntas em cinco grupos, com gabarito calculado por código",
+s = new_slide(7, f"{m('nQuestions')} perguntas em cinco grupos, com gabarito calculado por código",
               f"[1:15] Das {m('nQuestions')} perguntas, {m('nAnswerable')} têm resposta nos dados e {m('nControl')} são de controle: a "
               "resposta certa é a ausência de dados, como a distância percorrida por um jogador. As perguntas de busca e contagem "
               "são diretas: a resposta sai de um evento ou de uma soma. Os outros três grupos são encadeados: dependem de ligar "
@@ -463,7 +481,7 @@ textbox(s, 0.7, 6.2, 11.9, 0.7,
         size=15, color=MUTED)
 
 # 7 seis abordagens
-s = new_slide(7, "Seis abordagens para dar os dados ao modelo",
+s = new_slide(8, "Seis abordagens para dar os dados ao modelo",
               "[1:30] Sem dados: só a pergunta, linha de base. "
               f"Contexto longo: a tabela inteira de {m('nActions')} ações no prompt. Estatísticas resumidas: a súmula, com totais por "
               f"jogador e por time. Busca vetorial: as {m('nTopK')} linhas mais parecidas com a pergunta, como em geração aumentada por "
@@ -525,7 +543,7 @@ c_call = A01["text_to_cypher"]["tool_calls"][0]
 g_call = A01["graph_tools"]["tool_calls"][0]
 assert A01["text_to_cypher"]["answer"]["players"] == A01["graph_tools"]["answer"]["players"]
 a01_answer = A01["graph_tools"]["answer"]["players"][0]
-s = new_slide(8, "Mesmo grafo, duas formas de consultar",
+s = new_slide(9, "Mesmo grafo, duas formas de consultar",
               f"[1:15] Registro real de uma execução em cada abordagem com agente, pergunta a01, {m('modelHaiku')}. Na Consulta escrita "
               "pelo modelo, ele chama run_cypher com a consulta Cypher que escreveu, inclusive os filtros de time, ação, sucesso e "
               "terço do campo; a ferramenta executa a consulta no grafo e devolve o resultado. Nas Ferramentas sobre o grafo, o "
@@ -573,12 +591,12 @@ for x, name, acc, step1, code1, step2 in cols:
 
 
 # 8 resultado 1
-s = new_slide(9, f"Ferramentas sobre o grafo: {m('accRangeGraphTools')} de acerto nos {m('nModels')} modelos",
+s = new_slide(10, f"Ferramentas sobre o grafo: {m('accRangeGraphTools')} de acerto nos {m('nModels')} modelos",
               f"[2:15] Acerto nas {m('nAnswerable')} perguntas com resposta, das três abordagens com acesso a todas as ações, com o intervalo de "
               f"Wilson de 95%. A barra azul é Ferramentas sobre o grafo: {m('accRangeGraphTools')} em todos os modelos. Consulta escrita "
               f"pelo modelo: {m('accRangeLowTextToCypher')} nos menores e {m('accRangeHighTextToCypher')} nos maiores. Contexto longo: "
               f"{m('accRangeLowEventsInPrompt')} nos menores e {m('accRangeHighEventsInPrompt')} nos maiores. As outras três ficam baixas e "
-              f"estão no slide 11: Busca vetorial {m('accRangeVector')}, Estatísticas resumidas {m('accRangeStatsInPrompt')} e Sem dados "
+              f"estão no slide 12: Busca vetorial {m('accRangeVector')}, Estatísticas resumidas {m('accRangeStatsInPrompt')} e Sem dados "
               f"{m('accRangeNoContext')}, porque se abstém. Nos maiores, Consulta empata com Ferramentas no Sonnet e fica à frente no "
               "Kimi; os intervalos se sobrepõem. Setup: quatro modelos, dois menores (Haiku e Qwen, sem raciocínio estendido, "
               "temperatura zero) e dois maiores (Sonnet e Kimi, com raciocínio estendido), agrupados pela faixa de preço por token; "
@@ -604,7 +622,7 @@ for ser, a, col in zip(gf.chart.plots[0].series, THREE, [INK, RGBColor(255, 255,
     ser.data_labels.font.size = Pt(14)
     ser.data_labels.font.bold = True
     ser.data_labels.font.color.rgb = col
-textbox(s, 0.7, 6.55, 11.9, 0.4, [f"As outras três abordagens não passam de {m('accMaxOthers')} em nenhum modelo (slide 11)."], size=14, color=INK)
+textbox(s, 0.7, 6.55, 11.9, 0.4, [f"As outras três abordagens não passam de {m('accMaxOthers')} em nenhum modelo (slide 12)."], size=14, color=INK)
 
 # 9 resultado 2: encadeadas
 chain = ["Relações", "Jogadas", "Momento"]
@@ -617,7 +635,7 @@ def chain_acc(model, arm):
     return round(100 * sum(GROUPS[g][1][mi_][ARM_COL[arm]] for g in chain) / n_chain)
 
 
-s = new_slide(10, "Nas perguntas encadeadas, Consulta e Contexto longo dependem do modelo",
+s = new_slide(11, "Nas perguntas encadeadas, Consulta e Contexto longo dependem do modelo",
               f"[1:30] Recorte das {n_chain} perguntas encadeadas (relações na rede de passes, jogadas e antes e depois de uma "
               "substituição). Nos modelos menores, Contexto longo e Consulta caem justamente aqui, e Ferramentas se mantêm: a "
               "consulta parametrizada e o cálculo no código tiram do modelo o trabalho de juntar eventos espalhados. Nos maiores, com "
@@ -640,7 +658,7 @@ textbox(s, 9.15, 1.8, 3.4, 4.6,
          ("Contrapartida: Ferramentas só respondem ao que as ferramentas cobrem.", {"size": 15, "bold": True})], gap=8)
 
 # 10 por que as outras ficam baixas
-s = new_slide(11, "Busca vetorial, Estatísticas resumidas e Sem dados ficam baixas por motivos diferentes",
+s = new_slide(12, "Busca vetorial, Estatísticas resumidas e Sem dados ficam baixas por motivos diferentes",
               f"[1:00] Busca vetorial ({m('accRangeVector')}): traz as {m('nTopK')} linhas mais parecidas com a pergunta, de "
               f"{m('nActions')}. Parecer com a pergunta não é servir para respondê-la; contar exige todas as linhas de um tipo e "
               "ligar eventos exige as linhas vizinhas. Erra por abstenção e por resposta errada, conforme o modelo. Estatísticas "
@@ -663,7 +681,7 @@ for head, val, txt in cards:
     x += 4.05
 
 # 11 custo
-s = new_slide(12, "Contexto longo nos modelos maiores custa milhares de tokens de saída e dezenas de segundos",
+s = new_slide(13, "Contexto longo nos modelos maiores custa milhares de tokens de saída e dezenas de segundos",
               f"[1:15] Mediana por execução das três abordagens com acesso a todas as ações. O Contexto longo leva a tabela inteira em cada "
               f"pergunta, de {m('inRangeEventsInPrompt')} mil tokens de entrada. Nos maiores, produz de {m('outRangeHighEventsInPrompt')} "
               f"tokens de saída, quase todos de raciocínio, e leva de {m('latRangeHighEventsInPrompt')} segundos. Cuidado ao comparar: "
@@ -688,7 +706,7 @@ gf.chart.value_axis.axis_title.text_frame.paragraphs[0].runs[0].text = "Latênci
 gf.chart.plots[0].gap_width = 80
 
 # 13 limitações e conclusão
-s = new_slide(13, "Ferramentas mantiveram o acerto alto, com limites claros",
+s = new_slide(14, "Ferramentas mantiveram o acerto alto, com limites claros",
               f"[1:15] Conclusão: Ferramentas sobre o grafo foi a única abordagem que manteve o acerto alto nos {m('nModels')} modelos, "
               f"{m('accRangeGraphTools')}. Consulta e Contexto longo dependem do modelo; nos maiores, com raciocínio estendido, a "
               "Consulta chegou ao mesmo nível e o Contexto longo se aproximou, este com mais tokens de saída e tempo. Busca vetorial e "
@@ -714,7 +732,7 @@ bullets(s, 7.0, 2.2, 5.6, 4.6,
          ("Agentes ", "supõem chamada de ferramenta confiável.")], size=18, gap=12)
 
 # 14 próximos passos
-s = new_slide(14, "Próximos passos: mais evidência, efeitos separados e outros domínios",
+s = new_slide(15, "Próximos passos: mais evidência, efeitos separados e outros domínios",
               "[1:15] Fecho. Três frentes, todas ligadas às limitações. Primeira, mais evidência: repetir as execuções mede a variação "
               "entre rodadas e permite testar as diferenças entre abordagens, e estender as perguntas a várias partidas tira a "
               "dependência de uma só. Segunda, separar efeitos: avaliar modelos maiores sem raciocínio estendido separa o efeito do "
@@ -724,7 +742,8 @@ s = new_slide(14, "Próximos passos: mais evidência, efeitos separados e outros
               "deles tem a forma dos dados de futebol, registros de eventos com agente, momento e local, ligados entre si, como as "
               "paradas, os alertas e as movimentações de uma linha de produção ou de uma frota. Testar as mesmas abordagens ali é um "
               "próximo passo natural para uma pós em IA aplicada à indústria, mas exige implementação própria: a preparação dos dados, "
-              "o grafo e as ferramentas dependem das perguntas que se quer responder.")
+              "o grafo e as ferramentas dependem das perguntas que se quer responder. Em seguida, abrir para as perguntas; as respostas "
+              "prováveis estão em apresentacao/perguntas-banca.md.")
 cols = [("Mais evidência", ["Repetir as execuções: medir a variação entre rodadas e testar as diferenças entre abordagens.",
                             "Estender as perguntas a várias partidas."], False),
         ("Separar os efeitos", ["Modelos maiores sem raciocínio estendido: tamanho ou raciocínio?",
@@ -734,22 +753,17 @@ cols = [("Mais evidência", ["Repetir as execuções: medir a variação entre r
                              "Com a preparação dos dados, o grafo e as ferramentas feitos para as perguntas do domínio."], True)]
 x = 0.7
 for head, items, acc in cols:
-    panel(s, x, 1.7, 3.8, 4.6, fill=ACCENT_BG if acc else PANEL)
-    textbox(s, x + 0.15, 1.8, 3.5, 0.5, [(head, {"bold": True, "size": 20, "color": ACCENT})])
-    bullets(s, x + 0.15, 2.45, 3.5, 3.8, items, size=18, gap=14)
+    panel(s, x, 1.65, 3.8, 3.85, fill=ACCENT_BG if acc else PANEL)
+    textbox(s, x + 0.15, 1.72, 3.5, 0.5, [(head, {"bold": True, "size": 20, "color": ACCENT})])
+    bullets(s, x + 0.15, 2.3, 3.5, 3.15, items, size=16, gap=10)
     x += 4.05
-
-# 15 perguntas
-s = prs.slides.add_slide(prs.slide_layouts[6])
-panel(s, 0, 0, 13.333, 7.5, fill=INK)
-panel(s, 0.7, 2.4, 0.12, 1.6, fill=ACCENT)
-textbox(s, 1.1, 2.3, 11, 1.8, [("Perguntas", {"size": 54, "bold": True, "color": RGBColor(255, 255, 255)})])
-textbox(s, 1.1, 4.4, 11, 1.8,
-        [("Código, perguntas e gabarito:", {"size": 18, "color": RGBColor(0xBB, 0xBB, 0xBB)}),
-         ("github.com/joaowinderfeldbussolotto/match-events-qa-benchmark", {"size": 20, "color": RGBColor(255, 255, 255)})], gap=6)
-s.notes_slide.notes_text_frame.text = (
-    "Slides de apoio não foram incluídos para respeitar o limite de 15. As respostas às perguntas prováveis estão em "
-    "apresentacao/perguntas-banca.md.")
+panel(s, 0.7, 5.7, 11.9, 1.2, fill=INK)
+panel(s, 0.7, 5.7, 0.12, 1.2, fill=ACCENT)
+textbox(s, 1.0, 5.75, 3.2, 1.1, [("Perguntas", {"size": 36, "bold": True, "color": RGBColor(255, 255, 255)})], anchor=MSO_ANCHOR.MIDDLE)
+textbox(s, 4.3, 5.8, 8.2, 1.0,
+        [("Código, perguntas e gabarito:", {"size": 15, "color": RGBColor(0xBB, 0xBB, 0xBB)}),
+         ("github.com/joaowinderfeldbussolotto/match-events-qa-benchmark", {"size": 18, "color": RGBColor(255, 255, 255)})],
+        gap=2, anchor=MSO_ANCHOR.MIDDLE)
 
 prs.save(OUT)
 print("salvo", OUT, len(prs.slides), "slides")
