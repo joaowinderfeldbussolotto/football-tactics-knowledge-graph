@@ -105,11 +105,11 @@ Em \armEventsInPrompt{}, o modelo recebe a tabela de ações inteira e precisa e
 Nos modelos menores, a abordagem errou sobretudo nas perguntas encadeadas, que exigem juntar eventos espalhados
 pela tabela. Isso é compatível com dois resultados conhecidos. Os modelos usam pior a informação que está no meio
 de um contexto longo~\cite{liu2024lostinthemiddle} e têm dificuldade com raciocínio composicional quando recebem o
-corpus inteiro~\cite{lee2024loft}. Nos modelos maiores, com raciocínio estendido, o acerto se aproximou do das
-abordagens com agente. O custo aparece na Tabela~\ref{tab:custo}: milhares de tokens de raciocínio e dezenas de
-segundos por pergunta. Li et al.~\cite{li2024ragorlongcontext} observaram que, com recursos suficientes, o contexto
-longo supera a recuperação. Aqui ele superou \armVector{} em todos os modelos, mas só chegou perto das abordagens
-com agente quando o modelo raciocinou longamente.
+corpus inteiro~\cite{lee2024loft}. Li et al.~\cite{li2024ragorlongcontext} observaram que, com recursos
+suficientes, o contexto longo supera a recuperação. Aqui, ele superou a \armVector{} em todos os modelos. Diante de
+outra forma de recuperação, a consulta ao grafo das abordagens com agente, chegou perto nos modelos maiores, com
+raciocínio estendido, mas consumiu muito mais recursos: milhares de tokens de raciocínio e dezenas de segundos por
+pergunta (Tabela~\ref{tab:custo}).
 
 A \armVector{} ficou baixa em todos os modelos. A busca traz as \nTopK{} linhas, de um total de \nActions{}, cujo
 texto mais se parece com o da pergunta. Parecer com a pergunta não é o mesmo que servir para respondê-la. Quando a
