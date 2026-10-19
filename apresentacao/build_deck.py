@@ -592,7 +592,7 @@ for x, name, acc, step1, code1, step2 in cols:
 
 # 8 resultado 1
 s = new_slide(10, f"Ferramentas sobre o grafo: {m('accRangeGraphTools')} de acerto nos {m('nModels')} modelos",
-              f"[2:15] Acerto nas {m('nAnswerable')} perguntas com resposta, das três abordagens com acesso a todas as ações, com o intervalo de "
+              f"[2:15] Acerto nas {m('nAnswerable')} perguntas com resposta, das três abordagens que mais acertaram, com o intervalo de "
               f"Wilson de 95%. A barra azul é Ferramentas sobre o grafo: {m('accRangeGraphTools')} em todos os modelos. Consulta escrita "
               f"pelo modelo: {m('accRangeLowTextToCypher')} nos menores e {m('accRangeHighTextToCypher')} nos maiores. Contexto longo: "
               f"{m('accRangeLowEventsInPrompt')} nos menores e {m('accRangeHighEventsInPrompt')} nos maiores. As outras três ficam baixas e "
@@ -622,7 +622,7 @@ for ser, a, col in zip(gf.chart.plots[0].series, THREE, [INK, RGBColor(255, 255,
     ser.data_labels.font.size = Pt(14)
     ser.data_labels.font.bold = True
     ser.data_labels.font.color.rgb = col
-textbox(s, 0.7, 6.55, 11.9, 0.4, [f"As outras três abordagens não passam de {m('accMaxOthers')} em nenhum modelo (slide 12)."], size=14, color=INK)
+textbox(s, 0.7, 6.55, 11.9, 0.4, [f"As outras três acertaram pouco: {ARM_NAME['Vector']} {m('accRangeVector')}, {ARM_NAME['StatsInPrompt']} {m('accRangeStatsInPrompt')}, {ARM_NAME['NoContext']} {m('accRangeNoContext')} (slide 12)."], size=14, color=INK)
 
 # 9 resultado 2: encadeadas
 chain = ["Relações", "Jogadas", "Momento"]
@@ -639,7 +639,8 @@ s = new_slide(11, "Nas perguntas encadeadas, Consulta e Contexto longo dependem 
               f"[1:30] Recorte das {n_chain} perguntas encadeadas (relações na rede de passes, jogadas e antes e depois de uma "
               "substituição). Nos modelos menores, Contexto longo e Consulta caem justamente aqui, e Ferramentas se mantêm: a "
               "consulta parametrizada e o cálculo no código tiram do modelo o trabalho de juntar eventos espalhados. Nos maiores, com "
-              "raciocínio estendido, as três se aproximam. Ressalva: tamanho e raciocínio vieram juntos, então não dá para separar o "
+              "raciocínio estendido, as três se aproximam. O Contexto longo superou a Busca vetorial em todos os modelos, mas, diante "
+              "da consulta ao grafo, só chegou perto nos maiores, com raciocínio estendido e muito mais custo (slide 13). Ressalva: tamanho e raciocínio vieram juntos, então não dá para separar o "
               "efeito de um do outro. A interpretação é compatível com a literatura de contexto longo (informação no meio do contexto, "
               "raciocínio composicional) e com a dificuldade de LLMs em gerar Cypher.",
               kicker=f"Acerto nas {n_chain} perguntas encadeadas com resposta (soma dos grupos Relações, Jogadas e Momento).")
@@ -682,7 +683,8 @@ for head, val, txt in cards:
 
 # 11 custo
 s = new_slide(13, "Contexto longo nos modelos maiores custa milhares de tokens de saída e dezenas de segundos",
-              f"[1:15] Mediana por execução das três abordagens com acesso a todas as ações. O Contexto longo leva a tabela inteira em cada "
+              f"[1:15] O custo considera só as três abordagens que mais acertaram; nas outras, que não passaram de {m('accMaxOthers')}, "
+              "o custo pouco importa. Mediana por execução. O Contexto longo leva a tabela inteira em cada "
               f"pergunta, de {m('inRangeEventsInPrompt')} mil tokens de entrada. Nos maiores, produz de {m('outRangeHighEventsInPrompt')} "
               f"tokens de saída, quase todos de raciocínio, e leva de {m('latRangeHighEventsInPrompt')} segundos. Cuidado ao comparar: "
               "Ferramentas não usa cache de prompt e Consulta usa, então a latência mistura as duas condições; no Contexto longo, a "
@@ -704,6 +706,7 @@ gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(5.2), Inches(1.55
 style_chart(gf.chart, [GRAYS[2], GRAYS[4], ACCENT], size=14)
 gf.chart.value_axis.axis_title.text_frame.paragraphs[0].runs[0].text = "Latência mediana (s)"
 gf.chart.plots[0].gap_width = 80
+textbox(s, 0.7, 6.55, 4.2, 0.4, [f"Custo só das três que mais acertaram."], size=14, color=MUTED)
 
 # 13 limitações e conclusão
 s = new_slide(14, "Ferramentas mantiveram o acerto alto, com limites claros",
