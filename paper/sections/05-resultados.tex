@@ -43,12 +43,14 @@ modelo: ficaram abaixo dela nos modelos menores; nos maiores, a \armTextToCypher
 \armEventsInPrompt{} se aproximou. Nos modelos menores, a diferença se concentrou nas perguntas de jogadas e de
 relações na rede de passes.
 
-As outras três abordagens não passaram de \accMaxOthers{} em nenhum modelo. As abordagens \armNoContext{} e
-\armStatsInPrompt{} erraram quase só por abstenção, respondendo que não havia dados; a \armVector{} errou por
-abstenção e por alucinação, em proporções que variaram com o modelo. Nessas três, a abstenção foi
-rara, exceto em \armEventsInPrompt{} nos modelos menores, e a alucinação, isto é, uma resposta dada e errada, ficou
-em \hallRangeGraphTools{} das execuções em \armGraphTools{}, \hallRangeTextToCypher{} em \armTextToCypher{} e
-\hallRangeEventsInPrompt{} em \armEventsInPrompt{}, conforme o modelo.
+As outras três abordagens acertaram pouco em todos os modelos: a \armVector{}, de \accRangeVector{}; as
+\armStatsInPrompt{}, de \accRangeStatsInPrompt{}; e a abordagem \armNoContext{}, \accRangeNoContext{}. As abordagens
+\armNoContext{} e \armStatsInPrompt{} erraram quase só por abstenção, respondendo que não havia dados; a
+\armVector{} errou por abstenção e por alucinação, em proporções que variaram com o modelo. Nas três abordagens com
+acesso a todas as ações, a abstenção foi rara, exceto em \armEventsInPrompt{} nos modelos menores, e a alucinação,
+isto é, uma resposta dada e errada, ficou em \hallRangeGraphTools{} das execuções em \armGraphTools{},
+\hallRangeTextToCypher{} em \armTextToCypher{} e \hallRangeEventsInPrompt{} em \armEventsInPrompt{}, conforme o
+modelo.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
