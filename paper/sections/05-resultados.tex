@@ -38,25 +38,26 @@ Science~\cite{neo4j_gds}, networkx~\cite{networkx}, PydanticAI~\cite{pydanticai}
 
 \subsubsection{Acerto}
 
-A Figura~\ref{fig:modelos} mostra o acerto das três abordagens com acesso a todas as ações da partida (\armEventsInPrompt{}, \armTextToCypher{} e \armGraphTools{}) nas \nAnswerable{} perguntas com resposta. A abordagem \armGraphTools{} variou pouco entre os modelos (\accRangeGraphTools{}). As outras duas dependeram do
-modelo: ficaram abaixo dela nos modelos menores; nos maiores, a \armTextToCypher{} chegou ao mesmo nível, e o
+A Figura~\ref{fig:modelos} mostra o acerto, nas \nAnswerable{} perguntas com resposta, das três abordagens que mais
+acertaram em todos os modelos: \armEventsInPrompt{}, \armTextToCypher{} e \armGraphTools{}. A abordagem
+\armGraphTools{} variou pouco entre os modelos (\accRangeGraphTools{}). As outras duas dependeram do modelo:
+ficaram abaixo dela nos modelos menores; nos maiores, a \armTextToCypher{} chegou ao mesmo nível, e o
 \armEventsInPrompt{} se aproximou. Nos modelos menores, a diferença se concentrou nas perguntas de jogadas e de
 relações na rede de passes.
 
 As outras três abordagens acertaram pouco em todos os modelos: a \armVector{}, de \accRangeVector{}; as
-\armStatsInPrompt{}, de \accRangeStatsInPrompt{}; e a abordagem \armNoContext{}, \accRangeNoContext{}. As abordagens
-\armNoContext{} e \armStatsInPrompt{} erraram quase só por abstenção, respondendo que não havia dados; a
-\armVector{} errou por abstenção e por alucinação, em proporções que variaram com o modelo. Nas três abordagens com
-acesso a todas as ações, a abstenção foi rara, exceto em \armEventsInPrompt{} nos modelos menores, e a alucinação,
-isto é, uma resposta dada e errada, ficou em \hallRangeGraphTools{} das execuções em \armGraphTools{},
-\hallRangeTextToCypher{} em \armTextToCypher{} e \hallRangeEventsInPrompt{} em \armEventsInPrompt{}, conforme o
-modelo.
+\armStatsInPrompt{}, de \accRangeStatsInPrompt{}; e a abordagem \armNoContext{}, \accRangeNoContext{}. As
+abordagens \armNoContext{} e \armStatsInPrompt{} erraram quase só por abstenção, respondendo que não havia dados; a
+\armVector{} errou por abstenção e por alucinação, em proporções que variaram com o modelo. Nas três que mais
+acertaram, a abstenção foi rara, exceto em \armEventsInPrompt{} nos modelos menores, e a alucinação, isto é, uma
+resposta dada e errada, ficou em \hallRangeGraphTools{} das execuções em \armGraphTools{}, \hallRangeTextToCypher{}
+em \armTextToCypher{} e \hallRangeEventsInPrompt{} em \armEventsInPrompt{}, conforme o modelo.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
 \centering
 \gentable{fig_models}
-\captionof{figure}{Acerto das três abordagens com acesso a todas as ações nas perguntas com resposta, por modelo, com o
+\captionof{figure}{Acerto das três abordagens que mais acertaram, nas perguntas com resposta, por modelo, com o
 intervalo de Wilson de \ciLevel{}. A área cinza marca os modelos maiores. \armShortEventsInPrompt{}, \armShortTextToCypher{} e
 \armShortGraphTools{} abreviam \armEventsInPrompt{}, \armTextToCypher{} e \armGraphTools{}.}\label{fig:modelos}
 \end{minipage}\par\smallskip
@@ -73,7 +74,7 @@ limites: o agente esgotou as chamadas de ferramenta, ou o modelo esgotou o limit
 \noindent\begin{minipage}{\columnwidth}
 \centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{5pt}
 \gentable{cost_models}
-\captionof{table}{Mediana por execução das três abordagens com acesso a todas as ações, por modelo. Os tokens de entrada
+\captionof{table}{Mediana por execução das três abordagens que mais acertaram, por modelo. Os tokens de entrada
 incluem os lidos do cache do prompt. Rótulos como na Figura~\ref{fig:modelos}.}\label{tab:custo}
 \end{minipage}\par\smallskip
 
