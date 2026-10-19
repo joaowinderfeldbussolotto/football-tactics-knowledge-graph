@@ -82,24 +82,22 @@ incluem os lidos do cache do prompt. Rótulos como na Figura~\ref{fig:modelos}.}
 
 \subsection{Discussão}\label{sec:discussao}
 
-A abordagem \armGraphTools{} foi a única com acerto alto nos \nModels{} modelos, de \accRangeLowGraphTools{} nos
-menores e \accRangeHighGraphTools{} nos maiores. Nela, o modelo escolhe a ferramenta e os argumentos, e o código
-monta e executa a consulta. Contar os passes entre dois jogadores ou percorrer uma jogada fica a cargo do código, o
-que é compatível com o acerto quase igual nos dois grupos de modelos.
+A abordagem \armGraphTools{} foi a única com acerto alto nos \nModels{} modelos. Nela, o modelo escolhe a
+ferramenta e os argumentos, e o código monta a consulta e faz as contas, como contar os passes entre dois jogadores
+ou percorrer uma jogada. Isso é compatível com o acerto quase igual nos dois grupos de modelos.
 
 A contrapartida é a cobertura. A abordagem \armGraphTools{} só responde a perguntas para as quais existe uma
 ferramenta. Em \armEventsInPrompt{}, o modelo recebe todas as ações, e em \armTextToCypher{}, pode escrever
 qualquer consulta de leitura sobre o grafo. Nessas duas, o que limita a resposta é a capacidade do modelo, e não um
 conjunto fixo de operações.
 
-Em \armTextToCypher{}, o modelo escreve a consulta inteira, e o acerto subiu dos modelos menores para os maiores.
-Gerar consultas Cypher corretas ainda é um ponto fraco dos LLMs~\cite{ozsoy2025text2cypher}. Os modelos menores
-precisaram de mais tentativas para chegar a uma consulta útil, e no \modelQwen{} foram em média
-\callsQwenTextToCypher{} chamadas por pergunta, perto do limite de \nMaxCalls{}. Nos modelos maiores, o acerto
-ficou próximo ao de \armGraphTools{}, com menos tokens de entrada (\inRangeHighTextToCypher{} mil, contra
-\inRangeHighGraphTools{} mil) e mais tokens de saída. A liberdade de escrever a consulta só se converteu em acerto
-nos modelos maiores. Nem todo modelo é capaz de usá-la, e, nos menores, as consultas parametrizadas de
-\armGraphTools{} supriram essa limitação.
+Em \armTextToCypher{}, o modelo escreve a consulta inteira. Gerar consultas Cypher corretas ainda é um ponto fraco
+dos LLMs~\cite{ozsoy2025text2cypher}. Os modelos menores precisaram de mais tentativas para chegar a uma consulta
+útil, e no \modelQwen{} foram em média \callsQwenTextToCypher{} chamadas por pergunta, perto do limite de
+\nMaxCalls{}. Nos modelos maiores, o acerto ficou próximo ao de \armGraphTools{}, com menos tokens de entrada
+(\inRangeHighTextToCypher{} mil, contra \inRangeHighGraphTools{} mil) e mais tokens de saída. A liberdade de
+escrever a consulta só se converteu em acerto nos modelos maiores. Nem todo modelo é capaz de usá-la, e, nos
+menores, as consultas parametrizadas de \armGraphTools{} supriram essa limitação.
 
 Em \armEventsInPrompt{}, o modelo recebe a tabela de ações inteira e precisa encontrar e combinar as linhas certas.
 Nos modelos menores, a abordagem errou sobretudo nas perguntas encadeadas, que exigem juntar eventos espalhados
