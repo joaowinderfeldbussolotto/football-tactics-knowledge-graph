@@ -57,18 +57,20 @@ em \armTextToCypher{} e \hallRangeEventsInPrompt{} em \armEventsInPrompt{}, conf
 \noindent\begin{minipage}{\columnwidth}
 \centering
 \gentable{fig_models}
-\captionof{figure}{Acerto das três abordagens que mais acertaram, nas perguntas com resposta, por modelo, com o
-intervalo de Wilson de \ciLevel{}. A área cinza marca os modelos maiores. \armShortEventsInPrompt{}, \armShortTextToCypher{} e
-\armShortGraphTools{} abreviam \armEventsInPrompt{}, \armTextToCypher{} e \armGraphTools{}.}\label{fig:modelos}
+\captionof{figure}{Acerto de \armEventsInPrompt{} (\armShortEventsInPrompt{}), \armTextToCypher{}
+(\armShortTextToCypher{}) e \armGraphTools{} (\armShortGraphTools{}) nas perguntas com resposta, por modelo, com o
+intervalo de Wilson de \ciLevel{}. A área cinza marca os modelos maiores.}\label{fig:modelos}
 \end{minipage}\par\smallskip
 
 \subsubsection{Custo}
 
-A Tabela~\ref{tab:custo} mostra as medianas, por execução, dos tokens de entrada e de saída e da latência. O
-\armEventsInPrompt{} leva a tabela de ações inteira em cada pergunta, de \inRangeEventsInPrompt{} mil tokens de
-entrada. Nos modelos maiores, também produziu de \outRangeHighEventsInPrompt{} tokens de saída, quase todos
-de raciocínio, e levou de \latRangeHighEventsInPrompt{} segundos. Os erros de formato vieram, na maior parte, de
-limites: o agente esgotou as chamadas de ferramenta, ou o modelo esgotou o limite de saída.
+A análise de custo considera só as três abordagens que mais acertaram; nas outras, que não passaram de
+\accMaxOthers{} de acerto, o custo pouco importa. A Tabela~\ref{tab:custo} mostra as medianas, por execução, dos
+tokens de entrada e de saída e da latência. O \armEventsInPrompt{} leva a tabela de ações inteira em cada pergunta,
+de \inRangeEventsInPrompt{} mil tokens de entrada. Nos modelos maiores, também produziu de
+\outRangeHighEventsInPrompt{} tokens de saída, quase todos de raciocínio, e levou de \latRangeHighEventsInPrompt{}
+segundos. Os erros de formato vieram, na maior parte, de limites: o agente esgotou as chamadas de ferramenta, ou o
+modelo esgotou o limite de saída.
 
 \vspace{2mm}
 \noindent\begin{minipage}{\columnwidth}
