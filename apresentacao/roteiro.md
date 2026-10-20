@@ -1,6 +1,108 @@
-# Roteiro de fala, slides 8 a 15
+# Roteiro de fala, slides 1 a 15
 
-Tempo estimado: cerca de 10 minutos. `[pausa]` marca uma respiração de 1 a 2 segundos.
+Tempo estimado: cerca de 19 minutos (Daniel nos slides 1 a 7, cerca de 9 min; João Victor nos slides 8 a 15,
+cerca de 10 min). `[pausa]` marca uma respiração de 1 a 2 segundos.
+
+---
+
+## Slide 1 · Capa (≈ 0:20)
+
+Boa noite a todos. Eu sou o Daniel, e esse é o João Victor. A gente vai apresentar o nosso trabalho, que compara seis
+formas de entregar os dados de uma partida de futebol pra um modelo de linguagem responder perguntas sobre ela.
+
+---
+
+## Slide 2 · Pergunta de pesquisa (≈ 1:30)
+
+Hoje, um modelo de linguagem consegue responder perguntas em linguagem natural, mas pra falar de uma partida
+específica ele precisa receber os dados dela. E pergunta de análise de futebol quase nunca tem a resposta num lance
+só. Por exemplo, qual dupla da França mais trocou passes, ou, depois que o Dembélé saiu, quem mais passou a bola pro
+Mbappé. Pra responder isso, você precisa ligar vários eventos entre si.
+
+[pausa] Então a nossa pergunta foi qual é a melhor forma de levar esses dados até o modelo. A gente quis saber qual
+abordagem acerta mais, se isso muda de um modelo pra outro e quanto cada uma custa em tokens e em tempo.
+
+E o trabalho entrega três coisas. Uma transformação dos eventos da partida numa tabela de ações e num grafo, um
+conjunto de 52 perguntas com gabarito, e a comparação de seis abordagens em quatro modelos, todas com as mesmas
+perguntas, o mesmo prompt e o mesmo formato de resposta.
+
+---
+
+## Slide 3 · Trabalhos relacionados (≈ 1:10)
+
+Antes de entrar nos dados, rapidinho sobre os trabalhos relacionados. Essa tabela resume o que a gente encontrou. No
+esporte, tem conjuntos que só testam o que o modelo já sabe, com múltipla escolha, como o SportQA. E tem sistemas que
+ligam o modelo a dados de partidas, como o SoccerRAG e o SPORTSQL, que escrevem SQL, e o trabalho do Tzikas, que usa
+busca vetorial sobre eventos. Só que cada um testa uma forma de recuperação por vez.
+
+Fora do esporte, trabalhos como o LOFT e o do Li comparam contexto longo com recuperação, mas sem dados de futebol.
+
+[pausa] Então a lacuna que a gente viu é essa última linha. Comparar várias formas de recuperação, com as mesmas
+perguntas, em eventos de futebol, e com a correção feita por código, sem um LLM dando nota.
+
+---
+
+## Slide 4 · Os dados em JSON (≈ 1:20)
+
+Os dados são da StatsBomb, que publica de graça os eventos de várias partidas. A gente usou a final da Copa de 2022,
+Argentina e França. São dois arquivos, a lista de eventos em ordem e as escalações.
+
+O JSON bruto tem mais de 4.400 eventos, e cada evento tem o tipo, o tempo, o time, o jogador e a posição no campo.
+Esse exemplo aqui é o passe do Mac Allister e o gol do Di María, logo em seguida.
+
+E esse formato tem algumas armadilhas. Cada tipo de evento tem campos próprios, então o passe traz o recebedor e o
+chute traz o resultado. A mesma informação pode estar em lugares diferentes, como o cartão amarelo, que às vezes vem
+dentro da falta e às vezes num evento separado. E o nome é o de registro, não o apelido, e o minuto conta o tempo
+decorrido. Então esse gol, que aparece no minuto 35 do JSON, na transmissão foi aos 36.
+
+---
+
+## Slide 5 · Do JSON à tabela de ações (≈ 1:30)
+
+Por isso, o primeiro passo foi transformar esses eventos numa tabela. A gente usou a biblioteca socceraction, que
+converte os eventos pro formato SPADL. Esse formato guarda só as ações com bola, num vocabulário fechado, e todas com
+os mesmos campos. Os eventos viraram 2.585 ações.
+
+Em cima disso, a gente acrescentou colunas de contexto. Todas as ações passam a atacar da esquerda pra direita, pros
+dois times. Cada ação ganha a zona do campo onde começou e onde terminou. O passe ganha o recebedor, que é o jogador
+do mesmo time que age em seguida. As ações são agrupadas em fases de posse, que é como a gente identifica as jogadas.
+E cada linha tem o placar e o minuto da transmissão. Além disso, a gente recuperou do JSON o que o SPADL perde, como o
+desfecho do chute e o cartão sem falta.
+
+[pausa] Esse campo do lado mostra a grade de zonas, e o passe do Mac Allister pro Di María sai de uma zona e termina
+na outra, já perto do gol. E é essa tabela, inteira, que a abordagem de contexto longo entrega pro modelo.
+
+---
+
+## Slide 6 · Da tabela ao grafo (≈ 1:20)
+
+Depois, essa tabela foi carregada num grafo, no Neo4j. Cada ação vira uma ligação do jogador pra partida, com as
+colunas da tabela, e cada passe certo com recebedor vira uma ligação de um jogador pro outro. Os outros nós são os
+times, as fases de posse e as zonas do campo.
+
+Essas ligações não acrescentam informação, elas só reorganizam a tabela. A única coisa calculada é a súmula, que o
+próprio banco conta, com os totais de cada jogador e de cada time, separando o que foi tentado e o que deu certo.
+
+[pausa] E por que um grafo? Porque a análise de futebol já trata os passes de um time como uma rede, com os
+jogadores ligados pelos passes. Então perguntas como qual dupla mais trocou passes, ou por qual jogador a bola mais
+circula, viram caminhos e métricas nesse grafo.
+
+---
+
+## Slide 7 · Perguntas e gabarito (≈ 1:20)
+
+Com os dados prontos, a gente escreveu as perguntas. São 52, divididas em cinco grupos. Busca e contagem são as mais
+diretas, como quem recebeu o primeiro cartão amarelo. Relações na rede de passes, jogadas e sequências, e antes e
+depois de uma substituição são as encadeadas, em que você precisa ligar um evento ao outro.
+
+E tem o grupo de controle, com perguntas que não têm resposta nesses dados, como a distância que o De Paul percorreu.
+Aí a resposta certa é o modelo dizer que não tem a informação.
+
+[pausa] O gabarito de cada pergunta foi calculado por código, a partir do JSON e da tabela de ações, e as perguntas
+que davam margem pra mais de uma leitura saíram do conjunto. A correção também é por código, então a mesma resposta
+sempre recebe a mesma nota.
+
+Agora o João Victor vai mostrar as seis abordagens que a gente comparou e os resultados.
 
 ---
 
