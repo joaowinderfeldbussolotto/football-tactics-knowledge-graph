@@ -1,0 +1,38 @@
+# Modelos avaliados, na ordem das colunas das tabelas (os dois menores, depois os dois maiores). O primeiro é o principal: os números sem prefixo de
+# modelo (\accGraphTools...), a tabela por grupo e o resto do texto vêm dele. Para acrescentar um modelo,
+# acrescente uma entrada e rode python scripts/paper_numbers.py; as macros com prefixo (\accQwenGraphTools...)
+# e as tabelas por modelo passam a incluí-lo.
+# short: nome curto, para o cabeçalho das tabelas. tier: grupo do modelo (baixo: menores, sem raciocínio
+# estendido; alto: maiores, com raciocínio estendido), pela posição na linha do fabricante; o grupo alto aparece
+# sombreado no gráfico.
+# usd: custo real da rodada, lido do consumo da chave antes e depois (página da execução em docs/execucoes/).
+models:
+  - key: Haiku
+    tier: baixo
+    name: Claude Haiku 5.5
+    short: Haiku
+    results: data/benchmark/final_results.jsonl
+    usd: 1.04
+  - key: Qwen
+    tier: baixo
+    name: Qwen3.8-flash
+    short: Qwen
+    results: data/benchmark/qwen_results.jsonl
+    usd: 0.48
+  # Sonnet 4.6: chamada direta ao Bedrock (us-east-2), raciocínio "medium" com temperatura 1, exceto no
+  # events_in_prompt, que usa "low" (com "medium" o raciocínio esgotava o teto de 16 mil tokens em 19 das 52
+  # perguntas); as 6 que ainda estouraram com "low" foram refeitas com teto de 32 mil. O arquivo combina as
+  # três rodadas; usd é a soma delas (mais a amostra "medium" de 32 mil), calculada pelos tokens. Ver
+  # paper/OUTROS_MODELOS.md.
+  - key: Sonnet
+    tier: alto
+    name: Claude Sonnet 4.6
+    short: Sonnet
+    results: data/benchmark/sonnet46_combined_results.jsonl
+    usd: 28.01
+  - key: Kimi
+    tier: alto
+    name: Kimi K3
+    short: Kimi
+    results: data/benchmark/kimi_k3_results.jsonl
+    usd: 33.40

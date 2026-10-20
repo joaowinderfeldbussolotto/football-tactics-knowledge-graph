@@ -1,0 +1,21 @@
+use	avoid	note
+abordagem	braço|braços|arm|arms|forma de acesso|formas de acesso	uma das seis maneiras comparadas de dar os dados ao modelo ("formas de acesso" só no título)
+degrau	nível da escada|etapa da escada	posição na escada de abstração
+primeiro contato	first contact|primeira medição	medição sem ajuste guiado por erro
+gabarito	ground truth|gold standard|resposta de ouro	resposta certa calculada sem o sistema avaliado
+execução	run|runs	uma pergunta em uma abordagem em uma repetição; "rodada" é o conjunto
+repetição	repeat|repeats|réplica|replicação	vezes que cada pergunta é feita à mesma abordagem
+acerto	acurácia|accuracy	proporção de execuções corrigidas como certas
+consulta	query|queries	consulta Cypher, escrita pelo modelo ou pela ferramenta
+ferramentas prontas	tools prontas|ferramentas pré-prontas	graph_tools: a consulta é parametrizada na ferramenta; o modelo só define os argumentos
+abstenção	recusa	resposta "sem dados" a uma pergunta que tem resposta
+Sem dados	sem contexto	nome da abordagem no_context; use \armNoContext
+Busca vetorial	RAG vetorial|busca semântica	nome da abordagem vector; use \armVector
+Contexto longo	eventos no prompt|tabela no prompt	nome da abordagem events_in_prompt; use \armEventsInPrompt ("eventos brutos" são os dados da StatsBomb, não o braço)
+Estatísticas resumidas	estatísticas no prompt|estatísticas prontas	nome da abordagem stats_in_prompt; use \armStatsInPrompt
+Consulta escrita pelo modelo	text-to-cypher|texto para cypher|texto-para-consulta	nome da abordagem text_to_cypher; use \armTextToCypher
+Ferramentas sobre o grafo	graph tools|ferramentas do grafo	nome da abordagem graph_tools; use \armGraphTools; "ferramentas prontas" descreve a consulta parametrizada
+pergunta encadeada	pergunta relacional|perguntas relacionais|pergunta composta|perguntas compostas|multi-hop	resposta depende sobretudo de ligar eventos entre si (rede de passes, jogadas, antes e depois de um momento)
+pergunta direta	pergunta simples|perguntas simples|pergunta factual|perguntas factuais	resposta sai de um evento ou de uma soma (grupo busca e contagem)
+geração aumentada por recuperação	recuperação aumentada por geração	RAG (Lewis et al.); a ordem inversa troca o sentido
+aprendizado em contexto	in-context learning|aprendizagem em contexto	dados entregues no contexto, sem treinar o modelo (Brown et al.)

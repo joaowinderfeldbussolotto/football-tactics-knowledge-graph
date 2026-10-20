@@ -1,0 +1,16 @@
+% Resumo: ambiente abstract e palavras-chave, como no template da disciplina (src/abstract.tex no Overleaf).
+% Resultado só qualitativo, sem números (pedido do autor); termina no último resultado, sem frase de implicação.
+
+\begin{abstract}
+Modelos de linguagem permitem fazer perguntas em linguagem natural sobre dados de eventos de futebol, mas os dados
+da partida precisam chegar ao contexto do modelo. Este trabalho transforma os eventos da final da Copa do Mundo de
+2022 em uma tabela de ações e em um grafo, no qual cada ação liga um jogador à partida, e compara \nArms{}
+abordagens de aprendizado em contexto para dar esses dados ao modelo: sem dados, a tabela de ações inteira no
+prompt, estatísticas resumidas, busca vetorial, consulta escrita pelo modelo na linguagem do grafo (Cypher) e
+ferramentas com consultas parametrizadas sobre o grafo. A avaliação usou \nQuestions{} perguntas sobre a partida,
+em \nModels{} modelos, dois menores e dois maiores. As ferramentas sobre o grafo foram a única abordagem com acerto
+alto em todos os modelos. A consulta escrita pelo modelo só alcançou esse nível nos modelos maiores, com raciocínio estendido. Nesses modelos, a tabela inteira no prompt também chegou perto, mas gastou mais tokens de saída e mais tempo por pergunta. A busca vetorial e as estatísticas resumidas acertaram pouco em todos os modelos.
+\end{abstract}
+
+\noindent\textbf{Palavras-chave:} modelos de linguagem, aprendizado em contexto, recuperação de dados, grafos,
+dados de eventos de futebol.

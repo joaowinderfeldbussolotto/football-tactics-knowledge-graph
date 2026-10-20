@@ -1,0 +1,46 @@
+% F: registro real (trace do Langfuse) de uma execução nas duas abordagens com agente, pergunta a01, Claude Haiku 5.5.
+% Consulta, argumentos e saídas copiados dos traces da rodada final (final_results.jsonl, campo trace_url);
+% trechos longos abreviados com [...]. As duas abordagens acertaram a a01 nos quatro modelos.
+% Sem tabular: só parágrafos com recuo e filetes, para sair igual em qualquer versão do TeX Live (com o pacote
+% array de 2026, células p{} com caixas internas sobrepunham as linhas no Overleaf).
+% Usa \ttfamily e \char34 (e não verbatim) porque o babel torna a aspa dupla ativa e o verbatim quebra acentos.
+\providecommand{\jq}{\char34{}}
+\newlength{\traceind}\setlength{\traceind}{0.23\columnwidth}
+\newcommand{\tracerule}[1]{\par\vspace{2pt}\noindent\rule{\columnwidth}{#1}\par\vspace{3pt}}
+\newcommand{\tracehead}[1]{\par\noindent\textbf{#1}\par\vspace{2pt}}
+\newcommand{\tracestep}[2]{\par\noindent\hangindent=\traceind\hangafter=1\makebox[\traceind][l]{\itshape #1}#2\par}
+\newcommand{\tracecode}[1]{{\raggedright\leftskip=\traceind\ttfamily\scriptsize\frenchspacing\vspace{2pt}#1\par}\vspace{3pt}}
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\footnotesize\raggedright\setlength{\parindent}{0pt}
+\tracerule{0.8pt}
+Pergunta (a01): Quem deu mais passes certos no terço final do campo pela Argentina?
+\tracerule{0.5pt}
+\tracehead{\armTextToCypher{}}
+\tracestep{Modelo}{chama \texttt{run\_cypher} com a consulta que escreveu:}
+\tracecode{MATCH (j:Jogador)-[r:REALIZOU]->\\
+\ \ (p:Partida [...])\\
+WHERE j.time = 'Argentina'\\
+\ \ AND r.acao = 'passe' AND r.sucesso = true\\
+\ \ AND r.terco = 'ataque' [...]\\
+RETURN j.nome AS jogador,\\
+\ \ count(r) AS passes\_certos\_terco\_final\\
+ORDER BY passes\_certos\_terco\_final DESC\\
+LIMIT 10}
+\tracestep{Ferramenta}{executa essa consulta no grafo e devolve:}
+\tracecode{Lionel Andrés Messi Cuccittini: 24\\ Alexis Mac Allister: 18 [...]}
+\tracestep{Modelo}{responde: Lionel Andrés Messi Cuccittini}
+\tracerule{0.5pt}
+\tracehead{\armGraphTools{}}
+\tracestep{Modelo}{escolhe \texttt{query\_actions} e preenche os argumentos:}
+\tracecode{filters: \{team: \jq Argentina\jq,\\
+\ \ action: [\jq passe\jq], success: true,\\
+\ \ third: \jq attacking\jq\},\\
+group\_by: [\jq player\jq], top: 5}
+\tracestep{Ferramenta}{executa a consulta parametrizada do seu código, com esses filtros, e devolve:}
+\tracecode{Lionel Andrés Messi Cuccittini: 24\\ Alexis Mac Allister: 18 [...]}
+\tracestep{Modelo}{responde: Lionel Andrés Messi Cuccittini}
+\tracerule{0.8pt}
+\captionof{figure}{Registro real de uma execução em cada abordagem com agente (\modelHaiku{}, pergunta a01).
+Nesta pergunta, uma chamada bastou nas duas abordagens; em outras, o modelo fez várias. Saídas abreviadas com [...].}\label{fig:trace}
+\end{minipage}\par\smallskip

@@ -237,7 +237,8 @@ async def similar_events(text: str, k: int = VECTOR_TOP_K) -> list[str]:
 # --------------------------------------------------------------------------- agents
 
 def _model_settings() -> dict:
-    return {**pydantic_ai_model_settings(get_settings()), "temperature": 0.0}
+    # Temperature 0 unless the provider layer sets one (extended thinking requires 1).
+    return {"temperature": 0.0, **pydantic_ai_model_settings(get_settings())}
 
 
 @lru_cache
@@ -279,9 +280,18 @@ def _call(ctx: RunContext[GraphDeps], tool_name: str, fn, **kwargs):
 def _unquote(value):
     """Drop stray quotes the model sometimes wraps around a string argument
     ('"player"' or '"player'), in any argument, nested ones included. No real value
-    starts or ends with a quote, and the argument schema sent to the model is unchanged."""
+    starts or ends with a quote, and the argument schema sent to the model is unchanged.
+    An object or list sent as JSON text ('{"yellow_card": true}') becomes the object, which
+    still goes through the argument's own validation. No real string value starts with
+    a brace or bracket, and text that is not valid JSON stays as it is."""
     if isinstance(value, str):
-        return value.strip().strip("\"'").strip()
+        text = value.strip().strip("\"'").strip()
+        if text[:1] in ("{", "[") and text[-1:] in ("}", "]"):
+            try:
+                return _unquote(json.loads(text))
+            except json.JSONDecodeError:
+                pass
+        return text
     if isinstance(value, list):
         return [_unquote(v) for v in value]
     if isinstance(value, dict):
@@ -577,7 +587,10 @@ def missing_config(arms: list[str]) -> list[str]:
     """What .env lacks to run these arms (empty list: ready)."""
     s = get_settings()
     problems = []
-    if not (s.llm_api_key and s.llm_model):
+    if s.llm_provider == "bedrock":  # the key is optional: the AWS credential chain also works
+        if not s.llm_model:
+            problems.append("LLM_MODEL must be set in .env (the Bedrock model ID)")
+    elif not (s.llm_api_key and s.llm_model):
         problems.append("LLM_API_KEY and LLM_MODEL must be set in .env (every arm uses the LLM)")
     if "vector" in arms and not (s.embedder_api_key and s.embedder_model):
         problems.append("EMBEDDER_API_KEY and EMBEDDER_MODEL must be set in .env (the vector arm embeds events)")
@@ -621,7 +634,7 @@ def user_content(arm: str, prompt: str) -> str | list:
     are the same text. The question has to be a separate part because the
     cache matches a prefix up to the breakpoint, and the question changes.
     """
-    if arm not in CACHED_ARMS:
+    if arm not in CACHED_ARMS or not get_settings().llm_prompt_cache:
         return prompt
     data, question = prompt.rsplit(QUESTION_MARKER, 1)
     return [data, CachePoint(), f"{QUESTION_MARKER.lstrip()}{question}"]

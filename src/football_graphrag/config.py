@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # "openrouter" é um agregador compatível com OpenAI: dá acesso a modelos de
     # vários laboratórios por uma chave só. Não serve embeddings — EMBEDDER_PROVIDER
     # continua sendo configurado à parte.
-    llm_provider: Literal["mistral", "anthropic", "gemini", "openrouter"] = "mistral"
+    llm_provider: Literal["mistral", "anthropic", "gemini", "openrouter", "bedrock"] = "mistral"
     llm_api_key: str = ""
     llm_model: str = ""
     llm_max_retries: int = 5  # repassado ao construtor do SDK; não é camada nossa
@@ -33,6 +33,21 @@ class Settings(BaseSettings):
     # esforço menor pode piorar o uso de ferramenta e a saída estruturada, e isso
     # não foi medido neste projeto.
     llm_reasoning_effort: Literal["", "none", "low", "medium", "high"] = ""
+    # Provedor FIXO no OpenRouter, enviado como extra_body["provider"] com
+    # allow_fallbacks=false: o pedido falha em vez de cair em outro provedor (que
+    # pode custar várias vezes mais ou servir outra quantização). Slug do provedor
+    # como na página do modelo, ex. "baidu/fp8"; vários separados por vírgula
+    # formam uma ordem de preferência. Vazio = o OpenRouter escolhe. Só openrouter.
+    llm_provider_order: str = ""
+    # Amazon Bedrock (API Converse). LLM_MODEL é o ID do modelo no Bedrock (ou do perfil de
+    # inferência, ex. "us.<id>"). LLM_API_KEY é uma chave de API do Bedrock (bearer); vazio =
+    # credenciais AWS padrão (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY, perfil ou papel).
+    # LLM_AWS_REGION vazio = AWS_REGION / AWS_DEFAULT_REGION do ambiente.
+    llm_aws_region: str = ""
+    # Marca o fim dos dados do prompt como ponto de cache (benchmark: braços com tabela de
+    # eventos). Desligue em modelo cujo provedor não aceita cache de prompt: o ponto de cache
+    # não muda o que o modelo lê, só a conta.
+    llm_prompt_cache: bool = True
 
     # --- Embeddings ---
     embedder_provider: str = ""

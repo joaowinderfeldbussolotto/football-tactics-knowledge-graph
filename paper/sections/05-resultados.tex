@@ -1,0 +1,146 @@
+% Seção: Experimentos e resultados  (orçamento: 2.5 página(s))
+%
+% Narrativa combinada com o autor (13/10/2026): Ferramentas mantêm o acerto nos modelos menores e maiores; Consulta e
+% Contexto longo dependem dos modelos maiores, com raciocínio, e pagam em tokens de saída e latência; tool calling
+% efetivo é condição. Os Resultados descrevem; a Discussão interpreta. Sem McNemar no texto por ora (a tabela
+% generated/tables/mcnemar_models.tex continua gerada). Sem preço em dólar (os preços mudam): só tokens e latência.
+
+\section{Experimentos e resultados}\label{sec:experimentos}
+
+\subsection{Descrição dos dados}
+
+Os dados são os eventos da final da Copa do Mundo de 2022: \nEvents{} eventos no JSON bruto, que viraram
+\nActions{} ações na tabela de ações. As amostras do experimento são as perguntas: \nQuestions{} perguntas em cinco
+grupos (Tabela~\ref{tab:perguntas}), das quais \nAnswerable{} têm resposta nos dados e \nControl{} formam o grupo de
+controle. Cada pergunta foi feita a cada uma das \nArms{} abordagens, num total de \nRuns{} execuções por modelo.
+
+\subsection{\textit{Setup} experimental}\label{sec:setup}
+
+Foram avaliados \nModels{} modelos de linguagem: dois menores, \modelHaiku{} e \modelQwen{}, e dois maiores,
+\modelSonnet{} e \modelKimi{}. A divisão segue o preço por token de cada modelo. Em cada grupo, um modelo tem pesos fechados e o outro, pesos abertos. Cada modelo respondeu a todas as perguntas em todas as abordagens, com os
+mesmos prompts. Os modelos menores rodaram sem raciocínio estendido e com temperatura zero; os maiores, com o
+raciocínio estendido ligado e na temperatura padrão do provedor. A resposta de cada chamada ao modelo, raciocínio incluído, foi limitada a \nMaxOutTokens{} tokens.
+
+A abordagem \armVector{} usou embeddings do modelo \texttt{\embedModel}. Nas abordagens com agente, cada pergunta
+admitiu no máximo \nMaxCalls{} chamadas de ferramenta. A rodada de cada modelo teve \nRepeats{} repetição por
+pergunta.
+
+O acerto de uma abordagem é a proporção de perguntas respondidas corretamente. Cada acerto vem com o intervalo de
+confiança de Wilson~\cite{wilson1927probable} de \ciLevel{}, que fica sempre entre zero e cem por cento. Com
+\nAnswerable{} perguntas e \nRepeats{} repetição por pergunta, os intervalos são largos, e as diferenças entre
+abordagens são lidas como indícios, e não como demonstração.
+
+O código, as perguntas, o gabarito, os resultados de cada execução e uma página por rodada estão em
+\repoURL{}. As bibliotecas usadas foram socceraction~\cite{socceraction}, Neo4j Graph Data
+Science~\cite{neo4j_gds}, networkx~\cite{networkx}, PydanticAI~\cite{pydanticai} e Langfuse~\cite{langfuse}.
+
+\subsection{Análise dos resultados}
+
+\subsubsection{Acerto}
+
+A Figura~\ref{fig:modelos} mostra o acerto, nas \nAnswerable{} perguntas com resposta, das três abordagens que mais
+acertaram em todos os modelos: \armEventsInPrompt{}, \armTextToCypher{} e \armGraphTools{}. A abordagem
+\armGraphTools{} variou pouco entre os modelos (\accRangeGraphTools{}). As outras duas dependeram do modelo:
+ficaram abaixo dela nos modelos menores; nos maiores, a \armTextToCypher{} chegou ao mesmo nível, e o
+\armEventsInPrompt{} se aproximou. Nos modelos menores, a diferença se concentrou nas perguntas de jogadas e de
+relações na rede de passes.
+
+As outras três abordagens acertaram pouco em todos os modelos: a \armVector{}, de \accRangeVector{}; as
+\armStatsInPrompt{}, de \accRangeStatsInPrompt{}; e a abordagem \armNoContext{}, \accRangeNoContext{}. As
+abordagens \armNoContext{} e \armStatsInPrompt{} erraram quase só por abstenção, respondendo que não havia dados; a
+\armVector{} errou por abstenção e por alucinação, em proporções que variaram com o modelo. Nas três que mais
+acertaram, a abstenção foi rara, exceto em \armEventsInPrompt{} nos modelos menores, e a alucinação, isto é, uma
+resposta dada e errada, ficou em \hallRangeGraphTools{} das execuções em \armGraphTools{}, \hallRangeTextToCypher{}
+em \armTextToCypher{} e \hallRangeEventsInPrompt{} em \armEventsInPrompt{}, conforme o modelo.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering
+\gentable{fig_models}
+\captionof{figure}{Acerto de \armEventsInPrompt{} (\armShortEventsInPrompt{}), \armTextToCypher{}
+(\armShortTextToCypher{}) e \armGraphTools{} (\armShortGraphTools{}) nas perguntas com resposta, por modelo, com o
+intervalo de Wilson de \ciLevel{}. A área cinza marca os modelos maiores.}\label{fig:modelos}
+\end{minipage}\par\smallskip
+
+\subsubsection{Custo}
+
+A análise de custo considera só as três abordagens que mais acertaram; nas outras, que não passaram de
+\accMaxOthers{} de acerto, o custo pouco importa. A Tabela~\ref{tab:custo} mostra as medianas, por execução, dos
+tokens de entrada e de saída e da latência. O \armEventsInPrompt{} leva a tabela de ações inteira em cada pergunta,
+de \inRangeEventsInPrompt{} mil tokens de entrada. Nos modelos maiores, também produziu de
+\outRangeHighEventsInPrompt{} tokens de saída, quase todos de raciocínio, e levou de \latRangeHighEventsInPrompt{}
+segundos. Os erros de formato vieram, na maior parte, de limites: o agente esgotou as chamadas de ferramenta, ou o
+modelo esgotou o limite de saída.
+
+\vspace{2mm}
+\noindent\begin{minipage}{\columnwidth}
+\centering\footnotesize\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{5pt}
+\gentable{cost_models}
+\captionof{table}{Mediana por execução das três abordagens que mais acertaram, por modelo. Os tokens de entrada
+incluem os lidos do cache do prompt. Rótulos como na Figura~\ref{fig:modelos}.}\label{tab:custo}
+\end{minipage}\par\smallskip
+
+\subsection{Discussão}\label{sec:discussao}
+
+A abordagem \armGraphTools{} foi a única com acerto alto nos \nModels{} modelos. Nela, o modelo escolhe a
+ferramenta e os argumentos, e o código monta a consulta e faz as contas, como contar os passes entre dois jogadores
+ou percorrer uma jogada. Isso é compatível com o acerto quase igual nos dois grupos de modelos.
+
+A contrapartida é a cobertura. A abordagem \armGraphTools{} só responde a perguntas para as quais existe uma
+ferramenta. Em \armEventsInPrompt{}, o modelo recebe todas as ações, e em \armTextToCypher{}, pode escrever
+qualquer consulta de leitura sobre o grafo. Nessas duas, o que limita a resposta é a capacidade do modelo, e não um
+conjunto fixo de operações.
+
+Em \armTextToCypher{}, o modelo escreve a consulta inteira. Gerar consultas Cypher corretas ainda é um ponto fraco
+dos LLMs~\cite{ozsoy2025text2cypher}. Os modelos menores precisaram de mais tentativas para chegar a uma consulta
+útil, e no \modelQwen{} foram em média \callsQwenTextToCypher{} chamadas por pergunta, perto do limite de
+\nMaxCalls{}. Nos modelos maiores, o acerto ficou próximo ao de \armGraphTools{}, com menos tokens de entrada
+(\inRangeHighTextToCypher{} mil, contra \inRangeHighGraphTools{} mil) e mais tokens de saída. A liberdade de
+escrever a consulta só se converteu em acerto nos modelos maiores. Nem todo modelo é capaz de usá-la, e, nos
+menores, as consultas parametrizadas de \armGraphTools{} supriram essa limitação.
+
+Em \armEventsInPrompt{}, o modelo recebe a tabela de ações inteira e precisa encontrar e combinar as linhas certas.
+Nos modelos menores, a abordagem errou sobretudo nas perguntas encadeadas, que exigem juntar eventos espalhados
+pela tabela. Isso é compatível com dois resultados conhecidos. Os modelos usam pior a informação que está no meio
+de um contexto longo~\cite{liu2024lostinthemiddle} e têm dificuldade com raciocínio composicional quando recebem o
+corpus inteiro~\cite{lee2024loft}. Li et al.~\cite{li2024ragorlongcontext} observaram que, com recursos
+suficientes, o contexto longo supera a recuperação. Aqui, ele superou a \armVector{} em todos os modelos. Diante de
+outra forma de recuperação, a consulta ao grafo das abordagens com agente, chegou perto nos modelos maiores, com
+raciocínio estendido, mas consumiu muito mais recursos: milhares de tokens de raciocínio e dezenas de segundos por
+pergunta (Tabela~\ref{tab:custo}).
+
+A \armVector{} ficou baixa em todos os modelos. A busca traz as \nTopK{} linhas, de um total de \nActions{}, cujo
+texto mais se parece com o da pergunta. Parecer com a pergunta não é o mesmo que servir para respondê-la. Quando a
+pergunta cita um jogador, as linhas recuperadas tendem a ser dele. Na pergunta sobre o principal elo da circulação
+de bola da Argentina sem Enzo Fernández, por exemplo, os modelos relataram ter recebido só ações dele. Contar exige
+todas as linhas de um tipo. Ligar eventos exige as linhas vizinhas, como o passe que antecede uma finalização, e
+essas em geral não se parecem com a pergunta.
+
+Em parte das execuções, os modelos perceberam a falta e responderam que não havia dados (\abstRangeVector{},
+conforme o modelo). Nas demais, em geral responderam com um valor errado. Uma explicação possível é que as linhas
+recuperadas, embora incompletas, pareciam bastar: contadas só nelas, as ações dão um número ou um jogador
+plausível. Han et al.~\cite{han2025ragvsgraphrag} observaram que a recuperação de trechos se sai melhor em
+perguntas de um passo, e a recuperação pelo grafo, nas de vários. O acerto maior de Tzikas et
+al.~\cite{tzikas2025dynamic} com busca vetorial veio de outro desenho (Seção~\ref{sec:trabalhos}), em que cada
+trecho já traz os eventos seguintes. Aqui, cada linha recuperada é uma ação isolada.
+
+A \armStatsInPrompt{} também ficou baixa, por outro motivo. A súmula traz só totais da partida inteira, por jogador
+e por time, como passes certos, desarmes, faltas, cartões e finalizações. As perguntas de busca e contagem, porém,
+pedem um lance específico, como quem recebeu o primeiro cartão amarelo, ou uma contagem com recorte de tempo ou de
+campo, como os desarmes certos na prorrogação. As encadeadas pedem quem passou para quem, a ordem dos lances ou o
+que mudou depois de uma substituição. Nada disso está nos totais. O prompt pede que o modelo indique a falta de
+dados quando eles não trazem o que a pergunta pede, e por isso os modelos se abstiveram em quase todas as
+perguntas, em vez de responder com o total da partida. A \armNoContext{} se absteve em todas as perguntas com
+resposta, em todos os modelos. Sem os dados, os modelos seguiram a instrução de não responder de memória.
+
+O estudo não separa o efeito do grafo do efeito de estruturar os dados em ferramentas. Uma hipótese, não testada
+aqui, é que um banco relacional com as mesmas ferramentas responderia bem às perguntas de busca e contagem, que são
+filtros e agregações, e que a diferença apareceria nas perguntas de relações, que dependem de caminhos e métricas
+de rede. O estudo usa uma única partida, \nAnswerable{} perguntas com resposta e \nRepeats{} repetição por
+pergunta, o que deixa os intervalos de confiança largos. Nos modelos maiores, o tamanho e o raciocínio estendido
+vieram juntos, e não é possível separar o efeito de um do outro. O raciocínio também esbarrou no limite de saída.
+Em \armEventsInPrompt{}, o \modelSonnet{} só respondeu dentro do limite com um nível de raciocínio menor, e algumas
+perguntas precisaram de um limite maior. As ferramentas e as perguntas foram escritas pelos mesmos autores, o que
+favorece a cobertura das ferramentas. Por isso, o acerto de \armGraphTools{} vale para perguntas dentro dessa
+cobertura. As abordagens com agente supõem também um modelo que chame ferramentas de forma confiável, e esse
+suporte varia entre modelos e provedores.
