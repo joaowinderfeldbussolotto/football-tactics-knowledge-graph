@@ -53,6 +53,34 @@ repositório novo, `match-events-qa-benchmark`.
 > Porque são dados abertos e cada evento já vem com jogador, momento e posição no campo. Qualquer pessoa consegue
 > baixar e reproduzir o trabalho.
 
+**"O que é exatamente um evento?"**
+
+> É cada coisa que acontece na partida e que a StatsBomb registra, como um passe, um chute, uma falta, uma pressão ou
+> uma recepção de bola. Cada evento vem com o minuto, o time, o jogador e a posição no campo. A final tem pouco mais de
+> 4.400 eventos.
+
+**"Por que a disputa de pênaltis ficou de fora?"**
+
+> Porque ela não é jogo corrido. Se entrasse, ia misturar as cobranças da decisão com as finalizações da partida em
+> qualquer contagem. Então todas as perguntas e o gabarito consideram só o tempo normal e a prorrogação.
+
+**"Por que não mandar o JSON direto pro modelo?"**
+
+> Porque ele é grande demais e irregular. São quase 4 milhões de caracteres, e cada tipo de evento tem campos
+> diferentes. A tabela de ações deixa tudo no mesmo formato e cabe no contexto, com cerca de 100 mil tokens.
+
+**"Os dados da StatsBomb têm erro?"**
+
+> Tem algumas diferenças pequenas, que a gente documentou. Alguns passes do JSON não viram ação na conversão, então os
+> passes tentados de alguns jogadores ficam um ou dois abaixo. E uma saída do goleiro pra afastar a bola é contada como
+> defesa, então o Lloris tem 8 defesas na tabela e 7 no JSON. Os passes certos batem.
+
+**"Como vocês lidam com o nome dos jogadores?"**
+
+> Os dados usam o nome completo de registro, tipo Lionel Andrés Messi Cuccittini. Na correção, vale o nome completo,
+> o apelido e o sobrenome, desde que o sobrenome seja único na partida. Se o modelo responde Messi, vale. Mas Martínez
+> sozinho não vale, porque tem o Lautaro e o Emiliano.
+
 ## Slide 5 · Do JSON à tabela de ações
 
 **"O que é o SPADL e por que converter?"**
@@ -72,6 +100,43 @@ repositório novo, `match-events-qa-benchmark`.
 > É uma sequência de ações seguidas do mesmo time. Ela termina quando a bola muda de time, quando muda o período ou
 > quando acontece algo que encerra a jogada, como uma falta, uma finalização ou uma defesa do goleiro. É assim que a
 > gente identifica as jogadas.
+
+**"Por que colocar todo mundo atacando da esquerda pra direita?"**
+
+> Porque, no dado original, os times trocam de lado a cada tempo. Sem esse ajuste, o terço de ataque da Argentina no
+> primeiro tempo viraria o terço de defesa dela no segundo. Então a gente espelhou as ações pra que, em todas, o time
+> ataque da esquerda pra direita. Assim, terço de ataque e lado esquerdo querem dizer sempre a mesma coisa, pros dois
+> times e em todos os períodos.
+
+**"Como funcionam as zonas?"**
+
+> O campo é dividido numa grade de 12 colunas por 8 linhas, o que dá 96 zonas. Cada ação ganha a zona onde começou e a
+> zona onde terminou. Da coluna sai o terço do campo, defesa, meio ou ataque, e da linha sai o corredor, direita,
+> centro ou esquerda. É isso que permite perguntas como quem mais trocou passes pelo lado direito no campo de ataque.
+
+**"O SPADL perde alguma informação?"**
+
+> Perde, e a gente recuperou do JSON. O SPADL não diz se o chute foi defendido, foi pra fora, bateu na trave ou foi
+> bloqueado, só se virou gol. E ele só enxerga cartão que veio junto com uma falta. O amarelo do Giroud, por exemplo,
+> foi por reclamação, sem falta, e ia sumir. A gente puxou essas duas coisas do JSON original pelo identificador do
+> evento.
+
+**"Por que o recebedor é inferido, se o JSON já tem o recebedor do passe?"**
+
+> Porque o SPADL não guarda o recebedor. Então a gente usou uma regra única pra todo tipo de passe, incluindo
+> cruzamento, lateral e tiro de meta, que é o jogador do mesmo time que age em seguida. E o gabarito usa a mesma regra,
+> então a pergunta e a resposta falam da mesma coisa.
+
+**"Como o placar aparece na tabela?"**
+
+> De dois jeitos. Toda ação tem o placar de antes dela, e na linha de um gol aparece também o placar depois. No gol do
+> Di María, por exemplo, a linha mostra 1 a 0 como placar antes e 2 a 0 como resultado do gol. O primeiro serve pra
+> perguntas como enquanto a França perdia por 2 a 0, e o segundo pra achar um lance pelo placar, como o gol do 2 a 2.
+
+**"Ficaram de fora os eventos sem bola, como a pressão?"**
+
+> Na tabela, sim, porque o SPADL guarda só ações com bola. Mas as pressões foram lidas direto do JSON e entraram no
+> grafo, como uma ligação de quem pressionou quem.
 
 ## Slide 6 · Da tabela ao grafo
 
@@ -108,6 +173,35 @@ repositório novo, `match-events-qa-benchmark`.
 
 > É uma tabela de totais por jogador e por time, como passes certos, desarmes e finalizações. Ela é calculada pelo
 > próprio banco, contando as ações de cada jogador no grafo. É o que a abordagem de estatísticas resumidas recebe.
+
+**"Quais são os nós e as ligações do grafo?"**
+
+> Os nós são os jogadores, os times, a partida, as fases de posse e as 96 zonas do campo. E as ligações são as ações.
+> Cada ação vira uma ligação do jogador pra partida, com todas as colunas da tabela, e cada passe certo com recebedor
+> vira uma ligação de um jogador pro outro. Tem também ligações de assistência, de pressão e de qual jogador participou
+> de qual fase de posse.
+
+**"O grafo acrescenta informação em relação à tabela?"**
+
+> Não, ele só reorganiza a mesma informação em ligações. A única coisa calculada é a súmula, que o banco conta a partir
+> dessas ligações. Então todas as abordagens partem dos mesmos dados, só que organizados de jeitos diferentes.
+
+**"Como vocês definem assistência?"**
+
+> É o último passe que o autor do gol recebeu dentro da mesma fase de posse. No segundo gol, por exemplo, a assistência
+> é o passe do Mac Allister pro Di María.
+
+**"Tem alguma informação pronta no grafo que facilitaria a resposta?"**
+
+> Tem uma camada com padrões táticos já calculados, mas nenhuma abordagem lê ela. Na consulta escrita pelo modelo, ela
+> fica escondida do esquema, e uma consulta que tenta usar ela é recusada. Senão o modelo estaria lendo a resposta
+> pronta, e não consultando os dados.
+
+**"Por que o Neo4j?"**
+
+> Porque ele tem uma linguagem de consulta própria pra grafo, o Cypher, e uma biblioteca de algoritmos de rede
+> integrada, que calcula coisas como a betweenness. Isso permitiu montar as duas abordagens com agente em cima do mesmo
+> banco.
 
 ## Slide 7 · Perguntas e gabarito
 
