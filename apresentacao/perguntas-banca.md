@@ -24,6 +24,12 @@ repositório novo, `match-events-qa-benchmark`.
 > testar o contexto longo. Segundo, com uma partida dava pra conferir o gabarito de cada pergunta com cuidado. Usar
 > mais partidas é um dos próximos passos.
 
+**"Qual é a contribuição do trabalho?"**
+
+> São três coisas. Uma transformação dos eventos da partida numa tabela de ações e num grafo, um conjunto de 52
+> perguntas com gabarito, e a comparação de seis abordagens em quatro modelos, todas com as mesmas perguntas, o mesmo
+> prompt e o mesmo formato de resposta. O código, as perguntas e o gabarito estão abertos no repositório.
+
 ## Slide 3 · Trabalhos relacionados
 
 **"O que vocês fazem que os outros não fazem?"**
@@ -38,6 +44,12 @@ repositório novo, `match-events-qa-benchmark`.
 > Porque o desenho é outro. Lá, cada trecho já traz os eventos seguintes, tipo o passe junto com o chute que veio
 > depois, a busca traz até cem trechos e reordena, e quem corrige é um LLM. Aqui, cada linha é uma ação isolada, e vão
 > trinta linhas. Testar a busca com os eventos vizinhos está nos próximos passos.
+
+**"Essa última linha da tabela está no artigo?"**
+
+> Não. No artigo a tabela tem só os outros trabalhos. Essa última linha a gente acrescentou na apresentação pra
+> resumir a lacuna que o artigo descreve no fim da seção, que é não ter encontrado trabalhos comparando formas de
+> recuperação em perguntas sobre eventos de futebol, com correção por código.
 
 ## Slide 4 · Os dados em JSON
 
@@ -81,7 +93,18 @@ repositório novo, `match-events-qa-benchmark`.
 > o apelido e o sobrenome, desde que o sobrenome seja único na partida. Se o modelo responde Messi, vale. Mas Martínez
 > sozinho não vale, porque tem o Lautaro e o Emiliano.
 
+**"Por que o gol aparece no minuto 35 no JSON e aos 36 na transmissão?"**
+
+> Porque o JSON conta os minutos que já passaram, começando do zero. Então um lance aos 35 minutos e 22 segundos fica
+> como minuto 35, mas na transmissão aparece como 36. Na tabela a gente usa o minuto da transmissão, que é como as
+> pessoas falam do jogo e como as perguntas são escritas.
+
 ## Slide 5 · Do JSON à tabela de ações
+
+**"O que é o socceraction?"**
+
+> É uma biblioteca aberta, em Python, que converte eventos de vários fornecedores de dados, como a StatsBomb, pro
+> formato SPADL. A gente usou ela justamente pra não escrever essa conversão do zero.
 
 **"O que é o SPADL e por que converter?"**
 
@@ -90,16 +113,27 @@ repositório novo, `match-events-qa-benchmark`.
 > separado. O SPADL deixa todas as ações com os mesmos campos, quem fez, quando, onde começou, onde terminou e se deu
 > certo. Aí fica muito mais fácil contar e comparar.
 
-**"Como vocês sabem quem recebeu o passe?"**
+**"Como vocês sabem quem recebeu o passe, se o JSON já traz o recebedor?"**
 
-> A gente define o recebedor como o jogador do mesmo time que faz a ação seguinte. Então, se o Mac Allister passa e a
+> O SPADL não guarda o recebedor, então a gente usou uma regra única pra todo tipo de passe, incluindo cruzamento,
+> lateral e tiro de meta. O recebedor é o jogador do mesmo time que faz a ação seguinte. Se o Mac Allister passa e a
 > próxima ação é do Di María, o Di María é o recebedor. Se a próxima ação é do adversário, o passe fica sem recebedor.
+> E o gabarito usa a mesma regra, então a pergunta e a resposta falam da mesma coisa.
 
 **"O que é uma fase de posse?"**
 
 > É uma sequência de ações seguidas do mesmo time. Ela termina quando a bola muda de time, quando muda o período ou
 > quando acontece algo que encerra a jogada, como uma falta, uma finalização ou uma defesa do goleiro. É assim que a
 > gente identifica as jogadas.
+
+**"Quais são as ações do SPADL?"**
+
+> São 22 tipos de ação com bola, que a gente traduziu pro português e separou em grupos. Tem os passes, que incluem
+> passe, cruzamento, lateral e tiro de meta. As bolas paradas, que são falta e escanteio, cobrados curto ou na área. As
+> finalizações, que são o chute, o pênalti e a falta direta. A condução, que é correr com a bola, e o drible, que é
+> passar pelo marcador. As defensivas, que são desarme, interceptação e corte. A falta cometida e o erro de domínio. E
+> as do goleiro, que são defender, encaixar, socar e recolher a bola. Além disso, a gente acrescentou o cartão por
+> reclamação, que veio do JSON, porque o SPADL não enxerga cartão sem falta.
 
 **"Por que colocar todo mundo atacando da esquerda pra direita?"**
 
@@ -120,12 +154,6 @@ repositório novo, `match-events-qa-benchmark`.
 > bloqueado, só se virou gol. E ele só enxerga cartão que veio junto com uma falta. O amarelo do Giroud, por exemplo,
 > foi por reclamação, sem falta, e ia sumir. A gente puxou essas duas coisas do JSON original pelo identificador do
 > evento.
-
-**"Por que o recebedor é inferido, se o JSON já tem o recebedor do passe?"**
-
-> Porque o SPADL não guarda o recebedor. Então a gente usou uma regra única pra todo tipo de passe, incluindo
-> cruzamento, lateral e tiro de meta, que é o jogador do mesmo time que age em seguida. E o gabarito usa a mesma regra,
-> então a pergunta e a resposta falam da mesma coisa.
 
 **"Como o placar aparece na tabela?"**
 
@@ -171,8 +199,9 @@ repositório novo, `match-events-qa-benchmark`.
 
 **"O que é a súmula?"**
 
-> É uma tabela de totais por jogador e por time, como passes certos, desarmes e finalizações. Ela é calculada pelo
-> próprio banco, contando as ações de cada jogador no grafo. É o que a abordagem de estatísticas resumidas recebe.
+> É uma tabela de totais por jogador e por time, como passes, desarmes e finalizações, separando o que foi tentado e
+> o que deu certo. Ela é calculada pelo próprio banco, contando as ações de cada jogador no grafo. É o que a abordagem
+> de estatísticas resumidas recebe.
 
 **"Quais são os nós e as ligações do grafo?"**
 
