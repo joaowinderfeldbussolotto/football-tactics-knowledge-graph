@@ -768,5 +768,22 @@ textbox(s, 4.3, 5.8, 8.2, 1.0,
          ("github.com/joaowinderfeldbussolotto/match-events-qa-benchmark", {"size": 18, "color": RGBColor(255, 255, 255)})],
         gap=2, anchor=MSO_ANCHOR.MIDDLE)
 
+# notas do orador dos slides 8 a 15: o roteiro de fala aprovado, lido de apresentacao/roteiro.md
+def load_script():
+    text = (Path(__file__).resolve().parent / "roteiro.md").read_text()
+    text = text.split("## Cola")[0]
+    out = {}
+    for block in re.split(r"^## Slide ", text, flags=re.M)[1:]:
+        head, body = block.split("\n", 1)
+        num = int(head.split()[0])
+        tempo = re.search(r"\(≈ ([0-9]+:[0-9]+)\)", head).group(1)
+        paras = [" ".join(p.split()) for p in re.split(r"\n\s*\n", body.replace("---", "")) if p.strip()]
+        out[num] = f"[{tempo}] " + "\n\n".join(paras)
+    return out
+
+
+for num, note in load_script().items():
+    prs.slides[num - 1].notes_slide.notes_text_frame.text = note
+
 prs.save(OUT)
 print("salvo", OUT, len(prs.slides), "slides")
